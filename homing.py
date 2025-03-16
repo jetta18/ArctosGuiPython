@@ -1,5 +1,4 @@
 import time
-import move_can
 
 # Define motor IDs and their respective zero positions (home positions)
 MOTOR_IDS = [3, 2, 1]  # Motor IDs 4
@@ -24,7 +23,7 @@ def move_to_zero_pose(Arctos) -> None:
         # Move motor to its zero position with specified speed and acceleration
         Arctos.servos[motor_id - 1].run_motor_absolute_motion_by_axis(500, 70, zero_position * 100)
         
-        move_can.wait_for_motors_to_stop(Arctos)
+        Arctos.wait_for_motors_to_stop()
 
         # Set the current axis position to zero
         Arctos.servos[motor_id - 1].set_current_axis_to_zero()

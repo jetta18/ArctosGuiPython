@@ -3,8 +3,13 @@ import can
 import os
 import time
 from typing import List
+import logging
 from mks_servo_can import mks_servo
 from mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)  
 
 class ArctosController:
     """
@@ -39,7 +44,7 @@ class ArctosController:
         self.bitrate = bitrate
         self.encoder_resolution = encoder_resolution
         self.servos = []
-        self.gear_ratios = [13.5, 150, 150, 48, (67.82 / 2.1), (67.82 / 2.1)]  # Gear ratios for each joint
+        self.gear_ratios = [13.5, -150, -150, 48, -(67.82 / 2.1), (67.82 / 2.1)]  # Gear ratios for each joint
 
         # Initialize CAN Bus
         self.bus = self.initialize_can_bus()
@@ -90,17 +95,10 @@ class ArctosController:
             servo.set_limit_port_remap(Enable.Enable)
             time.sleep(0.1)
 
-        #servos[3].set_working_current(2800)
-        #servos[3].set_home(EndStopLevel.Low, Direction.CCW, homeSpeed=140, endLimit=Enable.Enable)
-
-        # servos[4].set_motor_shaft_locked_rotor_protection(Enable.Disable)
-        # servos[5].set_motor_shaft_locked_rotor_protection(Enable.Disable)
-        # servos[4].set_working_current(2000)
-        # servos[5].set_working_current(2000)
-        print("Servos successfully initialized.")
+        logger.debug("Servos successfully initialized.")
         return servos
 
-    def move_to_angles(self, angles_rad: list, speed: int = 400, acceleration: int = 100) -> None:
+    def move_to_angles(self, angles_rad: list, speed: int = 750, acceleration: int = 120) -> None:
         """
         Moves all joints of the robot to the specified angles.
         
@@ -108,20 +106,49 @@ class ArctosController:
         :param speed: Motor speed (0-3000 RPM, default 400).
         :param acceleration: Acceleration (0-255, default 100).
         """
-        for i, angle_rad in enumerate(angles_rad):
+        # Berechne B- und C-Achse aus den Achsen 4 und 5
+        b_axis = angles_rad[5] + angles_rad[4]
+        c_axis = angles_rad[4] - angles_rad[5]
+        
+        # Erstelle die finale Winkel-Liste mit der gewünschten Vorzeichenlogik
+        final_angles = [
+            angles_rad[0],         # A0
+            angles_rad[1],        # A1
+            angles_rad[2],        # A2
+            angles_rad[3],         # A3
+            b_axis,               # B-Achse (kopplung)
+            c_axis                 # C-Achse (kopplung)
+        ]
+        
+        # Fahre alle Achsen anhand der finalen Winkel an
+        for i, angle_rad in enumerate(final_angles):
             encoder_value = self.angle_to_encoder(angle_rad, i)
-            print(f"Axis {i}: Angle {math.degrees(angle_rad)}° -> Encoder value {encoder_value}")
+            logger.debug(f"Axis {i}: Angle {math.degrees(angle_rad):.2f}° -> Encoder value {encoder_value}")
             self.servos[i].run_motor_absolute_motion_by_axis(speed, acceleration, encoder_value)
 
-    def set_joint_angles(self) -> None:
+    def get_joint_angles(self) -> list[float]:
         """
         Reads the current joint angles from the encoder values and stores them.
+
+        This function iterates over all servos, reads their encoder values, 
+        converts these values into radians, and stores the resulting angles 
+        in a list. Additionally, it logs each axis's encoder value and the 
+        corresponding angle in degrees.
+
+        Returns:
+            list[float]: A list containing the current joint angles in radians.
         """
+        current_joint_angle = []  # Initialize an empty list to store angles
+
         for i, servo in enumerate(self.servos):
             encoder_value = servo.read_encoder_value_addition()  # Read encoder value
+            time.sleep(0.2)
             angle_rad = self.encoder_to_angle(encoder_value, i)  # Convert to radians
-            self.current_joint_angle[i] = angle_rad  # Store joint angle
-            print(f"Axis {i}: Encoder Value = {encoder_value}, Angle = {math.degrees(angle_rad):.2f}°")
+            current_joint_angle.append(angle_rad)  # Store joint angle
+
+            logger.debug(f"Axis {i}: Encoder Value = {encoder_value}, Angle = {math.degrees(angle_rad):.2f}°")
+
+        return current_joint_angle
 
     def initialize_can_bus(self):
         """
@@ -130,15 +157,15 @@ class ArctosController:
         :return: Initialized CAN bus object.
         """
         if not self.is_can_interface_up():
-            print(f"CAN interface {self.can_interface} not active. Starting it...")
+            logger.debug(f"CAN interface {self.can_interface} not active. Starting it...")
             self.setup_can_interface()
 
         try:
             bus = can.interface.Bus(bustype="socketcan", channel=self.can_interface)
-            print(f"CAN bus successfully initialized on {self.can_interface} with {self.bitrate} baud rate.")
+            logger.debug(f"CAN bus successfully initialized on {self.can_interface} with {self.bitrate} baud rate.")
             return bus
         except Exception as e:
-            print(f"Error initializing CAN bus: {e}")
+            logger.debug(f"Error initializing CAN bus: {e}")
             raise RuntimeError("Error initializing CAN bus.")
 
     def is_can_interface_up(self) -> bool:
@@ -154,7 +181,7 @@ class ArctosController:
         """
         Configures and starts the CAN interface (`slcan`) on `ttyACM0`.
         """
-        print("Starting slcan for ttyACM0...")
+        logger.debug("Starting slcan for ttyACM0...")
         os.system("sudo modprobe can")
         os.system("sudo modprobe can_raw")
         os.system("sudo modprobe slcan")
@@ -177,10 +204,10 @@ class ArctosController:
             msg = can.Message(arbitration_id=arbitration_id, data=data, is_extended_id=False)
             bus.send(msg)
             data_bytes = ', '.join([f'0x{byte:02X}' for byte in msg.data])
-            print(f"Sent CAN message: ID=0x{msg.arbitration_id:X}, Data=[{data_bytes}]")
+            logger.debug(f"Sent CAN message: ID=0x{msg.arbitration_id:X}, Data=[{data_bytes}]")
             time.sleep(0.5)  # Delay of 500 ms to allow for processing
         except can.CanError as e:
-            print(f"Error sending CAN message: {e}")
+            logger.debug(f"Error sending CAN message: {e}")
 
     def open_gripper(self) -> None:
         """
@@ -190,9 +217,9 @@ class ArctosController:
         """
         try:
             self.send_can_message_gripper(self.bus, 0x07, [0xFF])
-            print("Gripper opened.")
+            logger.debug("Gripper opened.")
         except Exception as e:
-            print(f"Error sending open gripper command: {e}")
+            logger.debug(f"Error sending open gripper command: {e}")
 
     def close_gripper(self) -> None:
         """
@@ -202,6 +229,24 @@ class ArctosController:
         """
         try:
             self.send_can_message_gripper(self.bus, 0x07, [0x00])
-            print("Gripper closed.")
+            logger.debug("Gripper closed.")
         except Exception as e:
-            print(f"Error sending close gripper command: {e}")
+            logger.debug(f"Error sending close gripper command: {e}")
+
+    def wait_for_motors_to_stop(self) -> None:
+        """
+        Waits until all motors stop moving before proceeding.
+        
+        This function continuously checks if any motor is still running and waits until all motors have stopped before returning.
+        
+        :param Arctos: Instance of the robot controller containing servo objects.
+        """
+        while any(servo.is_motor_running() for servo in self.servos):
+            logger.debug("Motors are still running. Waiting...")
+            time.sleep(0.5)  # Wait before checking again
+    
+    def is_motor_running(self) -> bool:
+        if any(servo.is_motor_running() for servo in self.servos):
+            return True
+        else:
+            return False
