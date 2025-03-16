@@ -15,7 +15,7 @@ import math
 from arctos_controller import ArctosController
 from path_planning import PathPlanner
 import homing
-import move_can
+import Backup.move_can as move_can
 
 # ------------------------------
 # CONFIGURATION
