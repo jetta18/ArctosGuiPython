@@ -49,7 +49,7 @@ This project uses several key libraries:
 
 1. Clone the repository with submodules:
 ```bash
-git clone --recursive https://github.com/yourusername/ArctosGuiPython.git
+git clone https://github.com/jetta18/ArctosGuiPython.git
 cd ArctosGuiPython
 ```
 
