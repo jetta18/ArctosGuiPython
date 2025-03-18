@@ -2,6 +2,7 @@ import math
 import can
 import os
 import time
+import glob
 from typing import List
 import logging
 from mks_servo_can import mks_servo
@@ -9,7 +10,7 @@ from mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  
+logger.setLevel(logging.INFO)  
 
 class ArctosController:
     """
@@ -177,18 +178,60 @@ class ArctosController:
         result = os.system(f"ip link show {self.can_interface} > /dev/null 2>&1")
         return result == 0  # 0 means the interface exists
 
+
     def setup_can_interface(self) -> None:
         """
-        Configures and starts the CAN interface (`slcan`) on `ttyACM0`.
-        """
-        logger.debug("Starting slcan for ttyACM0...")
-        os.system("sudo modprobe can")
-        os.system("sudo modprobe can_raw")
-        os.system("sudo modprobe slcan")
-        os.system("sudo slcand -o -c -s6 /dev/ttyACM0 slcan0") 
-        os.system("sudo ip link set slcan0 up")
-        time.sleep(1)  # Wait to ensure stability
+        Configures and initializes the CAN interface (`slcan`) dynamically by detecting available `ttyACM*` ports.
+        
+        This method scans for connected `ttyACM*` devices, which represent USB-to-CAN adapters (e.g., CANable devices). 
+        It then attempts to configure and activate the CAN interface on each detected device.
+        
+        The following steps are executed:
+        1. Identify all available `ttyACM*` devices.
+        2. Iterate over the detected devices and try to configure each one.
+        3. Ensure that any previously running `slcand` process is stopped before initializing a new one.
+        4. Load the necessary kernel modules for CAN communication.
+        5. Start `slcand` with the detected `ttyACM*` port and set up the CAN interface.
+        6. Verify if the `slcan0` interface is successfully created and activated.
+        7. If a working interface is found, exit the function; otherwise, log an error.
 
+        If no `ttyACM*` device is detected, or if all initialization attempts fail, an error message is logged.
+
+        Note: This function requires root privileges to execute system commands like `modprobe` and `ip link set`.
+        """
+        # Search for all available ttyACM* devices
+        tty_ports = glob.glob("/dev/ttyACM*")
+
+        if not tty_ports:
+            logger.error("No ttyACM* device found! Make sure your CANable device is properly connected.")
+            return
+
+        # Try to configure each detected device
+        for tty_port in tty_ports:
+            logger.debug(f"Attempting to set up CAN interface on: {tty_port}")
+
+            # Ensure any existing slcan0 interface is disabled before reconfiguring
+            os.system("sudo ip link set slcan0 down")
+            os.system("sudo killall slcand")
+            time.sleep(1)
+
+            # Load necessary kernel modules
+            os.system("sudo modprobe can")
+            os.system("sudo modprobe can_raw")
+            os.system("sudo modprobe slcan")
+
+            # Start slcand for the detected device
+            os.system(f"sudo slcand -o -c -s6 {tty_port} slcan0")
+            os.system("sudo ip link set slcan0 up")
+            time.sleep(1)
+
+            # Check if the interface is successfully created
+            result = os.system("ip link show slcan0 > /dev/null 2>&1")
+            if result == 0:
+                logger.debug(f"CAN interface successfully set up on {tty_port}.")
+                return  # Exit function once a working interface is found
+
+        logger.error("Failed to initialize a functional CAN interface. Please check your device connection and permissions.")
 
 
     def send_can_message_gripper(self, bus: can.Bus, arbitration_id: int, data: List[int]) -> None:

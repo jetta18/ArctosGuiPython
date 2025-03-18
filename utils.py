@@ -130,8 +130,7 @@ def move_robot_to_xyz(robot, x, y, z) -> None:
     """
     try:
         target_position = np.array([x, y, z])
-        target_rpy = np.array([np.pi/4, 0, 0])
-        q_solution = robot.inverse_kinematics(target_position, target_rpy)
+        q_solution = robot.inverse_kinematics(target_position)
         robot.set_joint_angles_animated(q_solution, duration=1.0, steps=50)
         ui.notify(f"✅ Moved to position: X={x}, Y={y}, Z={z}")
     except ValueError:

@@ -23,14 +23,19 @@ class ArctosPinocchioRobot:
     - Exports joint angles for external motor control.
     """
 
-    def __init__(self, urdf_path: str = "/home/michael/GIT/ArctosGuiPython/arctos_urdf.urdf", ee_frame_name="gripper"):
+    def __init__(self, ee_frame_name="gripper"):
         """
         Initializes the robot, loads the URDF, and sets up the Meshcat viewer.
 
         :param urdf_path: Path to the URDF file of the robot.
         :param ee_frame_name: The name of the end-effector frame.
         """
+
+
+        repo_path = os.path.dirname(os.path.abspath(__file__))
+        urdf_path = os.path.join(repo_path, "arctos_urdf.urdf")
         self.urdf_path = urdf_path
+
         self.ee_frame_name = ee_frame_name  # Name of the end-effector frame
 
         # Load kinematic model
@@ -154,68 +159,75 @@ class ArctosPinocchioRobot:
 
     def inverse_kinematics(self, target_xyz: np.ndarray, target_rpy: np.ndarray = None, max_iters: int = 100, tol: float = 1e-4) -> np.ndarray:
         """
-        Berechnet die inverse Kinematik (IK), um Gelenkwinkel zu finden, die die gewünschte XYZ-Position
-        und optional eine gewünschte Orientierung (Roll, Pitch, Yaw) erreichen.
+        Computes the inverse kinematics (IK) to determine joint angles that achieve a desired XYZ position
+        and optionally a desired orientation (Roll, Pitch, Yaw).
 
-        :param target_xyz: Ein numpy-Array [X, Y, Z] mit der Zielposition.
-        :param target_rpy: (Optional) Ein numpy-Array [roll, pitch, yaw] für die gewünschte Orientierung.
-        :param max_iters: Maximale Anzahl der Iterationen für die Konvergenz.
-        :param tol: Toleranz für das Abbruchkriterium.
-        :return: Ein numpy-Array mit der Gelenkkonfiguration, die das Ziel erreicht.
+        This function iteratively solves the IK problem using a Jacobian-based approach. It stops when the position 
+        and orientation error is below a given tolerance or when the maximum number of iterations is reached.
+
+        :param target_xyz: A numpy array [X, Y, Z] representing the desired position in Cartesian space.
+        :param target_rpy: (Optional) A numpy array [roll, pitch, yaw] representing the desired orientation.
+        :param max_iters: The maximum number of iterations allowed for convergence.
+        :param tol: The error tolerance for convergence. The algorithm stops when the combined position and orientation 
+                    error is below this threshold.
+        :return: A numpy array containing the joint configuration that achieves the target position and orientation.
+
+        :raises ValueError: If the IK solution does not converge within the specified iterations or if the computed
+                            joint configuration exceeds joint limits.
         """
         frame_id = self.model.getFrameId(self.ee_frame_name)
-        q = self.q.copy()  # Starte von der aktuellen Gelenkkonfiguration
+        q = self.q.copy()  # Start from the current joint configuration
 
         for i in range(max_iters):
+            # Perform forward kinematics to update the frame positions
             pin.forwardKinematics(self.model, self.data, q)
             pin.updateFramePlacements(self.model, self.data)
 
-            # Positionsfehler berechnen
+            # Compute the position error
             current_xyz = self.data.oMf[frame_id].translation
             position_error = target_xyz - current_xyz
 
-            # Orientierungsfehler berechnen (falls target_rpy vorhanden ist)
+            # Compute the orientation error if target_rpy is provided
             if target_rpy is not None:
                 target_rpy = np.asarray(target_rpy, dtype=np.float64)
 
-                # Aktuelle Orientierung als Rotationsmatrix
+                # Retrieve the current rotation matrix of the end-effector
                 current_rotation = self.data.oMf[frame_id].rotation
                 current_rpy = pin.rpy.matrixToRpy(current_rotation)
 
-                # Fehler in RPY-Raum berechnen
+                # Compute orientation error in RPY space
                 orientation_error_rpy = target_rpy - current_rpy
 
-                # Inverse RPY-Jacobian berechnen
+                # Compute inverse RPY Jacobian for proper error transformation
                 J_rpy_inv = pin.rpy.computeRpyJacobianInverse(current_rpy, pin.LOCAL_WORLD_ALIGNED)
 
-                # Orientierungskorrektur umwandeln
+                # Transform orientation error to a usable form
                 orientation_error = J_rpy_inv @ orientation_error_rpy
             else:
-                orientation_error = np.zeros(3)  # Keine Orientierungskontrolle
+                orientation_error = np.zeros(3)  # No orientation control if not specified
 
-            # Fehler kombinieren
+            # Combine position and orientation errors
             error = np.concatenate((position_error, orientation_error))
 
+            # Check if the error is within the tolerance
             if np.linalg.norm(error) < tol:
-                logger.debug(f"✅ IK konvergierte in {i} Iterationen.")
+                logger.debug(f"✅ IK converged in {i} iterations.")
 
                 if not self.check_joint_limits(q):
-                    raise ValueError("❌ IK-Lösung überschreitet Gelenkgrenzen!")
+                    raise ValueError("❌ IK solution exceeds joint limits!")
 
-                self.update_end_effector_position()  # ✅ Aktualisiere die kartesische Position
+                self.update_end_effector_position()  # ✅ Update Cartesian position
                 return q
 
-            # Gesamtes Jacobian für Position & Orientierung berechnen
+            # Compute the full Jacobian for position and orientation
             J = pin.computeFrameJacobian(self.model, self.data, q, frame_id, pin.LOCAL_WORLD_ALIGNED)
 
-            # IK-Gleichung lösen (Least Squares Methode)
+            # Solve the IK equation using the least squares method (pseudoinverse)
             dq = np.linalg.pinv(J) @ error
-            q += dq  # Gelenkwinkel-Update
+            q += dq  # Update joint angles
 
-        logger.warning("⚠️ Warnung: IK hat nicht konvergiert.")
-        raise ValueError("❌ IK konnte keine gültige Lösung innerhalb der Gelenkgrenzen finden.")
-
-
+        logger.warning("⚠️ Warning: IK did not converge.")
+        raise ValueError("❌ IK could not find a valid solution within joint limits.")
 
 
     def move_joint(self, joint_index: int, angle: float) -> None:

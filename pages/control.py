@@ -121,7 +121,7 @@ def create():
         with ui.column():
             # MeshCat Visualization (now full width!)
             with ui.card().classes('w-full p-4 bg-gray-100 border border-gray-300 rounded-lg flex-grow'):
-                ui.label("🖥️ 3D Visualization (MeshCat)").classes('text-xl font-bold mb-2')
+                ui.label("🖥️ 3D Visualization").classes('text-xl font-bold mb-2')
                 ui.html(f'''<iframe src="{MESH_CAT_URL}" style="width: 100%; height: 500px; border: none;"></iframe>''').classes('w-full')
                 
                 # 🌟 SWITCH for keyboard control
@@ -147,7 +147,6 @@ def create():
 
     # UI starten
     ui.timer(0.5, lambda: utils.update_joint_states(robot, joint_positions))
-    #ui.timer(0.5, lambda: robot.display(robot.q))  # Sicherstellen, dass immer der aktuelle Stand animiert wird
     ui.timer(0.5, lambda: utils.update_ee_postion(robot, ee_position_labels))
     ui.timer(0.5, live_update_ee_orientation)
     #utils.initilize_current_joint_states(robot, Arctos)

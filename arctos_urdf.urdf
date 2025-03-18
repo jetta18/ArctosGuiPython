@@ -14,14 +14,14 @@
   <visual>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/base_link.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/base_link.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -35,14 +35,14 @@
   <visual>
     <origin xyz="-0.0 -0.000529 -0.111" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_1_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_1_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="-0.0 -0.000529 -0.111" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_1_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_1_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -56,14 +56,14 @@
   <visual>
     <origin xyz="0.05713 0.020356 -0.289378" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_2_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_2_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="0.05713 0.020356 -0.289378" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_2_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_2_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -77,14 +77,14 @@
   <visual>
     <origin xyz="-0.043 0.019045 -0.550385" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_3_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_3_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="-0.043 0.019045 -0.550385" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_3_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_3_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -98,14 +98,14 @@
   <visual>
     <origin xyz="-1e-06 0.15874 -0.57209" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_4_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_4_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="-1e-06 0.15874 -0.57209" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_4_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_4_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -119,14 +119,14 @@
   <visual>
     <origin xyz="0.039011 0.279927 -0.570316" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_5_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_5_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="0.039011 0.279927 -0.570316" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_5_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_5_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -140,14 +140,14 @@
   <visual>
     <origin xyz="-0.000193 0.319847 -0.570316" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Gripper_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Gripper_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="-0.000193 0.319847 -0.570316" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Gripper_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Gripper_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -161,14 +161,14 @@
   <visual>
     <origin xyz="-0.000193 0.313762 -0.570316" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_6_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_6_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="-0.000193 0.313762 -0.570316" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Link_6_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Link_6_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -182,14 +182,14 @@
   <visual>
     <origin xyz="-0.007934 0.359845 -0.599867" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Left_jaw_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Left_jaw_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="-0.007934 0.359845 -0.599867" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Left_jaw_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Left_jaw_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -203,14 +203,14 @@
   <visual>
     <origin xyz="-0.007934 0.359845 -0.539867" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Right_jaw_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Right_jaw_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="paint_metallic_blue_2"/>
   </visual>
   <collision>
     <origin xyz="-0.007934 0.359845 -0.539867" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="/home/michael/GIT/ArctosGuiPython/meshes/Right_jaw_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="meshes/Right_jaw_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
