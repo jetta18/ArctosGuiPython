@@ -3,6 +3,8 @@ import time
 import pinocchio as pin
 import numpy as np
 import threading
+import meshcat
+import meshcat.servers
 import logging
 from pinocchio.visualize import MeshcatVisualizer
 
@@ -68,14 +70,26 @@ class ArctosPinocchioRobot:
 
     def initialize_viewer(self, model_name: str = "arctos_robot") -> MeshcatVisualizer:
         """
-        Initializes the Meshcat visualizer and loads the robot model.
+        Initialisiert den Meshcat-Visualizer und speichert die tatsächlich verwendete URL.
 
-        :param model_name: The name under which the robot is stored in Meshcat.
-        :return: An instance of MeshcatVisualizer.
+        :param model_name: Der Name unter dem der Roboter in Meshcat gespeichert wird.
+        :return: Eine Instanz von MeshcatVisualizer.
         """
+        # Falls Meshcat noch nicht gestartet wurde, starte den Server
+        if not hasattr(self, 'meshcat_server'):
+            self.meshcat_server = meshcat.servers.zmqserver.start_zmq_server_as_subprocess()
+
+        # Erstelle den Meshcat Visualizer und erhalte die tatsächliche URL
         viz = MeshcatVisualizer(self.model, self.geom_model, self.geom_model)
-        viz.initViewer()
+        visualizer_instance = meshcat.Visualizer()
+        zmq_url = visualizer_instance.url()  # Holt die tatsächliche URL
+
+        viz.initViewer(viewer=visualizer_instance)
         viz.loadViewerModel(model_name)
+
+        # Konvertiere ZeroMQ URL in HTTP URL für die Anzeige in NiceGUI
+        self.meshcat_url = zmq_url.replace("tcp://", "http://")
+
         return viz
 
     def update_end_effector_position(self) -> None:
