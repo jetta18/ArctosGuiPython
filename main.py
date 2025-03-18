@@ -1,6 +1,15 @@
 from nicegui import ui
 from pages import home, control, settings, mks_config
 from components.menu import create_menu
+from arctos_controller import ArctosController
+from path_planning import PathPlanner
+from ArctosPinocchio import ArctosPinocchioRobot
+
+
+Arctos = ArctosController()
+robot = ArctosPinocchioRobot()
+planner = PathPlanner()
+
 
 # Seiten registrieren
 @ui.page('/')
@@ -11,7 +20,7 @@ def home_page():
 @ui.page('/control')
 def control_page():
     create_menu()
-    control.create()
+    control.create(Arctos, robot, planner)
 
 @ui.page('/settings')
 def settings_page():
@@ -21,7 +30,7 @@ def settings_page():
 @ui.page('/mks')
 def mks_page():
     create_menu()
-    mks_config.create()
+    mks_config.create(Arctos)
 
 # Anwendung starten
 ui.run(reload=False)

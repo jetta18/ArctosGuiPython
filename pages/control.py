@@ -12,33 +12,37 @@ from ArctosPinocchio import ArctosPinocchioRobot
 
 MESH_CAT_URL = "http://127.0.0.1:7000/static/"
 
-Arctos = None
-robot = None
-planner = None
+# Arctos = None
+# robot = None
+# planner = None
 
-async def initialize_robot():
-    """
-    Initializes the robot with a loading animation and success notification.
-    """
-    global Arctos, robot, planner
+# async def initialize_robot():
+#     """
+#     Initializes the robot with a loading animation and success notification.
+#     """
+#     global Arctos, robot, planner
 
-    ui.notify("⏳ Initializing robot...", color="blue")
+#     ui.notify("⏳ Initializing robot...", color="blue")
 
-    # 🛠 Execute blocking initialization in a separate thread
-    await asyncio.to_thread(_initialize_robot_blocking)
+#     # 🛠 Execute blocking initialization in a separate thread
+#     await asyncio.to_thread(_initialize_robot_blocking)
 
-    ui.notify("✅ Robot successfully initialized! Reloading page...", color="green")
+#     ui.notify("✅ Robot successfully initialized! Reloading page...", color="green")
 
-    # 🔄 Reload page after initialization
-    await asyncio.sleep(1.5)  # Short delay for user visibility
-    ui.navigate.to('/control')
+#     # 🔄 Reload page after initialization
+#     await asyncio.sleep(1.5)  # Short delay for user visibility
+#     ui.navigate.to('/control')
 
-def _initialize_robot_blocking():
-    """Blocking initialization of the robot."""
-    global Arctos, robot, planner
-    Arctos = ArctosController()
-    robot = ArctosPinocchioRobot()
-    planner = PathPlanner()
+# def _initialize_robot_blocking():
+#     """Blocking initialization of the robot."""
+#     global Arctos, robot, planner, MESH_CAT_URL  
+
+#     Arctos = ArctosController()
+#     robot = ArctosPinocchioRobot()
+#     planner = PathPlanner()
+
+#     MESH_CAT_URL = robot.meshcat_url
+
 
 def live_update_ee_orientation():
     """Reads the current end-effector orientation from `robot` and updates the UI in real-time."""
@@ -50,7 +54,7 @@ def set_ee_orientation_from_input():
 
 
 
-def create():
+def create(Arctos, robot, planner):
     """
     Creates the control page for robot operation.
     """
@@ -62,8 +66,8 @@ def create():
 
         # --- LEFT SECTION: Control ---
         with ui.column():
-            # 🌟 Button to initialize the robot 
-            ui.button("🔄 Initialize Robot", on_click=initialize_robot).classes('bg-blue-500 text-white w-full mt-2 py-2 rounded-lg')            
+            # # 🌟 Button to initialize the robot 
+            # ui.button("🔄 Initialize Robot", on_click=initialize_robot).classes('bg-blue-500 text-white w-full mt-2 py-2 rounded-lg')            
             # Home and Sleep Pose buttons
             with ui.row().classes('w-full justify-center mt-4 gap-4'):
                 ui.button("🏠 Move to Home Pose", on_click=lambda: homing.move_to_zero_pose(Arctos)).classes('bg-purple-500 text-white px-4 py-2 rounded-lg')
@@ -89,9 +93,9 @@ def create():
                 ui.label("📍 End-Effector Position").classes('text-xl font-bold mb-2')
                 
                 with ui.grid(columns=3).classes('gap-4 w-full'):
-                    ee_position_labels = {axis: ui.label(f"{axis}: 0.00 mm").classes('text-lg w-full text-center') for axis in ["X", "Y", "Z"]}
+                    ee_position_labels = {axis: ui.label(f"{axis}: 0.00 m").classes('text-lg w-full text-center') for axis in ["X", "Y", "Z"]}
                 with ui.grid(columns=3).classes('gap-4 w-full'):
-                    ee_position_inputs = {axis: ui.number(label=f"{axis} (mm)").classes('w-full') for axis in ["X", "Y", "Z"]}
+                    ee_position_inputs = {axis: ui.number(label=f"{axis} (m)").classes('w-full') for axis in ["X", "Y", "Z"]}
                 
                 # Button to set end-effector position
                 ui.button("✅ Set End-Effector Position", on_click=lambda: utils.set_cartesian_values_from_gui(robot, ee_position_inputs)).classes(
@@ -122,7 +126,7 @@ def create():
             # MeshCat Visualization (now full width!)
             with ui.card().classes('w-full p-4 bg-gray-100 border border-gray-300 rounded-lg flex-grow'):
                 ui.label("🖥️ 3D Visualization").classes('text-xl font-bold mb-2')
-                ui.html(f'''<iframe src="{MESH_CAT_URL}" style="width: 100%; height: 500px; border: none;"></iframe>''').classes('w-full')
+                ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 500px; border: none;"></iframe>''').classes('w-full')
                 
                 # 🌟 SWITCH for keyboard control
                 with ui.row().classes('w-full justify-center mt-4'):

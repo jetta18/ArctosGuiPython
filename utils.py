@@ -141,7 +141,7 @@ def move_robot_to_xyz(robot, x, y, z) -> None:
 def update_joint_states(robot, joint_positions):
     if robot:  # Stelle sicher, dass `robot` initialisiert ist
         for i in range(6):
-            joint_positions[i].set_text(f"Gelenk {i+1}: {np.degrees(robot.q[i]):.2f}°")  # Umrechnung in Grad
+            joint_positions[i].set_text(f"Joint {i+1}: {np.degrees(robot.q[i]):.2f}°")  # Umrechnung in Grad
 
 
 def update_ee_postion(robot, ee_position_labels):
@@ -149,7 +149,7 @@ def update_ee_postion(robot, ee_position_labels):
     if robot:  # Sicherstellen, dass `robot` initialisiert ist
         ee_pos = robot.get_end_effector_position()  # Holt die Position als np.array [x, y, z]
         for i, axis in enumerate(["X", "Y", "Z"]):
-            ee_position_labels[axis].set_text(f"{axis}: {ee_pos[i]:.2f} mm")  # Setzt die UI-Werte
+            ee_position_labels[axis].set_text(f"{axis}: {ee_pos[i]:.2f} m")  # Setzt die UI-Werte
 
 def set_cartesian_values_from_gui(robot, ee_position_inputs):
     if robot:  # Sicherstellen, dass `robot` existiert
