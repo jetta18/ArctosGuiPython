@@ -1,8 +1,9 @@
-nicegui>=1.4.0
-pinocchio>=2.6.17
+nicegui
+pinocchio
 numpy>=1.24.0
-python-can>=4.2.2
-asyncio>=3.4.3
-pillow>=10.0.0
-meshcat>=0.3.2
-serial>=0.0.97
+python-can
+asyncio
+pillow
+meshcat
+serial
+pin
