@@ -1,7 +1,5 @@
 import time
 import numpy as np
-import os
-import threading
 from nicegui import ui
 import logging
 
@@ -95,24 +93,24 @@ def set_zero_position(robot) -> None:
 # GRIPPER CONTROL FUNCTIONS
 # ------------------------------
 
-def open_gripper(arctos) -> None:
+def open_gripper(Arctos) -> None:
     """
     Sends a command to open the gripper.
     
     Args:
         arctos: The robot controller interface.
     """
-    arctos.open_gripper()
+    Arctos.open_gripper()
     ui.notify("✅ Gripper opened.")
 
-def close_gripper(arctos) -> None:
+def close_gripper(Arctos) -> None:
     """
     Sends a command to close the gripper.
     
     Args:
         arctos: The robot controller interface.
     """
-    arctos.close_gripper()
+    Arctos.close_gripper()
     ui.notify("✅ Gripper closed.")
 
 

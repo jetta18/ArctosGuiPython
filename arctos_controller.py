@@ -9,7 +9,7 @@ from mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)  
+logger.setLevel(logging.DEBUG)  
 
 class ArctosController:
     """
