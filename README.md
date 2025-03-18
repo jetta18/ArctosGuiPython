@@ -3,6 +3,11 @@
 A modern web-based control interface for the Arctos robot arm, built with NiceGUI and Python. This application provides an intuitive and responsive interface for controlling and monitoring the robot's movements, position, and orientation.
 
 
+⚠ **Warning: This project is still in development!**  
+Use with caution and at your own risk. Unexpected behavior may occur, and there is no guarantee of stability. Ensure that all safety precautions are taken when operating the robot.
+
+
+
 ## Table of Contents
 - [Features](#features)
 - [Dependencies](#dependencies)
@@ -42,7 +47,7 @@ A modern web-based control interface for the Arctos robot arm, built with NiceGU
 
 - **Real-time Feedback**:
   - Joint angle display in degrees
-  - End-effector position monitoring (mm)
+  - End-effector position monitoring (m)
   - System status messages in console
   - Visual notifications for actions
 
