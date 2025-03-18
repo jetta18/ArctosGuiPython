@@ -1,157 +1,149 @@
-# Arctos GUI v0.1.1
+# Arctos Robot Control GUI
 
-Arctos GUI is a graphical user interface for controlling a robotic arm using ROS (Robot Operating System). It supports connections through Arduino Mega or CANable adapter, allowing users to control the arm's joints, Cartesian coordinates, and gripper movements, as well as send custom CAN messages.
+A modern web-based control interface for the Arctos robot arm, built with NiceGUI and Python. This application provides an intuitive and responsive interface for controlling and monitoring the robot's movements, position, and orientation in real-time.
 
-![Arctos GUI Screenshot](/arctosgui.png)
+## Features
 
-## Installation Options
+- **Modern Web Interface**: 
+  - Built with NiceGUI framework for a responsive and user-friendly experience
+  - Real-time status updates
 
-You have two options to install Arctos GUI:
-1. **Step-by-step installation**: Install ROS, dependencies, and Arctos GUI manually.
-2. **Preconfigured Virtual Machine**: Use a preconfigured Virtual Machine image with everything set up for you.
+- **Robot Control**:
+  - Joint position control with numerical inputs
+  - Cartesian position control (X, Y, Z coordinates)
+  - End-effector orientation control (Roll, Pitch, Yaw)
+  - Gripper open/close functionality
+  - Fine movement control via keyboard
 
-## Table of Contents
+- **Path Planning & Programs**:
+  - Save current robot poses
+  - Create movement programs
+  - Save and load programs
+  - Execute planned paths
+  - Real-time trajectory visualization
 
-- [Step-by-Step Installation](#step-by-step-installation)
-- [Preconfigured Virtual Machine](#preconfigured-virtual-machine)
-- [Gear Ratios](#gear-ratios)
-- [Arduino MEGA Open Loop Support](#arduino-mega-open-loop-support)
-- [Useful Links](#useful-links)
+- **3D Visualization**:
+  - Real-time 3D robot model visualization using MeshCat
+  - Live updates of robot state and position
+  - Interactive viewing angles
 
-# Step-by-Step Installation
+- **Real-time Feedback**:
+  - Joint angle display in degrees
+  - End-effector position monitoring (mm)
+  - System status messages in console
+  - Visual notifications for actions
 
+## Dependencies
 
-To start, you need to install ROS and its dependencies:
+This project uses several key libraries:
 
-```
-su root
-nano /etc/sudoers
-<username> ALL=(ALL) ALL
- ```
-```
-sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-sudo apt install curl
-curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
-sudo apt update
-sudo apt install ros-melodic-desktop
-echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
-source ~/.bashrc
-Next, install additional ROS dependencies:
- ```
-```
-sudo apt-get install ros-melodic-catkin python-catkin-tools
-sudo apt install ros-melodic-moveit ros-melodic-moveit-visual-tools 
-sudo apt-get install git
-git clone https://github.com/ArctosRobotics/ROS
-bash
-  ```
-```
-catkin build 
-cd ROS
-source devel/setup.bash
- ```
+- **NiceGUI**: Modern web interface framework
+- **Pinocchio**: Robot kinematics and dynamics calculations
+- **MeshCat**: 3D visualization
+- **MKS-Servo CAN**: Library for MKS Servo motor control via CAN
+  - Used for motor communication and control
+  - GNU General Public License v3.0
+  - Included as a submodule in `mks_servo_can/`
 
-Clone and Build the Repository
-Clone the Arctos GUI repository and install dependencies:
+## Installation
 
- 
- 
-```
-git clone https://github.com/ArctosRobotics/arctosgui
-sudo apt update
-sudo apt install python3-pip
-pip3 install python-can[serial] ttkthemes sv-ttk
-
+1. Clone the repository with submodules:
+```bash
+git clone --recursive https://github.com/yourusername/ArctosGuiPython.git
+cd ArctosGuiPython
 ```
 
-Add ROS environment to your bash profile:
-
-
-
-```
-nano ~/.bashrc
+2. Install Python dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
-Add this line:
+3. Hardware Requirements:
+   - CAN interface compatible with python-can
+   - MKS Servo motors (tested with MKS-Servo57D)
+   - Proper CAN bus configuration (500kbps)
 
-```
-source /home/<your-username>/ROS/devel/setup.bash
-```
+## Usage
 
-Save with Ctrl+S and exit with Ctrl+X.
-
-Running the GUI
-After installation, navigate to the arctosgui directory and start the GUI:
-
-
- ```
-cd arctosgui
-chmod +x run.sh
-./run.sh
+1. Start the application:
+```bash
+python main.py
 ```
 
-Alternatively, you can manually open each tab:
-
-
- ```
-roslaunch arctos_config demo.launch 
-rosrun moveo_moveit interface.py 
-rosrun moveo_moveit transform.py 
-python3 ui.py
-Connecting the Robot
+2. Open your web browser and navigate to:
 ```
-In MoveIt RViz, go to File > Open Config or press Ctrl+O and open the arctosgui_config.rviz file. Once the configuration is loaded, connect the robot via Arduino or CANable, and use the GUI to plan and execute movements.
-
-# Preconfigured Virtual Machine
-If you prefer a faster setup, you can use a preconfigured Virtual Machine:
-
-
-- Download and install [VirtualBox](https://www.virtualbox.org/wiki/Downloads).
-- Download the Arctos preconfigured VM image from this [Google Drive link](https://drive.google.com/file/d/1ZKmfxiIbEWSBvssMyU7dudEf_ZrNQkfH/view?usp=sharing).
-
-
-- Open VirtualBox and create a new machine (Ctrl+N).
-- Name the machine and set the type to Linux (Debian 64-bit).
-- Use iso image zz-disk001.iso
-- Set at least 4 GB of RAM.
-- Use the existing virtual hard disk file (zz-disk002.vmdk).
-- Start the machine and log in with the password: zz.
-- In the left toolbar, launch Arctos GUI, connect the robot via Arduino or CANable, and start using the interface.
-
-# Gear Ratios
-Set the gear ratios in convert.py and roscan.py as needed for your robot:
-
- 
-gear_ratios = [1, 1, 1, 1, 1, 1]  # Replace with your actual gearbox ratios
-For raw gear ratios:
-
-X: 13.5
-Y: 150
-Z: 150
-A: 48
-B: 67.82
-C: 67.82
-These raw gear ratios can be multiplied by 0.5 for estimated values:
-
-  ```
-gear_ratios = [6.75, 75, 75, 24, 33.91, 33.91]
- ```
-
-# Arduino MEGA Open Loop Support
-To use the open loop version with Arduino MEGA, adapt the serial port configuration in convert.py:
-
- ```
-serial_port = "/dev/ttyUSB0"
+http://localhost:8080
 ```
 
-Before running, you need to give permissions to the USB port:
+3. Initialize the Robot:
+   - Click "Initialize Robot" button
+   - Wait for the connection confirmation
+   - The 3D visualization will appear when ready
 
- ```
-sudo chmod a+rw /dev/ttyUSB0
-```
+4. Control Methods:
+   - **Joint Control**: Enter specific angles for each joint
+   - **Cartesian Control**: Set X, Y, Z coordinates
+   - **Keyboard Control**: Use WASD-QE keys for fine movement
+   - **Program Creation**: Save poses and create movement sequences
 
-# Useful Links
+## Keyboard Controls
 
-- [Documentation](https://arctosrobotics.com/docs/)
-- [Manuals](https://arctosrobotics.com/#Assembly)
-- [CAD Files](https://arctosrobotics.com/#Assembly)
+When keyboard control is enabled via the toggle switch:
+- `W/S`: Forward/Backward movement (Y-axis)
+- `A/D`: Left/Right movement (X-axis)
+- `Q/E`: Up/Down movement (Z-axis)
+
+Movement increment: 2mm per keypress
+
+## Project Structure
+
+- `main.py`: Application entry point and page routing
+- `pages/`: Web interface components
+  - `control.py`: Main robot control interface
+  - `home.py`: Landing page
+  - `settings.py`: Configuration interface
+  - `mks_config.py`: MKS servo configuration
+- `components/`: Reusable UI components
+  - `menu.py`: Navigation menu
+- `arctos_controller.py`: Robot hardware interface
+- `ArctosPinocchio.py`: Kinematics and dynamics calculations
+- `path_planning.py`: Path planning and program execution
+- `utils.py`: Utility functions and keyboard control
+- `meshes/`: 3D model files for visualization
+- `mks_servo_can/`: MKS Servo CAN interface library (GPL-3.0)
+
+## Technical Details
+
+- **Framework**: NiceGUI for modern web interface
+- **Kinematics**: Pinocchio library for robot calculations
+- **Visualization**: MeshCat for 3D rendering
+- **Motor Control**: 
+  - MKS Servo CAN protocol
+  - 500kbps CAN bus communication
+  - Real-time position and speed control
+- **Movement Control**: 
+  - Direct joint control
+  - Inverse kinematics for Cartesian control
+  - Path planning for programmed movements
+
+## Requirements
+
+- Python 3.8+
+- NiceGUI 1.4.0+
+- Pinocchio 2.6.17+
+- MeshCat 0.3.2+
+- python-can with SLCAN support
+- MKS Servo motors
+- Modern web browser
+- Other dependencies listed in `requirements.txt`
+
+## License
+
+This project is licensed under [Your License]. Note that the included MKS-Servo CAN library is licensed under the GNU General Public License v3.0.
+
+## Acknowledgments
+
+- MKS-Servo CAN library
+- NiceGUI framework for the modern web interface
+- Pinocchio team for robotics calculations
+- MeshCat for 3D visualization
