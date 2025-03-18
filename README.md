@@ -47,7 +47,7 @@ This project uses several key libraries:
 
 ## Installation
 
-1. Clone the repository with submodules:
+1. Clone the repository:
 ```bash
 git clone https://github.com/jetta18/ArctosGuiPython.git
 cd ArctosGuiPython
@@ -64,23 +64,35 @@ pip install -r requirements.txt
    - Proper CAN bus configuration (500kbps)
 
 ## Usage
+Before starting make sure everything is conencted and configured. The MKS CANable must be visible on a /dev/ttyACM* port.
+You can check that with:
+```bash
+ ls /dev/ttyACM*
+```
+You should recieve something like /dev/ttyACM1 as output.
 
-1. Start the application:
+1. Move to the repo folder:
+```bash
+cd ArctosGuiPython
+```
+
+2. Start the application:
 ```bash
 python main.py
 ```
 
-2. Open your web browser and navigate to:
+3. Open your web browser and navigate to (just if it don't open up itself):
 ```
 http://localhost:8080
 ```
 
-3. Initialize the Robot:
+4. Initialize the Robot:
+   - On "Home" page click control
    - Click "Initialize Robot" button
    - Wait for the connection confirmation
    - The 3D visualization will appear when ready
 
-4. Control Methods:
+5. Control Methods:
    - **Joint Control**: Enter specific angles for each joint
    - **Cartesian Control**: Set X, Y, Z coordinates
    - **Keyboard Control**: Use WASD-QE keys for fine movement
