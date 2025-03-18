@@ -115,7 +115,6 @@ def close_gripper(Arctos) -> None:
 
 
 
-
 # ------------------------------
 # POSITION CONTROL FUNCTIONS
 # ------------------------------

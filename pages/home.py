@@ -13,7 +13,7 @@ def create():
     with ui.column().classes('items-center justify-center min-h-screen w-full bg-gradient-to-br from-gray-900 to-gray-700'):
 
         # Centered logo at the top
-        ui.image('/home/michael/GIT/ArctosGuiPython/img/icon.png').classes('w-40 h-40 mt-6 drop-shadow-lg')
+        ui.image('./assets/icon.png').classes('w-40 h-40 mt-6 drop-shadow-lg')
 
         # Main heading
         ui.label("Welcome to Arctos Robot Control").classes(
