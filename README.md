@@ -2,6 +2,20 @@
 
 A modern web-based control interface for the Arctos robot arm, built with NiceGUI and Python. This application provides an intuitive and responsive interface for controlling and monitoring the robot's movements, position, and orientation.
 
+
+## Table of Contents
+- [Features](#features)
+- [Dependencies](#dependencies)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Keyboard Controls](#keyboard-controls)
+- [Project Structure](#project-structure)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+- [Useful Links](#useful-links)
+
+
+
 ## Features
 
 - **Modern Web Interface**: 
@@ -135,3 +149,9 @@ This project is licensed under [Your License]. Note that the included MKS-Servo 
 - NiceGUI framework for the modern web interface
 - Pinocchio team for robotics calculations
 - MeshCat for 3D visualization
+
+## Useful Links
+
+- [Documentation](https://arctosrobotics.com/docs/)
+- [Manuals](https://arctosrobotics.com/#Assembly)
+- [CAD Files](https://arctosrobotics.com/#Assembly)
