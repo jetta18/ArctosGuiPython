@@ -1,6 +1,6 @@
 # Arctos Robot Control GUI
 
-A modern web-based control interface for the Arctos robot arm, built with NiceGUI and Python. This application provides an intuitive and responsive interface for controlling and monitoring the robot's movements, position, and orientation in real-time.
+A modern web-based control interface for the Arctos robot arm, built with NiceGUI and Python. This application provides an intuitive and responsive interface for controlling and monitoring the robot's movements, position, and orientation.
 
 ## Features
 
@@ -20,7 +20,6 @@ A modern web-based control interface for the Arctos robot arm, built with NiceGU
   - Create movement programs
   - Save and load programs
   - Execute planned paths
-  - Real-time trajectory visualization
 
 - **3D Visualization**:
   - Real-time 3D robot model visualization using MeshCat
@@ -43,7 +42,6 @@ This project uses several key libraries:
 - **MKS-Servo CAN**: Library for MKS Servo motor control via CAN
   - Used for motor communication and control
   - GNU General Public License v3.0
-  - Included as a submodule in `mks_servo_can/`
 
 ## Installation
 
@@ -60,7 +58,7 @@ pip install -r requirements.txt
 
 3. Hardware Requirements:
    - CAN interface compatible with python-can
-   - MKS Servo motors (tested with MKS-Servo57D)
+   - MKS Servo motors (tested with MKS-Servo57D/42D)
    - Proper CAN bus configuration (500kbps)
 
 ## Usage
@@ -87,7 +85,7 @@ http://localhost:8080
 ```
 
 4. Initialize the Robot:
-   - On "Home" page click control
+   - On "Home" page click "control"
    - Click "Initialize Robot" button
    - Wait for the connection confirmation
    - The 3D visualization will appear when ready
@@ -107,6 +105,8 @@ When keyboard control is enabled via the toggle switch:
 
 Movement increment: 2mm per keypress
 
+Note that currently cartesian control uses meter(m). Z = 0.5 means 500mm.
+
 ## Project Structure
 
 - `main.py`: Application entry point and page routing
@@ -124,30 +124,6 @@ Movement increment: 2mm per keypress
 - `meshes/`: 3D model files for visualization
 - `mks_servo_can/`: MKS Servo CAN interface library (GPL-3.0)
 
-## Technical Details
-
-- **Framework**: NiceGUI for modern web interface
-- **Kinematics**: Pinocchio library for robot calculations
-- **Visualization**: MeshCat for 3D rendering
-- **Motor Control**: 
-  - MKS Servo CAN protocol
-  - 500kbps CAN bus communication
-  - Real-time position and speed control
-- **Movement Control**: 
-  - Direct joint control
-  - Inverse kinematics for Cartesian control
-  - Path planning for programmed movements
-
-## Requirements
-
-- Python 3.8+
-- NiceGUI 1.4.0+
-- Pinocchio 2.6.17+
-- MeshCat 0.3.2+
-- python-can with SLCAN support
-- MKS Servo motors
-- Modern web browser
-- Other dependencies listed in `requirements.txt`
 
 ## License
 
