@@ -17,4 +17,4 @@ def create_menu():
                 ui.menu_item('⚙️ Settings', lambda: ui.navigate.to('/settings'))
                 ui.menu_item('🔧 MKS Configuration', lambda: ui.navigate.to('/mks'))
                 ui.separator()
-                ui.menu_item('❌ Exit', on_click=app.shutdown)
+                ui.menu_item('❌ Stop Application', on_click=app.shutdown)

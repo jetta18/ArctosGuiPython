@@ -33,6 +33,13 @@ def create():
                 ui.button("🔧 Open", on_click=lambda: ui.navigate.to('/control')).classes(
                     'bg-blue-500 text-white px-6 py-3 rounded-lg transition-all hover:bg-blue-600 hover:scale-105 shadow-md')
 
+            # Servo Configuration Card
+            with ui.card().classes('p-6 bg-white bg-opacity-90 backdrop-blur-md rounded-xl shadow-xl text-center'):
+                ui.label("🔩 MKS Servo Configuration").classes('text-2xl font-bold text-black')
+                ui.label("Motor control & calibration").classes("text-gray-700 text-sm mb-4")
+                ui.button("🛠️ Open", on_click=lambda: ui.navigate.to('/mks')).classes(
+                    'bg-yellow-500 text-white px-6 py-3 rounded-lg transition-all hover:bg-yellow-600 hover:scale-105 shadow-md')
+            
             # Settings Card
             with ui.card().classes('p-6 bg-white bg-opacity-90 backdrop-blur-md rounded-xl shadow-xl text-center'):
                 ui.label("🛠️ Settings").classes('text-2xl font-bold text-black')
@@ -40,44 +47,6 @@ def create():
                 ui.button("⚙️ Open", on_click=lambda: ui.navigate.to('/settings')).classes(
                     'bg-gray-500 text-white px-6 py-3 rounded-lg transition-all hover:bg-gray-600 hover:scale-105 shadow-md')
 
-            # Servo Configuration Card
-            with ui.card().classes('p-6 bg-white bg-opacity-90 backdrop-blur-md rounded-xl shadow-xl text-center'):
-                ui.label("🔩 Servo Configuration").classes('text-2xl font-bold text-black')
-                ui.label("Motor control & calibration").classes("text-gray-700 text-sm mb-4")
-                ui.button("🛠️ Open", on_click=lambda: ui.navigate.to('/mks')).classes(
-                    'bg-yellow-500 text-white px-6 py-3 rounded-lg transition-all hover:bg-yellow-600 hover:scale-105 shadow-md')
-
-        # **Live Status Section - Now Full Width**
-        with ui.grid(columns=2).classes('w-full max-w-screen-2xl gap-6 mt-8 px-8'):
-
-            # System Status
-            with ui.card().classes('p-6 bg-white bg-opacity-90 backdrop-blur-md rounded-xl shadow-xl text-center'):
-                ui.label("📡 System Status").classes('text-2xl font-bold text-black')
-                ui.label("Real-time monitoring of the robot").classes("text-gray-700 text-sm mb-4")
-                ui.label("🟢 System OK").classes('text-green-500 text-lg font-bold')
-
-            # Sensor Data
-            with ui.card().classes('p-6 bg-white bg-opacity-90 backdrop-blur-md rounded-xl shadow-xl text-center'):
-                ui.label("📊 Sensor Data").classes('text-2xl font-bold text-black')
-                ui.label("Current sensor readings of the robot").classes("text-gray-700 text-sm mb-4")
-                ui.label("🔵 Temperature: 36°C | 🔴 Battery: 89%").classes('text-blue-500 text-lg font-bold')
-
-        # **Placeholder for Future Features (Expandable)**
-        with ui.grid(columns=3).classes('w-full max-w-screen-2xl gap-6 mt-8 px-8'):
-
-            # Debug Console
-            with ui.card().classes('p-6 bg-white bg-opacity-90 backdrop-blur-md rounded-xl shadow-xl text-center'):
-                ui.label("🖥️ Debug Console").classes('text-2xl font-bold text-black')
-                ui.label("This section could display debugging logs or system data.").classes("text-gray-700 text-sm")
-
-            # Future Features Cards
-            with ui.card().classes('p-6 bg-white bg-opacity-90 backdrop-blur-md rounded-xl shadow-xl text-center'):
-                ui.label("🚀 Autonomous Functions").classes('text-2xl font-bold text-black')
-                ui.label("Upcoming features for autonomous control").classes("text-gray-700 text-sm")
-
-            with ui.card().classes('p-6 bg-white bg-opacity-90 backdrop-blur-md rounded-xl shadow-xl text-center'):
-                ui.label("📍 Live Map Data").classes('text-2xl font-bold text-black')
-                ui.label("Interface for real-time visualization").classes("text-gray-700 text-sm")
 
         # **Separator for Better Structure**
         ui.separator().classes("my-6 border-gray-500 w-2/3")

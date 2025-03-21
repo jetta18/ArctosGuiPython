@@ -1,12 +1,12 @@
 import math
 import can
-import os
 import time
-import glob
+import subprocess
 from typing import List
 import logging
 from mks_servo_can import mks_servo
 from mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
+import concurrent.futures
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class ArctosController:
             cls._instance = super(ArctosController, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, encoder_resolution: int = 16384, can_interface: str = "slcan0", bitrate: int = 500000):
+    def __init__(self, encoder_resolution: int = 16384, can_interface: str = "can0", bitrate: int = 500000):
         """
         Initializes the CAN interface, servos, and gear ratio settings.
         
@@ -52,8 +52,6 @@ class ArctosController:
 
         # Initialize Servos
         self.servos = self.initialize_servos()
-
-        self.current_joint_angle = [0, 0, 0, 0, 0, 0]  # Store current joint angles
 
     def angle_to_encoder(self, angle_rad: float, axis_index: int) -> int:
         """
@@ -81,73 +79,110 @@ class ArctosController:
 
     def initialize_servos(self):
         """
-        Initializes the servos connected to the CAN bus.
-        
+        Initializes the servos connected to the CAN bus with detailed debug logging.
+
         :return: List of initialized servo objects.
         """
-        notifier = can.Notifier(self.bus, [])  # CAN bus notifier (could add filters)
+        logger.debug("🔧 Initializing servos...")
+        start_time = time.time()
 
-        servos = [
-            mks_servo.MksServo(self.bus, notifier, i) for i in range(1, 7)
-        ]
+        try:
+            notifier = can.Notifier(self.bus, [])
+        except Exception as e:
+            logger.debug(f"❌ Failed to create CAN notifier: {e}")
+            raise
 
-        # Enable limit ports from Servo 3 (Index 2) onwards
-        for servo in servos[2:]:
-            servo.set_limit_port_remap(Enable.Enable)
-            time.sleep(0.1)
+        servos = []
+        for i in range(1, 7):
+            try:
+                logger.debug(f"🔹 Creating servo instance for ID {i}")
+                servo = mks_servo.MksServo(self.bus, notifier, i)
+                servos.append(servo)
+                logger.debug(f"✅ Servo {i} initialized.")
+            except Exception as e:
+                logger.debug(f"❌ Failed to initialize servo ID {i}: {e}")
+                raise
 
-        logger.debug("Servos successfully initialized.")
+        # Enable limit ports on servos 3–6 (Index 2 and above)
+        for index, servo in enumerate(servos[2:], start=3):
+            try:
+                logger.debug(f"🔸 Enabling limit port on Servo {index}")
+                servo.set_limit_port_remap(Enable.Enable)
+                time.sleep(0.1)
+                logger.debug(f"✅ Limit port enabled on Servo {index}")
+            except Exception as e:
+                logger.debug(f"⚠️ Failed to enable limit port on Servo {index}: {e}")
+
+        duration = time.time() - start_time
+        logger.debug(f"✅ All servos initialized in {duration:.2f} seconds.")
         return servos
 
-    def move_to_angles(self, angles_rad: list, speed: int = 750, acceleration: int = 120) -> None:
+    def move_to_angles(self, angles_rad: list, speed: int = 500, acceleration: int = 150) -> None:
         """
-        Moves all joints of the robot to the specified angles.
+        Moves all joints of the robot to the specified angles in parallel.
         
         :param angles_rad: List of angles (in radians) for each joint.
-        :param speed: Motor speed (0-3000 RPM, default 400).
-        :param acceleration: Acceleration (0-255, default 100).
+        :param speed: Motor speed (0-3000 RPM, default 750).
+        :param acceleration: Acceleration (0-255, default 120).
         """
+
         # Berechne B- und C-Achse aus den Achsen 4 und 5
         b_axis = angles_rad[5] + angles_rad[4]
         c_axis = angles_rad[4] - angles_rad[5]
-        
+
         # Erstelle die finale Winkel-Liste mit der gewünschten Vorzeichenlogik
         final_angles = [
-            angles_rad[0],         # A0
-            angles_rad[1],        # A1
-            angles_rad[2],        # A2
-            angles_rad[3],         # A3
-            b_axis,               # B-Achse (kopplung)
-            c_axis                 # C-Achse (kopplung)
+            angles_rad[0],  # A0
+            angles_rad[1],  # A1
+            angles_rad[2],  # A2
+            angles_rad[3],  # A3
+            b_axis,         # B-Achse (kopplung)
+            c_axis          # C-Achse (kopplung)
         ]
-        
-        # Fahre alle Achsen anhand der finalen Winkel an
-        for i, angle_rad in enumerate(final_angles):
+
+        def move_servo(i, angle_rad):
+            """Helper function to move a single servo."""
             encoder_value = self.angle_to_encoder(angle_rad, i)
             logger.debug(f"Axis {i}: Angle {math.degrees(angle_rad):.2f}° -> Encoder value {encoder_value}")
             self.servos[i].run_motor_absolute_motion_by_axis(speed, acceleration, encoder_value)
+
+        # Starte alle Achsenbewegungen gleichzeitig mit ThreadPoolExecutor
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(move_servo, range(len(self.servos)), final_angles)
 
     def get_joint_angles(self) -> list[float]:
         """
         Reads the current joint angles from the encoder values and stores them.
 
-        This function iterates over all servos, reads their encoder values, 
-        converts these values into radians, and stores the resulting angles 
-        in a list. Additionally, it logs each axis's encoder value and the 
-        corresponding angle in degrees.
+        This function now runs all CAN requests in parallel using ThreadPoolExecutor,
+        significantly reducing execution time.
 
         Returns:
             list[float]: A list containing the current joint angles in radians.
         """
-        current_joint_angle = []  # Initialize an empty list to store angles
 
-        for i, servo in enumerate(self.servos):
-            encoder_value = servo.read_encoder_value_addition()  # Read encoder value
-            time.sleep(0.2)
-            angle_rad = self.encoder_to_angle(encoder_value, i)  # Convert to radians
-            current_joint_angle.append(angle_rad)  # Store joint angle
+        def read_encoder(i, servo):
+            """Helper function to read encoder value with error handling."""
+            try:
+                encoder_value = servo.read_encoder_value_addition()
+                if encoder_value is None:
+                    logger.error(f"Failed to read encoder value for Axis {i}, setting to 0.")
+                    return 0  # Set default value if no response
+                return encoder_value
+            except Exception as e:
+                logger.error(f"Error reading encoder for Axis {i}: {e}")
+                return 0  # Default value in case of an error
 
-            logger.debug(f"Axis {i}: Encoder Value = {encoder_value}, Angle = {math.degrees(angle_rad):.2f}°")
+        # Parallelisiere das Einlesen der Encoder-Werte
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(executor.map(read_encoder, range(len(self.servos)), self.servos))
+
+        # Konvertiere Encoder-Werte in Gelenkwinkel
+        current_joint_angle = []
+        for i, encoder_value in enumerate(results):
+            angle_rad = self.encoder_to_angle(encoder_value, i)
+            current_joint_angle.append(angle_rad)
+            logger.debug(f"Axis {i}: Encoder Value = {encoder_value}, Angle = {angle_rad:.6f} rad")
 
         return current_joint_angle
 
@@ -158,80 +193,30 @@ class ArctosController:
         :return: Initialized CAN bus object.
         """
         if not self.is_can_interface_up():
-            logger.debug(f"CAN interface {self.can_interface} not active. Starting it...")
-            self.setup_can_interface()
+            logger.error(f"CAN interface {self.can_interface} is not active. Please run 'setup_canable.sh' first.")
+            raise RuntimeError("CAN interface is not available.")
 
         try:
             bus = can.interface.Bus(bustype="socketcan", channel=self.can_interface)
-            logger.debug(f"CAN bus successfully initialized on {self.can_interface} with {self.bitrate} baud rate.")
+            logger.info(f"CAN bus successfully initialized on {self.can_interface} with bitrate {self.bitrate}.")
             return bus
         except Exception as e:
-            logger.debug(f"Error initializing CAN bus: {e}")
+            logger.error(f"Error initializing CAN bus: {e}")
             raise RuntimeError("Error initializing CAN bus.")
+
 
     def is_can_interface_up(self) -> bool:
         """
         Checks whether the specified CAN interface is active.
-        
+
         :return: True if the interface is active, False otherwise.
         """
-        result = os.system(f"ip link show {self.can_interface} > /dev/null 2>&1")
-        return result == 0  # 0 means the interface exists
-
-
-    def setup_can_interface(self) -> None:
-        """
-        Configures and initializes the CAN interface (`slcan`) dynamically by detecting available `ttyACM*` ports.
-        
-        This method scans for connected `ttyACM*` devices, which represent USB-to-CAN adapters (e.g., CANable devices). 
-        It then attempts to configure and activate the CAN interface on each detected device.
-        
-        The following steps are executed:
-        1. Identify all available `ttyACM*` devices.
-        2. Iterate over the detected devices and try to configure each one.
-        3. Ensure that any previously running `slcand` process is stopped before initializing a new one.
-        4. Load the necessary kernel modules for CAN communication.
-        5. Start `slcand` with the detected `ttyACM*` port and set up the CAN interface.
-        6. Verify if the `slcan0` interface is successfully created and activated.
-        7. If a working interface is found, exit the function; otherwise, log an error.
-
-        If no `ttyACM*` device is detected, or if all initialization attempts fail, an error message is logged.
-
-        Note: This function requires root privileges to execute system commands like `modprobe` and `ip link set`.
-        """
-        # Search for all available ttyACM* devices
-        tty_ports = glob.glob("/dev/ttyACM*")
-
-        if not tty_ports:
-            logger.error("No ttyACM* device found! Make sure your CANable device is properly connected.")
-            return
-
-        # Try to configure each detected device
-        for tty_port in tty_ports:
-            logger.debug(f"Attempting to set up CAN interface on: {tty_port}")
-
-            # Ensure any existing slcan0 interface is disabled before reconfiguring
-            os.system("sudo ip link set slcan0 down")
-            os.system("sudo killall slcand")
-            time.sleep(1)
-
-            # Load necessary kernel modules
-            os.system("sudo modprobe can")
-            os.system("sudo modprobe can_raw")
-            os.system("sudo modprobe slcan")
-
-            # Start slcand for the detected device
-            os.system(f"sudo slcand -o -c -s6 {tty_port} slcan0")
-            os.system("sudo ip link set slcan0 up")
-            time.sleep(1)
-
-            # Check if the interface is successfully created
-            result = os.system("ip link show slcan0 > /dev/null 2>&1")
-            if result == 0:
-                logger.debug(f"CAN interface successfully set up on {tty_port}.")
-                return  # Exit function once a working interface is found
-
-        logger.error("Failed to initialize a functional CAN interface. Please check your device connection and permissions.")
+        try:
+            result = subprocess.run(["ip", "link", "show", self.can_interface], capture_output=True, text=True)
+            return "UP" in result.stdout
+        except Exception as e:
+            logger.error(f"Error checking CAN interface: {e}")
+            return False
 
 
     def send_can_message_gripper(self, bus: can.Bus, arbitration_id: int, data: List[int]) -> None:

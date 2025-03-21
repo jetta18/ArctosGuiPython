@@ -1,5 +1,4 @@
 from nicegui import ui
-from arctos_controller import ArctosController
 from mks_servo_can.mks_enums import Enable, Direction, EndStopLevel, WorkMode, HoldingStrength, EnPinEnable
 
 def create(ArctosConfig):
@@ -11,7 +10,7 @@ def create(ArctosConfig):
         ui.label("🔧 MKS Servo Configuration").classes('text-3xl font-bold text-center mb-4')
         
         for i in range(6):  # 6 servos
-            with ui.expansion(f"⚙️ Servo {i+1} Settings", icon="settings", value=False).classes('w-full mt-2'):
+            with ui.expansion(f"⚙️ Servo {i+1} Settings", icon="settings", value=False).classes('w-full border-2 border-gray-400 mt-2'):
                 with ui.card().classes('w-full p-4'):
                     
                     # Working Mode

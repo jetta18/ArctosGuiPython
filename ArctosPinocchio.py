@@ -59,10 +59,13 @@ class ArctosPinocchioRobot:
 
         # Initialize robot state (joint angles and Cartesian position)
         self.q = np.zeros(self.model.nq)  # Stores the current joint angles
-        self.ee_position = np.zeros(3)  # Stores the Cartesian position of the end-effector
 
+        self.q_encoder = np.zeros(self.model.nq)
+        self.ee_position = np.zeros(3)  # Stores the Cartesian position of the end-effector
+        self.ee_orientation = np.zeros(3)
         # Compute initial Cartesian position
         self.update_end_effector_position()
+        self.update_end_effector_orientation()
 
         # Display initial configuration
         self.display()
@@ -114,14 +117,23 @@ class ArctosPinocchioRobot:
         Checks if the first 6 joint values are within the specified limits.
 
         :param q: A numpy array representing the joint configuration.
-        :return: True if the first 6 joint values are within limits, False otherwise.
+        :return: True if all first 6 joint values are within limits, False otherwise.
         """
-        q_limited = q[:6]  # Take only first 6 joints for comparison
+        q_limited = q[:6]  # Consider only first 6 joints
+        below_limits = q_limited < self.lower_limits[:6]
+        above_limits = q_limited > self.upper_limits[:6]
 
-        if np.any(q_limited < self.lower_limits[:6]) or np.any(q_limited > self.upper_limits[:6]):
-            logger.warning(f"⚠️ Error: Joint angles exceed limits! {q_limited}")
+        if any(below_limits) or any(above_limits):
+            logger.warning("⚠️ Joint Limit Violations Detected:")
+            for i in range(6):
+                if below_limits[i]:
+                    logger.warning(f"Joint {i+1} BELOW limit: {q_limited[i]:.2f} rad < {self.lower_limits[i]:.2f} rad")
+                if above_limits[i]:
+                    logger.warning(f"Joint {i+1} ABOVE limit: {q_limited[i]:.2f} rad > {self.upper_limits[i]:.2f} rad")
             return False
+
         return True
+
 
 
     def instant_display_state(self, q: np.ndarray = None) -> None:
@@ -141,6 +153,7 @@ class ArctosPinocchioRobot:
             self.viz.display(q)
             self.q = q  # Store updated joint angles
             self.update_end_effector_position()  # Update Cartesian position
+            self.update_end_effector_orientation() 
         else:
             logger.debug("Error: Visualizer not initialized.")
 
@@ -152,7 +165,8 @@ class ArctosPinocchioRobot:
 
         if self.viz is not None:
             self.viz.display(q)
-            self.update_end_effector_position() 
+            self.update_end_effector_position()
+            self.update_end_effector_orientation() 
         else:
             logger.debug("Error: Visualizer not initialized.")
     
@@ -231,6 +245,7 @@ class ArctosPinocchioRobot:
                     raise ValueError("❌ IK solution exceeds joint limits!")
 
                 self.update_end_effector_position()  # ✅ Update Cartesian position
+                self.update_end_effector_orientation()
                 return q
 
             # Compute the full Jacobian for position and orientation
@@ -268,3 +283,23 @@ class ArctosPinocchioRobot:
         """
         return self.q[:6].copy()
 
+
+    def update_end_effector_orientation(self) -> None:
+        """
+        Computes and updates the current Roll-Pitch-Yaw (RPY) orientation of the end-effector.
+        Stores the result in `self.ee_orientation`.
+        """
+        frame_id = self.model.getFrameId(self.ee_frame_name)  # Frame-ID abrufen
+        pin.forwardKinematics(self.model, self.data, self.q)  # Kinematik aktualisieren
+        pin.updateFramePlacements(self.model, self.data)  # Frame-Positionen aktualisieren
+
+        current_rotation = self.data.oMf[frame_id].rotation  # 3x3 Rotationsmatrix holen
+        self.ee_orientation = pin.rpy.matrixToRpy(current_rotation)  # RPY berechnen & speichern
+
+    def get_end_effector_orientation(self) -> np.ndarray:
+        """
+        Returns the last computed Roll-Pitch-Yaw (RPY) orientation of the end-effector.
+
+        :return: A numpy array [roll, pitch, yaw] representing the end-effector orientation in radians.
+        """
+        return self.ee_orientation.copy()  # Gibt gespeicherte Orientierung zurück

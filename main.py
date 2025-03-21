@@ -1,8 +1,8 @@
 from nicegui import ui
 from pages import home, control, settings, mks_config
 from components.menu import create_menu
-from arctos_controller import ArctosController
-from path_planning import PathPlanner
+from ArctosController import ArctosController
+from PathPlanner import PathPlanner
 from ArctosPinocchio import ArctosPinocchioRobot
 
 
@@ -32,5 +32,6 @@ def mks_page():
     create_menu()
     mks_config.create(Arctos)
 
+
 # Anwendung starten
-ui.run(reload=False)
+ui.run(title="Arctos Robot Control", reload=False)
