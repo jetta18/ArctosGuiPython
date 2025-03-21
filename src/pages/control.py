@@ -1,9 +1,8 @@
 from nicegui import ui
+from utils import utils
+from core import homing
 
 # Import local modules
-import homing
-import utils
-
 
 MESH_CAT_URL = "http://127.0.0.1:7000/static/"
 
@@ -95,11 +94,10 @@ def create(Arctos, robot, planner):
                     pose_container = ui.column().classes('w-full')
                     utils.update_pose_table(planner, robot, pose_container)
                     ui.button("Save Pose", on_click=lambda: (utils.save_pose(planner, robot), utils.update_pose_table(planner, robot, pose_container))).classes('bg-blue-700 text-white px-4 py-2 rounded-lg')
-                    ui.button("Load Program", on_click=lambda: (utils.load_program(planner), utils.update_pose_table(planner, robot, pose_container))).classes('bg-green-700 text-white px-4 py-2 rounded-lg')
+                    ui.button("Load Program", on_click=lambda: utils.load_program(planner, pose_container, robot)).classes('bg-green-700 text-white px-4 py-2 rounded-lg')
                     ui.button("Save Program", on_click=lambda: utils.save_program(planner)).classes('bg-indigo-700 text-white px-4 py-2 rounded-lg')
                     ui.button("Execute Program", on_click=lambda: utils.execute_path(planner, robot, Arctos)).classes('bg-red-700 text-white px-4 py-2 rounded-lg')
                     
-
 
             ui.button("🏠 Move to Home Pose", on_click=lambda: homing.move_to_zero_pose(Arctos)).classes('bg-purple-500 text-white px-4 py-2 rounded-lg')
             ui.button("💤 Move to Sleep Pose", on_click=lambda: homing.move_to_sleep_pose(Arctos)).classes('bg-gray-500 text-white px-4 py-2 rounded-lg')

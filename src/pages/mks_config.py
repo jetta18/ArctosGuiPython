@@ -1,5 +1,5 @@
 from nicegui import ui
-from mks_servo_can.mks_enums import Enable, Direction, EndStopLevel, WorkMode, HoldingStrength, EnPinEnable
+from services.mks_servo_can.mks_enums import Enable, Direction, EndStopLevel, WorkMode, HoldingStrength, EnPinEnable
 
 def create(ArctosConfig):
     """

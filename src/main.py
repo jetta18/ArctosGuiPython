@@ -1,9 +1,9 @@
 from nicegui import ui
 from pages import home, control, settings, mks_config
 from components.menu import create_menu
-from ArctosController import ArctosController
-from PathPlanner import PathPlanner
-from ArctosPinocchio import ArctosPinocchioRobot
+from core.ArctosController import ArctosController
+from core.PathPlanner import PathPlanner
+from core.ArctosPinocchio import ArctosPinocchioRobot
 
 
 Arctos = ArctosController()

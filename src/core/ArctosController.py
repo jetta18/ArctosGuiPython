@@ -4,8 +4,8 @@ import time
 import subprocess
 from typing import List
 import logging
-from mks_servo_can import mks_servo
-from mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
+from services.mks_servo_can import mks_servo
+from services.mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
 import concurrent.futures
 
 

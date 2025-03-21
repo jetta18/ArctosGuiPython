@@ -1,7 +1,8 @@
 import json
 import numpy as np
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 import logging
+import os
 from nicegui import ui
 from meshcat.geometry import Sphere
 from meshcat.transformations import translation_matrix
@@ -16,14 +17,39 @@ class PathPlanner:
     for a robotic arm using Pinocchio.
     """
 
-    def __init__(self, filename: str = "path_program.json"):
+    def __init__(self, filename: str = None):
         """
         Initializes the PathPlanner.
 
         :param filename: The filename for saving and loading stored joint positions.
         """
+        # Get the absolute path to the programs directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.programs_dir = os.path.join(current_dir, '..', 'programs')
+        os.makedirs(self.programs_dir, exist_ok=True)  # Create programs dir if it doesn't exist
+        
+        # Default filename if none provided
+        if filename is None:
+            filename = "default_program.json"
+        
+        self.filename = filename
+        self.current_program_path = os.path.join(self.programs_dir, self.filename)
         self.poses: List[Dict[str, List[float]]] = []  # List to store recorded joint angles
-        self.filename = filename  # File for JSON storage
+        self.load_program()
+    
+    def get_available_programs(self) -> List[str]:
+        """
+        Returns a list of available program filenames in the programs directory.
+        
+        :return: List of program filenames
+        """
+        try:
+            # Get all .json files in the programs directory
+            programs = [f for f in os.listdir(self.programs_dir) if f.endswith('.json')]
+            return sorted(programs)
+        except Exception as e:
+            logger.debug(f"⚠️ Error listing programs: {e}")
+            return []
 
     def capture_pose(self, robot) -> None:
         """
@@ -78,40 +104,70 @@ class PathPlanner:
             # Update the remaining visualized spheres in MeshCat
             self.visualize_saved_poses(robot)
 
-
-    def save_program(self) -> None:
+    def save_program(self, program_name: Optional[str] = None) -> Tuple[bool, str]:
         """
-        Saves the recorded joint poses into a JSON file.
+        Saves the recorded joint poses into a JSON file with the given name.
+        
+        :param program_name: Optional name for the program file (without extension)
+        :return: Tuple of (success, message)
         """
         try:
-            with open(self.filename, "w") as file:
+            if program_name:
+                # Ensure the name has .json extension
+                if not program_name.endswith('.json'):
+                    program_name += '.json'
+                self.filename = program_name
+                self.current_program_path = os.path.join(self.programs_dir, self.filename)
+            
+            with open(self.current_program_path, "w") as file:
                 json.dump(self.poses, file, indent=4)
-            logger.debug(f"✅ Program saved as {self.filename}")
+            
+            logger.debug(f"✅ Program saved as {self.current_program_path}")
+            return True, f"Program saved as {self.filename}"
         except Exception as e:
-            logger.debug(f"⚠️ Error saving program: {e}")
+            error_msg = f"⚠️ Error saving program: {e}"
+            logger.debug(error_msg)
+            return False, error_msg
 
-    def load_program(self) -> None:
+    def load_program(self, program_name: Optional[str] = None) -> Tuple[bool, str]:
         """
         Loads a previously saved set of joint poses from a JSON file and ensures correct formatting.
+        
+        :param program_name: Optional name of the program file to load (without extension)
+        :return: Tuple of (success, message)
         """
         try:
-            with open(self.filename, "r") as file:
+            if program_name:
+                # Ensure the name has .json extension
+                if not program_name.endswith('.json'):
+                    program_name += '.json'
+                self.filename = program_name
+                self.current_program_path = os.path.join(self.programs_dir, self.filename)
+            
+            with open(self.current_program_path, "r") as file:
                 data = json.load(file)  # Load stored joint poses
 
                 # Ensure the loaded data is a list of dictionaries
                 if isinstance(data, list) and all(isinstance(pose, dict) for pose in data):
                     self.poses = data
-                    logger.debug(f"✅ Program loaded: {self.filename}")
+                    logger.debug(f"✅ Program loaded: {self.current_program_path}")
+                    return True, f"Program {self.filename} loaded successfully"
                 else:
-                    logger.debug(f"❌ Invalid format in {self.filename}, resetting poses.")
+                    error_msg = f"❌ Invalid format in {self.current_program_path}, resetting poses."
+                    logger.debug(error_msg)
                     self.poses = []
+                    return False, error_msg
 
         except FileNotFoundError:
-            logger.debug("⚠️ No saved programs found!")
+            error_msg = f"⚠️ Program {self.filename} not found!"
+            logger.debug(error_msg)
             self.poses = []
+            return False, error_msg
         except json.JSONDecodeError:
-            logger.debug("❌ Error: JSON file is corrupted, resetting poses.")
+            error_msg = f"❌ Error: JSON file {self.filename} is corrupted, resetting poses."
+            logger.debug(error_msg)
             self.poses = []
+            return False, error_msg
 
     def execute_path(self, robot, Arctos) -> None:
         """
@@ -189,6 +245,5 @@ class PathPlanner:
                 robot.viz.viewer[meshcat_name].set_object(sphere)
                 robot.viz.viewer[meshcat_name].set_property("material.color", [0, 0, 1])  # Set color to blue
                 robot.viz.viewer[meshcat_name].set_transform(transform)
-
             except Exception as e:
-                logger.debug(f"⚠️ Error while visualizing pose {idx}: {e}")
+                logger.debug(f"⚠️ Error visualizing pose {idx}: {e}")

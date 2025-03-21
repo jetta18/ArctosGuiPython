@@ -35,7 +35,7 @@ class ArctosPinocchioRobot:
 
 
         repo_path = os.path.dirname(os.path.abspath(__file__))
-        urdf_path = os.path.join(repo_path, "arctos_urdf.urdf")
+        urdf_path = os.path.join(repo_path, '..', 'models', 'urdf', 'arctos_urdf.urdf')
         self.urdf_path = urdf_path
 
         self.ee_frame_name = ee_frame_name  # Name of the end-effector frame

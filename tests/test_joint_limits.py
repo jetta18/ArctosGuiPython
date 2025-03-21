@@ -1,5 +1,5 @@
-from ArctosController import ArctosController
-from mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
+from services.mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
+from core.ArctosController import ArctosController
 import homing
 
 Arctos = ArctosController()

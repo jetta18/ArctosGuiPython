@@ -26,25 +26,83 @@ def save_pose(planner, robot) -> None:
     planner.capture_pose(robot)
     ui.notify("✅ Pose saved successfully!")
 
-def save_program(planner) -> None:
+def save_program(planner, program_name=None) -> None:
     """
-    Saves the entire sequence of poses stored in the planner.
+    Saves the entire sequence of poses stored in the planner with an optional name.
     
     Args:
         planner: The path planner instance that manages the pose sequence.
+        program_name: Optional name for the program file (without extension).
     """
-    planner.save_program()
-    ui.notify("✅ Program saved!")
+    if program_name is None:
+        # Create a dialog to get the program name
+        with ui.dialog() as dialog, ui.card():
+            ui.label("Save Program").classes('text-xl font-bold')
+            program_name_input = ui.input(label="Program Name", placeholder="Enter program name").classes('w-full')
+            
+            with ui.row().classes('w-full justify-end'):
+                ui.button("Cancel", on_click=dialog.close).classes('bg-gray-500 text-white px-4 py-2 rounded-lg')
+                ui.button("Save", on_click=lambda: save_with_name(program_name_input.value)).classes('bg-blue-700 text-white px-4 py-2 rounded-lg')
+            
+            def save_with_name(name):
+                if name:
+                    success, message = planner.save_program(name)
+                    ui.notify(message, color='green' if success else 'red')
+                else:
+                    ui.notify("⚠️ Please enter a program name", color='orange')
+                    return
+                dialog.close()
+                
+        dialog.open()
+    else:
+        success, message = planner.save_program(program_name)
+        ui.notify(message, color='green' if success else 'red')
 
-def load_program(planner) -> None:
+def load_program(planner, pose_container=None, robot=None) -> None:
     """
-    Loads a previously saved sequence of poses into the planner.
+    Shows a dialog to select and load a previously saved sequence of poses into the planner.
     
     Args:
         planner: The path planner instance that manages the pose sequence.
+        pose_container: Optional UI container to update after loading.
+        robot: Optional robot instance for updating pose visualization.
     """
-    planner.load_program()
-    ui.notify("✅ Program loaded!")
+    # Get available programs
+    available_programs = planner.get_available_programs()
+    
+    # Create a dialog to select the program
+    with ui.dialog() as dialog, ui.card():
+        ui.label("Load Program").classes('text-xl font-bold')
+        
+        if not available_programs:
+            ui.label("No saved programs found").classes('text-gray-600')
+        else:
+            program_select = ui.select(
+                options=available_programs,
+                label="Select Program",
+                value=available_programs[0] if available_programs else None
+            ).classes('w-full')
+            
+        with ui.row().classes('w-full justify-end'):
+            ui.button("Cancel", on_click=dialog.close).classes('bg-gray-500 text-white px-4 py-2 rounded-lg')
+            
+            if available_programs:
+                ui.button("Load", on_click=lambda: load_selected_program(program_select.value)).classes('bg-green-700 text-white px-4 py-2 rounded-lg')
+        
+        def load_selected_program(program_name):
+            if program_name:
+                success, message = planner.load_program(program_name)
+                ui.notify(message, color='green' if success else 'red')
+                
+                # Update pose table if container and robot are provided
+                if success and pose_container is not None and robot is not None:
+                    update_pose_table(planner, robot, pose_container)
+            else:
+                ui.notify("⚠️ Please select a program", color='orange')
+                return
+            dialog.close()
+            
+    dialog.open()
 
 def execute_path(planner, robot, Arctos) -> None:
     """
@@ -391,5 +449,3 @@ def threaded_initialize_current_joint_states(robot, Arctos):
         except Exception as e:
             print(f"❌ Error updating joint states: {e}")
     Thread(target=task, daemon=True).start()
-
-
