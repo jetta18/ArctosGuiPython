@@ -38,6 +38,7 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 3. Set up CAN interface (if needed):
    ```bash
+   cd ArctosGuiPython/scripts
    sudo ./setup_canable.sh
    ```
 
@@ -45,7 +46,8 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 1. Start the application:
    ```bash
-   python main.py
+   cd ArctosGuiPython/src
+   python3 main.py
    ```
 
 2. Open your browser and navigate to:
@@ -59,11 +61,15 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 ArctosGuiPython/
 ├── src/                    # Source code
 │   ├── core/              # Core robot functionality
+│   ├── config/            # User preferences (Custom settings fur GUI)
+│   ├── models/            # Meshes and urdf
 │   ├── services/          # Robot services and communication
 │   ├── components/        # UI components
 │   ├── pages/             # Web pages
+│   ├── programs/          # Stored programs from path planning
 │   └── utils/             # Utility functions
 ├── assets/                # Static assets (images, etc.)
+├── scripts/               # Script for starting can interface (currently)
 ├── docs/                  # Documentation
 ├── tests/                 # Test files
 ├── requirements.txt       # Python dependencies
