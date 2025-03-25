@@ -14,6 +14,7 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
   - Keyboard shortcuts for fine movement
 - MKS Servo configuration interface
 
+
 ## 🛠️ Setup
 
 ### Prerequisites
@@ -22,17 +23,16 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 - CAN interface for robot communication
 - Access to the Arctos Robot hardware
 
-### Installation
+### 1. Clone the Repository
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/jetta18/ArctosGuiPython.git
-   cd ArctosGuiPython
-   ```
+```bash
+git clone https://github.com/jetta18/ArctosGuiPython.git
+cd ArctosGuiPython
+```
 
-2. Install dependencies:
+---
 
-### Optional: Virtual Environment (Recommended)
+### 🔄 Optional: Set Up a Virtual Environment (Recommended)
 
 1. Create a virtual environment in the project directory:
    ```bash
@@ -61,14 +61,24 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
    pip install -r requirements.txt
    ```
 
-3. Set up CAN interface (if needed):
-   ```bash
-   cd ~/ArctosGuiPython/scripts
-   sudo ./setup_canable.sh
+---
 
-   ```
+### 2. Install Dependencies
 
-## 🚀 Usage
+If you haven't used a virtual environment, you can install dependencies directly:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Set up CAN Interface
+
+```bash
+cd ~/ArctosGuiPython/scripts
+sudo ./setup_canable.sh
+```
+
+### 4. Start the application
 
 1. Start the application:
    ```bash
