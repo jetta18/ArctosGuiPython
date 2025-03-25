@@ -4,15 +4,14 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 ## 🌟 Features
 
-- Modern Material Design UI with dark mode support
+- Modern Material Design UI 
 - Real-time joint and cartesian position updates
 - Interactive robot control:
-  - Joint control with sliders
+  - Joint control 
   - Cartesian position input
   - Path planning and program execution
   - Gripper control
   - Keyboard shortcuts for fine movement
-- Integrated message display and console
 - MKS Servo configuration interface
 
 ## 🛠️ Setup
@@ -32,6 +31,32 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
    ```
 
 2. Install dependencies:
+
+### Optional: Virtual Environment (Recommended)
+
+1. Create a virtual environment in the project directory:
+   ```bash
+   python3 -m venv venv
+   ```
+
+2. Activate the environment:
+
+   On Linux/macOS:
+   ```bash
+   source venv/bin/activate
+   ```
+
+   On Windows:
+   ```bash
+   venv\Scripts\activate
+   ```
+
+   After activation, your terminal should look like:
+   ```bash
+   (venv) user@user:~/ArctosGuiPython$
+   ```
+
+3. Install the dependencies:
    ```bash
    pip install -r requirements.txt
    ```
@@ -77,13 +102,6 @@ ArctosGuiPython/
 └── README.md             # This file
 ```
 
-## 🧪 Testing
-
-Test files are located in the `tests/` directory. To run tests:
-
-```bash
-python -m pytest tests/
-```
 
 ## 📝 License
 
