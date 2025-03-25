@@ -7,6 +7,10 @@ import meshcat
 import meshcat.servers
 import logging
 from pinocchio.visualize import MeshcatVisualizer
+from pink.tasks import FrameTask
+from pink import solve_ik, Configuration
+from scipy.spatial.transform import Rotation as R
+import qpsolvers
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)  
@@ -49,6 +53,12 @@ class ArctosPinocchioRobot:
             self.model, urdf_path, pin.GeometryType.VISUAL, None, [os.path.dirname(urdf_path)]
         )
         self.geom_data = self.geom_model.createData()
+
+                # Load collision model (for future collision detection)
+        self.collision_model = pin.buildGeomFromUrdf(
+            self.model, urdf_path, pin.GeometryType.COLLISION, None, [os.path.dirname(urdf_path)]
+        )
+        self.collision_data = self.collision_model.createData()
 
         # Retrieve joint limits from URDF
         self.lower_limits = self.model.lowerPositionLimit
@@ -94,23 +104,6 @@ class ArctosPinocchioRobot:
         self.meshcat_url = zmq_url.replace("tcp://", "http://")
 
         return viz
-
-    def update_end_effector_position(self) -> None:
-        """
-        Computes and updates the current Cartesian position of the end-effector.
-        """
-        frame_id = self.model.getFrameId(self.ee_frame_name)
-        pin.forwardKinematics(self.model, self.data, self.q)
-        pin.updateFramePlacements(self.model, self.data)
-        self.ee_position = self.data.oMf[frame_id].translation
-
-    def get_end_effector_position(self) -> np.ndarray:
-        """
-        Returns the current Cartesian position of the end-effector.
-
-        :return: A numpy array [x, y, z] representing the end-effector position.
-        """
-        return self.ee_position.copy()
 
     def check_joint_limits(self, q: np.ndarray) -> bool:
         """
@@ -183,107 +176,6 @@ class ArctosPinocchioRobot:
         self.q = q_target  # Gelenkwinkel direkt setzen, aber animiert in der Anzeige
 
 
-
-
-    def inverse_kinematics(self, target_xyz: np.ndarray, target_rpy: np.ndarray = None, max_iters: int = 100, tol: float = 1e-4) -> np.ndarray:
-        """
-        Computes the inverse kinematics (IK) to determine joint angles that achieve a desired XYZ position
-        and optionally a desired orientation (Roll, Pitch, Yaw).
-
-        This function iteratively solves the IK problem using a Jacobian-based approach. It stops when the position 
-        and orientation error is below a given tolerance or when the maximum number of iterations is reached.
-
-        :param target_xyz: A numpy array [X, Y, Z] representing the desired position in Cartesian space.
-        :param target_rpy: (Optional) A numpy array [roll, pitch, yaw] representing the desired orientation.
-        :param max_iters: The maximum number of iterations allowed for convergence.
-        :param tol: The error tolerance for convergence. The algorithm stops when the combined position and orientation 
-                    error is below this threshold.
-        :return: A numpy array containing the joint configuration that achieves the target position and orientation.
-
-        :raises ValueError: If the IK solution does not converge within the specified iterations or if the computed
-                            joint configuration exceeds joint limits.
-        """
-        frame_id = self.model.getFrameId(self.ee_frame_name)
-        q = self.q.copy()  # Start from the current joint configuration
-
-        for i in range(max_iters):
-            # Perform forward kinematics to update the frame positions
-            pin.forwardKinematics(self.model, self.data, q)
-            pin.updateFramePlacements(self.model, self.data)
-
-            # Compute the position error
-            current_xyz = self.data.oMf[frame_id].translation
-            position_error = target_xyz - current_xyz
-
-            # Compute the orientation error if target_rpy is provided
-            if target_rpy is not None:
-                target_rpy = np.asarray(target_rpy, dtype=np.float64)
-
-                # Retrieve the current rotation matrix of the end-effector
-                current_rotation = self.data.oMf[frame_id].rotation
-                current_rpy = pin.rpy.matrixToRpy(current_rotation)
-
-                # Compute orientation error in RPY space
-                orientation_error_rpy = target_rpy - current_rpy
-
-                # Compute inverse RPY Jacobian for proper error transformation
-                J_rpy_inv = pin.rpy.computeRpyJacobianInverse(current_rpy, pin.LOCAL_WORLD_ALIGNED)
-
-                # Transform orientation error to a usable form
-                orientation_error = J_rpy_inv @ orientation_error_rpy
-            else:
-                orientation_error = np.zeros(3)  # No orientation control if not specified
-
-            # Combine position and orientation errors
-            error = np.concatenate((position_error, orientation_error))
-
-            # Check if the error is within the tolerance
-            if np.linalg.norm(error) < tol:
-                logger.debug(f"✅ IK converged in {i} iterations.")
-
-                if not self.check_joint_limits(q):
-                    raise ValueError("❌ IK solution exceeds joint limits!")
-
-                self.update_end_effector_position()  # ✅ Update Cartesian position
-                self.update_end_effector_orientation()
-                return q
-
-            # Compute the full Jacobian for position and orientation
-            J = pin.computeFrameJacobian(self.model, self.data, q, frame_id, pin.LOCAL_WORLD_ALIGNED)
-
-            # Solve the IK equation using the least squares method (pseudoinverse)
-            dq = np.linalg.pinv(J) @ error
-            q += dq  # Update joint angles
-
-        logger.warning("⚠️ Warning: IK did not converge.")
-        raise ValueError("❌ IK could not find a valid solution within joint limits.")
-
-
-    def move_joint(self, joint_index: int, angle: float) -> None:
-        """
-        Moves a single joint to a specified angle while ensuring it stays within limits.
-
-        :param joint_index: Index of the joint in the configuration vector.
-        :param angle: Target angle in radians.
-        """
-        new_q = self.q.copy()
-        new_q[joint_index] = angle
-
-        if not self.check_joint_limits(new_q):
-            raise ValueError(f"❌ Joint {joint_index} angle {angle} rad exceeds limits!")
-
-        self.q = new_q  # ✅ Update stored joint state
-        self.display()
-
-    def get_current_joint_angles(self) -> np.ndarray:
-        """
-        Returns the current joint angles.
-
-        :return: A numpy array containing the current joint angles.
-        """
-        return self.q[:6].copy()
-
-
     def update_end_effector_orientation(self) -> None:
         """
         Computes and updates the current Roll-Pitch-Yaw (RPY) orientation of the end-effector.
@@ -296,6 +188,16 @@ class ArctosPinocchioRobot:
         current_rotation = self.data.oMf[frame_id].rotation  # 3x3 Rotationsmatrix holen
         self.ee_orientation = pin.rpy.matrixToRpy(current_rotation)  # RPY berechnen & speichern
 
+    def update_end_effector_position(self) -> None:
+        """
+        Computes and updates the current Cartesian position of the end-effector.
+        """
+        frame_id = self.model.getFrameId(self.ee_frame_name)
+        pin.forwardKinematics(self.model, self.data, self.q)
+        pin.updateFramePlacements(self.model, self.data)
+        self.ee_position = self.data.oMf[frame_id].translation
+
+
     def get_end_effector_orientation(self) -> np.ndarray:
         """
         Returns the last computed Roll-Pitch-Yaw (RPY) orientation of the end-effector.
@@ -303,3 +205,64 @@ class ArctosPinocchioRobot:
         :return: A numpy array [roll, pitch, yaw] representing the end-effector orientation in radians.
         """
         return self.ee_orientation.copy()  # Gibt gespeicherte Orientierung zurück
+
+    def get_end_effector_position(self) -> np.ndarray:
+        """
+        Returns the current Cartesian position of the end-effector.
+
+        :return: A numpy array [x, y, z] representing the end-effector position.
+        """
+        return self.ee_position.copy()
+
+    def get_current_joint_angles(self) -> np.ndarray:
+        """
+        Returns the current joint angles.
+
+        :return: A numpy array containing the current joint angles.
+        """
+        return self.q[:6].copy()
+
+    def inverse_kinematics_pink(self, target_xyz: np.ndarray, target_rpy: np.ndarray = None) -> np.ndarray:
+        """
+        PINK-IK für Position oder Pose, kompatibel mit neuer FrameTask-Signatur.
+        """
+
+        # Zielrotation berechnen
+        if target_rpy is not None:
+            target_rot = R.from_euler('xyz', target_rpy).as_matrix()
+        else:
+            frame_id = self.model.getFrameId(self.ee_frame_name)
+            pin.forwardKinematics(self.model, self.data, self.q)
+            pin.updateFramePlacements(self.model, self.data)
+            target_rot = self.data.oMf[frame_id].rotation
+
+        target_SE3 = pin.SE3(target_rot, target_xyz)
+
+        # Konfiguration
+        configuration = Configuration(self.model, self.data, self.q.copy())
+
+        # IK-Task definieren (ohne target im Konstruktor!)
+        task = FrameTask(
+            frame=self.ee_frame_name,
+            position_cost=2.0,
+            orientation_cost=0.5 if target_rpy is not None else 0.0,
+            lm_damping=1e-3
+        )
+        task.set_target(target_SE3)
+
+        # Solver
+        solver = "quadprog" if "quadprog" in qpsolvers.available_solvers else qpsolvers.available_solvers[0]
+
+        # solve_ik
+        dt = 0.05
+        for _ in range(300):  # 3 Iterationen für mehr Genauigkeit
+            velocity = solve_ik(configuration, tasks=[task], dt=dt, solver=solver)
+            configuration.integrate_inplace(velocity, dt)
+
+        q_solution = configuration.q.copy()
+
+        if not self.check_joint_limits(q_solution):
+            raise ValueError("❌ IK-Lösung mit PINK verletzt Gelenkgrenzen!")
+
+        return q_solution
+

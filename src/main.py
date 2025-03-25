@@ -34,4 +34,4 @@ def mks_page():
 
 
 # Anwendung starten
-ui.run(title="Arctos Robot Control", reload=False)
+ui.run(title="Arctos Robot Control", reload=False, show=False )

@@ -38,15 +38,16 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 3. Set up CAN interface (if needed):
    ```bash
-   cd ArctosGuiPython/scripts
+   cd ~/ArctosGuiPython/scripts
    sudo ./setup_canable.sh
+
    ```
 
 ## 🚀 Usage
 
 1. Start the application:
    ```bash
-   cd ArctosGuiPython/src
+   cd ~/ArctosGuiPython/src
    python3 main.py
    ```
 

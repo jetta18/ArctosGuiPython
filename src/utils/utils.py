@@ -256,7 +256,13 @@ def close_gripper(Arctos) -> None:
 def update_joint_states(robot, joint_positions):
     if robot:  # Stelle sicher, dass `robot` initialisiert ist
         for i in range(6):
-            joint_positions[i].set_text(f"Joint {i+1}: {np.degrees(robot.q_encoder[i]):.2f}°")  # Umrechnung in Grad
+            joint_positions[i].set_text(f"Joint {i+1}: {np.degrees(robot.q[i]):.2f}°")  # Umrechnung in Grad
+
+def update_joint_states_encoder(robot, joint_positions_encoder):
+    if robot:  # Stelle sicher, dass `robot` initialisiert ist
+        for i in range(6):
+            joint_positions_encoder[i].set_text(f"Joint {i+1}: {np.degrees(robot.q_encoder[i]):.2f}°")  # Umrechnung in Grad
+
 
 
 def live_update_ee_postion(robot, ee_position_labels):
@@ -286,12 +292,9 @@ def set_ee_position_from_input(robot, ee_position_inputs):
             ui.notify("❌ Bitte alle Werte für X, Y, Z eingeben!", color='red')
             return
 
-        # Aktuelle RPY-Werte beibehalten
-        current_rpy = robot.get_end_effector_orientation()
-
         # Berechnung der neuen Gelenkwinkel mit Inverser Kinematik
         target_xyz = np.array([x, y, z])
-        q_solution = robot.inverse_kinematics(target_xyz, current_rpy)
+        q_solution = robot.inverse_kinematics_pink(target_xyz)
 
         # Bewegung ausführen
         robot.set_joint_angles_animated(q_solution, duration=1.0, steps=50)
@@ -317,16 +320,74 @@ def set_ee_orientation_from_input(robot, ee_orientation_inputs):
         current_xyz = robot.get_end_effector_position()
 
         # Berechnung der neuen Gelenkwinkel mit Inverser Kinematik
-        q_solution = robot.inverse_kinematics(current_xyz, target_rpy)
+        q_solution = robot.inverse_kinematics_pink(current_xyz, target_rpy)
 
         # Bewegung ausführen
         robot.set_joint_angles_animated(q_solution, duration=1.5, steps=50)
+
         ui.notify("✅ End-Effector Orientation Updated!")
 
     except ValueError as e:
         ui.notify(f"❌ IK Fehler: {str(e)}", type="error")
     except Exception as e:
         ui.notify(f"❌ Error: {e}", type="error")
+
+
+
+def set_ee_pose_from_input(robot, ee_position_inputs, ee_orientation_inputs, use_orientation: bool):
+    """
+    Sets the end-effector pose based on user input from the UI.
+
+    This function reads the XYZ position and, optionally, the RPY (roll, pitch, yaw) orientation 
+    from UI input fields. It then performs inverse kinematics to calculate the required joint angles 
+    and moves the robot to the desired pose.
+
+    Args:
+        robot: The robot instance providing kinematics and motion methods.
+        ee_position_inputs (dict): A dictionary with UI number fields for X, Y, and Z.
+        ee_orientation_inputs (dict): A dictionary with UI number fields for Roll, Pitch, and Yaw.
+        use_orientation (bool): If True, RPY orientation will be used; otherwise, only position is considered.
+    """
+    try:
+        # Read position inputs
+        x = ee_position_inputs["X"].value
+        y = ee_position_inputs["Y"].value
+        z = ee_position_inputs["Z"].value
+
+        # Validate inputs
+        if None in [x, y, z]:
+            ui.notify("❌ Please enter values for X, Y, and Z!", color='red')
+            return
+
+        target_xyz = np.array([x, y, z])
+
+        # Read and convert orientation inputs if enabled
+        if use_orientation:
+            roll = np.radians(ee_orientation_inputs["Roll"].value or 0.0)
+            pitch = np.radians(ee_orientation_inputs["Pitch"].value or 0.0)
+            yaw = np.radians(ee_orientation_inputs["Yaw"].value or 0.0)
+            target_rpy = np.array([roll, pitch, yaw])
+        else:
+            target_rpy = None
+
+        # Compute joint angles via inverse kinematics
+        q_solution = robot.inverse_kinematics_pink(target_xyz, target_rpy)
+
+        # Animate motion to the new pose
+        robot.set_joint_angles_animated(q_solution, duration=1.5, steps=50)
+
+        # Notify user
+        msg = f"✅ Moved to position: X={x:.3f}, Y={y:.3f}, Z={z:.3f}"
+        if use_orientation:
+            rpy_deg = np.degrees(target_rpy)
+            msg += f", Roll={rpy_deg[0]:.1f}°, Pitch={rpy_deg[1]:.1f}°, Yaw={rpy_deg[2]:.1f}°"
+        ui.notify(msg)
+
+    except ValueError as e:
+        ui.notify(f"❌ IK error: {str(e)}", color='red')
+    except Exception as e:
+        ui.notify(f"❌ Unexpected error: {str(e)}", color='red')
+
 
 
 
@@ -357,7 +418,8 @@ def reset_to_zero_position(robot):
 # ----------------------------------
 keyboard_control_active = False  # Toggle state
 key_states = {}  # Tracks pressed keys
-STEP_SIZE = 0.002  # Movement step size
+step_size_input = None  # UI-bound variable for dynamic step size
+
 
 def toggle_keyboard_control():
     """Toggles keyboard control on/off and updates UI."""
@@ -376,17 +438,21 @@ def adjust_position(robot, Arctos):
         return
 
     current_position = robot.get_end_effector_position()
+    current_orientation = robot.get_end_effector_orientation()
+    
+    # Use dynamic step size from UI
+    step = step_size_input.value if step_size_input and step_size_input.value else 0.002
 
-    if 'a' in key_states: current_position[0] -= STEP_SIZE
-    if 'd' in key_states: current_position[0] += STEP_SIZE
-    if 'q' in key_states: current_position[2] += STEP_SIZE
-    if 'e' in key_states: current_position[2] -= STEP_SIZE
-    if 'w' in key_states: current_position[1] -= STEP_SIZE
-    if 's' in key_states: current_position[1] += STEP_SIZE
+    if 'a' in key_states: current_position[0] -= step
+    if 'd' in key_states: current_position[0] += step
+    if 'q' in key_states: current_position[2] += step
+    if 'e' in key_states: current_position[2] -= step
+    if 'w' in key_states: current_position[1] -= step
+    if 's' in key_states: current_position[1] += step
 
     logger.debug(f"📍 Moving to: {current_position}")  # Debugging
-    robot.instant_display_state(robot.inverse_kinematics(current_position))
-    #run_move_can(robot, Arctos)
+    robot.instant_display_state(robot.inverse_kinematics_pink(current_position, current_orientation))
+    
 
 def on_key(event, robot, Arctos):
     """Handles keyboard events using NiceGUI."""
