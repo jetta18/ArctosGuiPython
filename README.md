@@ -15,6 +15,7 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 - MKS Servo configuration interface
 
 
+
 ## 🛠️ Setup
 
 ### Prerequisites
@@ -23,73 +24,87 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 - CAN interface for robot communication
 - Access to the Arctos Robot hardware
 
-### 1. Clone the Repository
+---
 
-```bash
-git clone https://github.com/jetta18/ArctosGuiPython.git
-cd ArctosGuiPython
-```
+## 🔧 Installation Options
+
+You can install the project in two ways, depending on your preferences and whether you want to use `conda` for environment management.
 
 ---
 
-### 🔄 Optional: Set Up a Virtual Environment (Recommended)
+### 🅰️ Option 1: Standard Python Installation (with manual Pinocchio setup)
 
-1. Create a virtual environment in the project directory:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/jetta18/ArctosGuiPython.git
+   cd ArctosGuiPython
+   ```
+
+2. (Optional) Create and activate a virtual environment:
    ```bash
    python3 -m venv venv
+   source venv/bin/activate  # On Linux/macOS
    ```
 
-2. Activate the environment:
-
-   On Linux/macOS:
-   ```bash
-   source venv/bin/activate
-   ```
-
-   On Windows:
-   ```bash
-   venv\Scripts\activate
-   ```
-
-   After activation, your terminal should look like:
-   ```bash
-   (venv) user@user:~/ArctosGuiPython$
-   ```
-
-3. Install the dependencies:
+3. Install Python dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
+4. Install **Pinocchio manually** using the official instructions:  
+   👉 https://stack-of-tasks.github.io/pinocchio/download.html
+
 ---
 
-### 2. Install Dependencies
+### 🅱️ Option 2: Conda-based Installation (Recommended for Robotics)
 
-If you haven't used a virtual environment, you can install dependencies directly:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/jetta18/ArctosGuiPython.git
+   cd ArctosGuiPython
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+2. Create the Conda environment (the `environment.yml` file is included in the repository):
+   ```bash
+   conda env create -f environment.yml
+   ```
 
-### 3. Set up CAN Interface
+3. Activate the environment:
+   ```bash
+   conda activate arctos-env
+   ```
+
+4. Start the application:
+   ```bash
+   python src/main.py
+   ```
+
+---
+
+### 🎛️ CAN Interface Setup
+
+Set up the CAN interface using the provided script(Important to set this up!):
 
 ```bash
 cd ~/ArctosGuiPython/scripts
 sudo ./setup_canable.sh
 ```
 
-### 4. Start the application
+---
 
-1. Start the application:
+### 🚀 Running the Application
+
+1. Launch the GUI:
    ```bash
    cd ~/ArctosGuiPython/src
    python3 main.py
    ```
 
-2. Open your browser and navigate to:
+2. Open your browser and go to:
    ```
    http://localhost:8080
    ```
+
 
 ## 📁 Project Structure
 
@@ -109,7 +124,8 @@ ArctosGuiPython/
 ├── docs/                  # Documentation
 ├── tests/                 # Test files
 ├── requirements.txt       # Python dependencies
-└── README.md             # This file
+├── README.md              # This file
+└── environment.yml        # Conda env file
 ```
 
 
