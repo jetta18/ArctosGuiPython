@@ -7,6 +7,7 @@ import logging
 from services.mks_servo_can import mks_servo
 from services.mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
 import concurrent.futures
+import platform
 
 
 logger = logging.getLogger(__name__)
@@ -29,17 +30,21 @@ class ArctosController:
             cls._instance = super(ArctosController, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, encoder_resolution: int = 16384, can_interface: str = "can0", bitrate: int = 500000):
+    def __init__(self, encoder_resolution: int = 16384, bitrate: int = 500000):
         """
         Initializes the CAN interface, servos, and gear ratio settings.
         
         :param encoder_resolution: Encoder resolution per revolution.
-        :param can_interface: Name of the CAN interface (default "slcan0").
         :param bitrate: CAN bus bitrate (default 500000).
         """
         if hasattr(self, "initialized"):  # Prevent re-initialization
             return
         self.initialized = True  # Set initialization flag
+
+        if platform.system() == "Windows":
+            can_interface = "COM3"  # oder aus einer Config-Datei laden
+        else:
+            can_interface = "can0"
 
         self.can_interface = can_interface
         self.bitrate = bitrate

@@ -1,103 +1,158 @@
 from nicegui import ui
 from services.mks_servo_can.mks_enums import Enable, Direction, EndStopLevel, WorkMode, HoldingStrength, EnPinEnable
+import yaml
+import os
+
+SETTINGS_FILE = 'mks_settings.yaml'
+
+def load_servo_settings():
+    if not os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE, 'w') as f:
+            yaml.dump({}, f)
+        return {}
+    with open(SETTINGS_FILE, 'r') as f:
+        return yaml.safe_load(f) or {}
+
+def save_servo_setting(index, key, value):
+    data = load_servo_settings()
+    servo_key = f'servo_{index}'
+    if servo_key not in data:
+        data[servo_key] = {}
+    data[servo_key][key] = value
+    with open(SETTINGS_FILE, 'w') as f:
+        yaml.dump(data, f)
+
+def apply_button(label, action_fn):
+    ui.button(label, on_click=action_fn).classes('w-full mt-2')
 
 def create(ArctosConfig):
-    """
-    Page for configuring MKS servos.
-    """
+    settings = load_servo_settings()
 
     with ui.column().classes('p-4 w-full'):
         ui.label("🔧 MKS Servo Configuration").classes('text-3xl font-bold text-center mb-4')
-        
-        for i in range(6):  # 6 servos
+
+        for i in range(len(ArctosConfig.servos)):
+            servo_key = f"servo_{i}"
+            servo_data = settings.get(servo_key, {})
+
             with ui.expansion(f"⚙️ Servo {i+1} Settings", icon="settings", value=False).classes('w-full border-2 border-gray-400 mt-2'):
                 with ui.card().classes('w-full p-4'):
-                    
-                    # Working Mode
+
                     with ui.row().classes('w-full gap-4'):
                         with ui.column().classes('w-1/4'):
                             ui.label("Working Mode:").classes('text-lg font-bold')
                             mode_select = ui.select(
                                 {WorkMode.CrOpen: "CR_OPEN", WorkMode.CrClose: "CR_CLOSE", WorkMode.CrvFoc: "CR_vFOC", 
-                                WorkMode.SrOpen: "SR_OPEN", WorkMode.SrClose: "SR_CLOSE", WorkMode.SrvFoc: "SR_vFOC"},
-                                value=WorkMode.SrvFoc
+                                 WorkMode.SrOpen: "SR_OPEN", WorkMode.SrClose: "SR_CLOSE", WorkMode.SrvFoc: "SR_vFOC"},
+                                value=servo_data.get("work_mode", WorkMode.SrvFoc)
                             ).classes('w-full')
-                        with ui.column().classes('w-1/4'):
-                            # Operating Current
-                            ui.label("Operating Current (mA):").classes('text-lg font-bold')
-                            current_input = ui.number(value=1600, min=0, max=5200, step=100).classes('w-full')
+                            def apply_working_mode(index=i, selector=mode_select):
+                                ArctosConfig.servos[index].set_work_mode(selector.value)
+                                save_servo_setting(index, "work_mode", selector.value)
+                                ui.notify(f"✅ Servo {index+1} Working Mode updated.", type='positive')
+                            apply_button("Apply Working Mode", apply_working_mode)
 
                         with ui.column().classes('w-1/4'):
-                            # Microsteps
+                            ui.label("Operating Current (mA):").classes('text-lg font-bold')
+                            current_input = ui.number(value=servo_data.get("current", 1600), min=0, max=5200, step=100).classes('w-full')
+                            def apply_current(index=i, input_field=current_input):
+                                ArctosConfig.servos[index].set_working_current(int(input_field.value))
+                                save_servo_setting(index, "current", int(input_field.value))
+                                ui.notify(f"✅ Servo {index+1} Current updated.", type='positive')
+                            apply_button("Apply Operating Current", apply_current)
+
+                        with ui.column().classes('w-1/4'):
                             ui.label("Microsteps:").classes('text-lg font-bold')
-                            microstep_select = ui.select([1, 2, 4, 8, 16, 32, 64, 128, 256], value=16).classes('w-full')                           
+                            microstep_select = ui.select([1, 2, 4, 8, 16, 32, 64, 128, 256], value=servo_data.get("microsteps", 16)).classes('w-full')
+                            def apply_microsteps(index=i, selector=microstep_select):
+                                ArctosConfig.servos[index].set_subdivisions(selector.value)
+                                save_servo_setting(index, "microsteps", selector.value)
+                                ui.notify(f"✅ Servo {index+1} Microsteps updated.", type='positive')
+                            apply_button("Apply Microsteps", apply_microsteps)
+
                     ui.separator().classes('my-6')
+
                     with ui.row().classes('w-full gap-4'):
-                    # Holding Current
                         with ui.column().classes('w-2/3'):
                             ui.label("Holding Current (%):").classes('text-lg font-bold')
                             hold_current = ui.radio(
                                 {HoldingStrength.TEN_PERCENT: "10%", HoldingStrength.TWENTLY_PERCENT: "20%", 
-                                HoldingStrength.THIRTY_PERCENT: "30%", HoldingStrength.FOURTY_PERCENT: "40%", 
-                                HoldingStrength.FIFTHTY_PERCENT: "50%", HoldingStrength.SIXTY_PERCENT: "60%", 
-                                HoldingStrength.SEVENTY_PERCENT: "70%", HoldingStrength.EIGHTY_PERCENT: "80%", 
-                                HoldingStrength.NIGHTY_PERCENT: "90%"},
-                                value=HoldingStrength.FIFTHTY_PERCENT
+                                 HoldingStrength.THIRTY_PERCENT: "30%", HoldingStrength.FOURTY_PERCENT: "40%", 
+                                 HoldingStrength.FIFTHTY_PERCENT: "50%", HoldingStrength.SIXTY_PERCENT: "60%", 
+                                 HoldingStrength.SEVENTY_PERCENT: "70%", HoldingStrength.EIGHTY_PERCENT: "80%", 
+                                 HoldingStrength.NIGHTY_PERCENT: "90%"},
+                                value=servo_data.get("holding", HoldingStrength.FIFTHTY_PERCENT)
                             ).props('inline')
+                            def apply_holding(index=i, selector=hold_current):
+                                ArctosConfig.servos[index].set_holding_current(selector.value)
+                                save_servo_setting(index, "holding", selector.value)
+                                ui.notify(f"✅ Servo {index+1} Holding Current updated.", type='positive')
+                            apply_button("Apply Holding Current", apply_holding)
+
                         with ui.column().classes('w-1/4'):
-                            # Rotation Direction
                             ui.label("Rotation Direction:").classes('text-lg font-bold')
-                            direction_select = ui.select({Direction.CW: "CW", Direction.CCW: "CCW"}, value=Direction.CW).classes('w-full')
+                            direction_select = ui.select(
+                                {Direction.CW: "CW", Direction.CCW: "CCW"},
+                                value=servo_data.get("direction", Direction.CW)
+                            ).classes('w-full')
+                            def apply_direction(index=i, selector=direction_select):
+                                ArctosConfig.servos[index].set_motor_rotation_direction(selector.value)
+                                save_servo_setting(index, "direction", selector.value)
+                                ui.notify(f"✅ Servo {index+1} Direction updated.", type='positive')
+                            apply_button("Apply Rotation Direction", apply_direction)
+
                     ui.separator().classes('my-6')
+
                     with ui.column().classes('w-full'):
-                        with ui.row().classes('w-full'):
-                            # Homing Settings
-                            ui.label("🏠 Homing Settings").classes('text-lg font-bold')
+                        ui.label("🏠 Homing Settings").classes('text-lg font-bold')
                         with ui.row().classes('w-full'):
                             with ui.column().classes('w-1/5'):
                                 ui.label("EndStop Level:").classes('text-md font-bold')
-                                endstop_level_select = ui.select(["Low", "High"], value="Low").classes('w-1/4')
+                                endstop_level_select = ui.select(["Low", "High"], value=servo_data.get("endstop_level", "Low")).classes('w-full')
                             with ui.column().classes('w-1/5'):
                                 ui.label("Home Direction:").classes('text-md font-bold')
-                                home_direction_select = ui.select(["CW", "CCW"], value="CW").classes('w-1/4')
+                                home_direction_select = ui.select(["CW", "CCW"], value=servo_data.get("home_direction", "CW")).classes('w-full')
                             with ui.column().classes('w-1/5'):
                                 ui.label("Homing Speed (RPM):").classes('text-md font-bold')
-                                home_speed_input = ui.number(value=60, min=30, max=3000).classes('w-1/4')
+                                home_speed_input = ui.number(value=servo_data.get("home_speed", 60), min=30, max=3000).classes('w-full')
                             with ui.column().classes('w-1/5'):
                                 ui.label("Enable Homing:").classes('text-md font-bold')
-                                enable_select = ui.select(["Enable", "Disable"], value="Enable").classes('w-1/4')
-                    ui.separator().classes('my-6')     
+                                enable_select = ui.select(["Enable", "Disable"], value=servo_data.get("enable_homing", "Enable")).classes('w-full')
+
+                        def apply_homing(index=i):
+                            ArctosConfig.servos[index].set_home(
+                                EndStopLevel.Low if endstop_level_select.value == "Low" else EndStopLevel.High,
+                                Direction.CW if home_direction_select.value == "CW" else Direction.CCW,
+                                int(home_speed_input.value),
+                                Enable.Enable if enable_select.value == "Enable" else Enable.Disable
+                            )
+                            save_servo_setting(index, "endstop_level", endstop_level_select.value)
+                            save_servo_setting(index, "home_direction", home_direction_select.value)
+                            save_servo_setting(index, "home_speed", int(home_speed_input.value))
+                            save_servo_setting(index, "enable_homing", enable_select.value)
+                            ui.notify(f"✅ Servo {index+1} Homing Settings updated.", type='positive')
+
+                        apply_button("Apply Homing Settings", apply_homing)
+
+                    ui.separator().classes('my-6')
+
                     with ui.row().classes('w-full gap-4'):
                         with ui.column().classes('w-1/4'):
-                            # Enable Endstop
                             ui.label("Enable Endstop:").classes('text-lg font-bold')
-                            endstop_switch = ui.switch().classes('w-full')
+                            endstop_switch = ui.switch(value=servo_data.get("endstop_enabled", False)).classes('w-full')
+                            def apply_endstop(index=i, val=endstop_switch):
+                                ArctosConfig.servos[index].set_en_pin_config(
+                                    EnPinEnable.ActiveHigh if val.value else EnPinEnable.ActiveLow)
+                                save_servo_setting(index, "endstop_enabled", val.value)
+                                ui.notify(f"✅ Servo {index+1} Endstop Setting updated.", type='positive')
+                            apply_button("Apply Endstop Setting", apply_endstop)
+
                         with ui.column().classes('w-1/4'):
-                            # Motor Shaft Lock Protection
                             ui.label("Enable Motor Shaft Lock Protection:").classes('text-lg font-bold')
-                            motor_protection_switch = ui.switch().classes('w-full')
-                    ui.separator().classes('my-6')
-                    # Apply Button with Feedback
-                    def apply_settings(i):
-                        ArctosConfig.servos[i].set_work_mode(mode_select.value)
-                        ArctosConfig.servos[i].set_working_current(int(current_input.value))
-                        ArctosConfig.servos[i].set_holding_current(hold_current.value)
-                        ArctosConfig.servos[i].set_subdivisions(microstep_select.value)
-                        ArctosConfig.servos[i].set_motor_rotation_direction(direction_select.value)
-                        ArctosConfig.servos[i].set_en_pin_config(
-                            EnPinEnable.ActiveHigh if endstop_switch.value else EnPinEnable.ActiveLow
-                        )
-                        ArctosConfig.servos[i].set_home(
-                            EndStopLevel.Low if endstop_level_select.value == "Low" else EndStopLevel.High,
-                            Direction.CW if home_direction_select.value == "CW" else Direction.CCW,
-                            int(home_speed_input.value),
-                            Enable.Enable if enable_select.value == "Enable" else Enable.Disable
-                        )
-                        ArctosConfig.servos[i].set_motor_shaft_locked_rotor_protection(
-                            Enable.Enable if motor_protection_switch.value else Enable.Disable
-                        )
-                        ui.notify(f"✅ Servo {i+1} settings applied successfully!", type='positive')
-                    
-                    ui.button("Apply Settings", on_click=lambda i=i: apply_settings(i)).classes(
-                        'bg-green-500 text-white px-4 py-2 rounded-lg self-center'
-                    )
+                            motor_protection_switch = ui.switch(value=servo_data.get("shaft_protect", False)).classes('w-full')
+                            def apply_protect(index=i, val=motor_protection_switch):
+                                ArctosConfig.servos[index].set_motor_shaft_locked_rotor_protection(
+                                    Enable.Enable if val.value else Enable.Disable)
+                                save_servo_setting(index, "shaft_protect", val.value)
+                                ui.notify(f"✅ Servo {index+1} Lock Protection updated.", type='positive')
+                            apply_button("Apply Shaft Lock Protection", apply_protect)
