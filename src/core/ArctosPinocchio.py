@@ -54,7 +54,7 @@ class ArctosPinocchioRobot:
         )
         self.geom_data = self.geom_model.createData()
 
-                # Load collision model (for future collision detection)
+        # Load collision model (for future collision detection)
         self.collision_model = pin.buildGeomFromUrdf(
             self.model, urdf_path, pin.GeometryType.COLLISION, None, [os.path.dirname(urdf_path)]
         )
@@ -96,8 +96,8 @@ class ArctosPinocchioRobot:
         viz = MeshcatVisualizer(self.model, self.geom_model, self.geom_model)
         visualizer_instance = meshcat.Visualizer()
         zmq_url = visualizer_instance.url()  # Holt die tatsächliche URL
-
-        viz.initViewer(viewer=visualizer_instance)
+  
+        viz.initViewer(viewer=visualizer_instance)  
         viz.loadViewerModel(model_name)
 
         # Konvertiere ZeroMQ URL in HTTP URL für die Anzeige in NiceGUI

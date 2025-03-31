@@ -6,22 +6,30 @@ from core import homing
 
 MESH_CAT_URL = "http://127.0.0.1:7000/static/"
 
-def create(Arctos, robot, planner):
+def create(Arctos, robot, planner, settings_manager):
     """
     Creates the control page for robot operation.
     """
 
-    ui.label("Control Page").classes('text-3xl font-bold text-center mb-4')
+    # ✅ Apply UI Theme on page init
+    if settings_manager.get("theme") == "Dark":
+        ui.dark_mode().enable()
+    else:
+        ui.dark_mode().disable()
 
-    with ui.card().classes('w-full bg-blue-50 border border-blue-300 rounded-2xl shadow-md p-4 mb-6'):
-        ui.label("Live Joint-States").classes('text-lg font-semibold text-blue-800 mb-2 text-center')
-        
-        with ui.grid(columns=6).classes('w-full'):
-            joint_positions_encoder = [
-                ui.label(f"J{i+1}: --.--°")
-                .classes('text-sm text-center font-mono text-blue-900 bg-white rounded-lg px-2 py-1 border border-blue-200 shadow-sm') 
-                for i in range(6)
-            ]
+
+    ui.label("Control Page").classes('text-3xl font-bold text-center mb-4')
+    # ✅ Conditional UI Timers
+    if settings_manager.get("enable_live_joint_updates", True):
+        with ui.card().classes('w-full bg-blue-50 border border-blue-300 rounded-2xl shadow-md p-4 mb-6'):
+            ui.label("Live Joint-States").classes('text-lg font-semibold text-blue-800 mb-2 text-center')
+            
+            with ui.grid(columns=6).classes('w-full'):
+                joint_positions_encoder = [
+                    ui.label(f"J{i+1}: --.--°")
+                    .classes('text-sm text-center font-mono text-blue-900 bg-white rounded-lg px-2 py-1 border border-blue-200 shadow-sm') 
+                    for i in range(6)
+                ]
 
     # 🎮 Add keyboard listener directly in `create()`
     ui.keyboard(lambda event: utils.on_key(event, robot, Arctos))
@@ -196,8 +204,9 @@ def create(Arctos, robot, planner):
 
     # UI starten
     ui.timer(0.25, lambda: utils.update_joint_states(robot, joint_positions))
-    ui.timer(0.25, lambda: utils.update_joint_states_encoder(robot, joint_positions_encoder))
     ui.timer(0.25, lambda: utils.live_update_ee_postion(robot, ee_position_labels))
     ui.timer(0.25, lambda: utils.live_update_ee_orientation(robot, ee_orientation_labels))
-    ui.timer(0.3, lambda: utils.threaded_initialize_current_joint_states(robot, Arctos))
-    #utils.initialize_current_joint_states(robot, Arctos)
+    # ✅ Conditional UI Timers
+    if settings_manager.get("enable_live_joint_updates", True):
+        ui.timer(0.3, lambda: utils.threaded_initialize_current_joint_states(robot, Arctos))
+        ui.timer(0.25, lambda: utils.update_joint_states_encoder(robot, joint_positions_encoder))

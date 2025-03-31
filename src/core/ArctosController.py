@@ -30,7 +30,7 @@ class ArctosController:
             cls._instance = super(ArctosController, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, encoder_resolution: int = 16384, bitrate: int = 500000):
+    def __init__(self, encoder_resolution: int = 16384, bitrate: int = 500000, settings_manager=None):
         """
         Initializes the CAN interface, servos, and gear ratio settings.
         
@@ -42,7 +42,7 @@ class ArctosController:
         self.initialized = True  # Set initialization flag
 
         if platform.system() == "Windows":
-            can_interface = "COM3"  # oder aus einer Config-Datei laden
+            can_interface = "COM5"  # oder aus einer Config-Datei laden
         else:
             can_interface = "can0"
 
@@ -50,7 +50,12 @@ class ArctosController:
         self.bitrate = bitrate
         self.encoder_resolution = encoder_resolution
         self.servos = []
-        self.gear_ratios = [13.5, -150, -150, 48, -(67.82 / 2.1), (67.82 / 2.1)]  # Gear ratios for each joint
+        self.gear_ratios = [13.5, 150, 150, 48, (67.82 / 2), (67.82 / 2)]  # Gear ratios for each joint
+
+        # ✅ Apply direction inversion if settings_manager is provided
+        if settings_manager:
+            directions = settings_manager.get("joint_directions") or {i: 1 for i in range(6)}
+            self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(self.gear_ratios)]
 
         # Initialize CAN Bus
         self.bus = self.initialize_can_bus()
@@ -202,7 +207,11 @@ class ArctosController:
             raise RuntimeError("CAN interface is not available.")
 
         try:
-            bus = can.interface.Bus(bustype="socketcan", channel=self.can_interface)
+            if platform.system() == "Windows":
+                bus = can.interface.Bus(bustype="slcan", channel=self.can_interface, bitrate=self.bitrate)
+            else:
+                bus = can.interface.Bus(bustype="socketcan", channel=self.can_interface)
+
             logger.info(f"CAN bus successfully initialized on {self.can_interface} with bitrate {self.bitrate}.")
             return bus
         except Exception as e:
@@ -216,12 +225,19 @@ class ArctosController:
 
         :return: True if the interface is active, False otherwise.
         """
-        try:
-            result = subprocess.run(["ip", "link", "show", self.can_interface], capture_output=True, text=True)
-            return "UP" in result.stdout
-        except Exception as e:
-            logger.error(f"Error checking CAN interface: {e}")
+        if platform.system() == "Windows":
+            # On Windows, we assume the COM port is available if it appears in the port list
+            import serial.tools.list_ports
+            ports = [port.device for port in serial.tools.list_ports.comports()]
+            return self.can_interface in ports
+        else:
+            try:
+                result = subprocess.run(["ip", "link", "show", self.can_interface], capture_output=True, text=True)
+                return "UP" in result.stdout
+            except Exception as e:
+                logger.error(f"Error checking CAN interface: {e}")
             return False
+
 
 
     def send_can_message_gripper(self, bus: can.Bus, arbitration_id: int, data: List[int]) -> None:

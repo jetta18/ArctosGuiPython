@@ -3,7 +3,9 @@ from services.mks_servo_can.mks_enums import Enable, Direction, EndStopLevel, Wo
 import yaml
 import os
 
-SETTINGS_FILE = 'mks_settings.yaml'
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), '..', 'config', 'mks_settings.yaml')
+SETTINGS_FILE = os.path.abspath(SETTINGS_FILE)
+
 
 def load_servo_settings():
     if not os.path.exists(SETTINGS_FILE):
@@ -18,7 +20,8 @@ def save_servo_setting(index, key, value):
     servo_key = f'servo_{index}'
     if servo_key not in data:
         data[servo_key] = {}
-    data[servo_key][key] = value
+    # Save enums as strings
+    data[servo_key][key] = value.name if hasattr(value, 'name') else value
     with open(SETTINGS_FILE, 'w') as f:
         yaml.dump(data, f)
 
@@ -41,10 +44,11 @@ def create(ArctosConfig):
                     with ui.row().classes('w-full gap-4'):
                         with ui.column().classes('w-1/4'):
                             ui.label("Working Mode:").classes('text-lg font-bold')
+                            work_mode_value = WorkMode[servo_data.get("work_mode", WorkMode.SrvFoc.name)]
                             mode_select = ui.select(
                                 {WorkMode.CrOpen: "CR_OPEN", WorkMode.CrClose: "CR_CLOSE", WorkMode.CrvFoc: "CR_vFOC", 
                                  WorkMode.SrOpen: "SR_OPEN", WorkMode.SrClose: "SR_CLOSE", WorkMode.SrvFoc: "SR_vFOC"},
-                                value=servo_data.get("work_mode", WorkMode.SrvFoc)
+                                value=work_mode_value
                             ).classes('w-full')
                             def apply_working_mode(index=i, selector=mode_select):
                                 ArctosConfig.servos[index].set_work_mode(selector.value)
@@ -75,13 +79,14 @@ def create(ArctosConfig):
                     with ui.row().classes('w-full gap-4'):
                         with ui.column().classes('w-2/3'):
                             ui.label("Holding Current (%):").classes('text-lg font-bold')
+                            hold_value = HoldingStrength[servo_data.get("holding", HoldingStrength.FIFTHTY_PERCENT.name)]
                             hold_current = ui.radio(
                                 {HoldingStrength.TEN_PERCENT: "10%", HoldingStrength.TWENTLY_PERCENT: "20%", 
                                  HoldingStrength.THIRTY_PERCENT: "30%", HoldingStrength.FOURTY_PERCENT: "40%", 
                                  HoldingStrength.FIFTHTY_PERCENT: "50%", HoldingStrength.SIXTY_PERCENT: "60%", 
                                  HoldingStrength.SEVENTY_PERCENT: "70%", HoldingStrength.EIGHTY_PERCENT: "80%", 
                                  HoldingStrength.NIGHTY_PERCENT: "90%"},
-                                value=servo_data.get("holding", HoldingStrength.FIFTHTY_PERCENT)
+                                value=hold_value
                             ).props('inline')
                             def apply_holding(index=i, selector=hold_current):
                                 ArctosConfig.servos[index].set_holding_current(selector.value)
@@ -91,9 +96,10 @@ def create(ArctosConfig):
 
                         with ui.column().classes('w-1/4'):
                             ui.label("Rotation Direction:").classes('text-lg font-bold')
+                            direction_value = Direction[servo_data.get("direction", Direction.CW.name)]
                             direction_select = ui.select(
                                 {Direction.CW: "CW", Direction.CCW: "CCW"},
-                                value=servo_data.get("direction", Direction.CW)
+                                value=direction_value
                             ).classes('w-full')
                             def apply_direction(index=i, selector=direction_select):
                                 ArctosConfig.servos[index].set_motor_rotation_direction(selector.value)
