@@ -2,21 +2,9 @@ name: arctos-env
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
-  - pinocchio
-  - numpy
+  - pink
+  - meshcat-python
   - scipy
-  - matplotlib
-  - eigenpy
   - python-can
-  - fastapi
-  - uvicorn
-  - requests
-  - aiohttp
   - pyyaml
-  - pyzmq
-  - pip
-  - pip:
-      - nicegui
-      - meshcat
-      - -r requirements.txt
+  - nicegui
