@@ -290,7 +290,7 @@ class ArctosController:
 
 
     def is_can_interface_up(self) -> bool:
-      """
+        """
         Checks if the specified CAN interface is active.
 
         This method checks the status of the CAN interface. On Windows, it checks if the COM port
@@ -299,8 +299,8 @@ class ArctosController:
 
         Returns:
             bool: True if the interface is active, False otherwise.
-        
         """
+      
         if platform.system() == "Windows":
             # On Windows, we assume the COM port is available if it appears in the port list
             import serial.tools.list_ports
