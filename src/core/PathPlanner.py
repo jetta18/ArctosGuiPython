@@ -8,22 +8,34 @@ from meshcat.geometry import Sphere
 from meshcat.transformations import translation_matrix
 
 
+# Set up logging for the PathPlanner module
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)  
+logger.setLevel(logging.INFO)
+
 
 class PathPlanner:
-    """
-    PathPlanner is responsible for recording, saving, loading, and executing predefined joint poses
-    for a robotic arm using Pinocchio.
+    """Manages the recording, saving, loading, and execution of predefined joint poses for a robotic arm.
+
+    This class handles the storage and retrieval of robot poses, which are used to define paths for
+    the robot to follow. It interfaces with the ArctosPinocchioRobot class to capture and visualize
+    robot poses.
     """
 
     def __init__(self, filename: str = None):
-        """
-        Initializes the PathPlanner.
+        """Initializes the PathPlanner with an optional filename for storing and loading joint positions.
 
-        :param filename: The filename for saving and loading stored joint positions.
+        Args:
+            filename (str, optional): The filename for saving and loading stored joint positions.
+            If None, defaults to "default_program.json". Defaults to None.
+
+        The constructor performs the following operations:
+        - Determines the directory for storing programs.
+        - Creates the directory if it does not exist.
+        - Sets the filename and the full path for the program file.
+        - Initializes an empty list to store poses.
+        - Loads a program from the specified file if it exists.
         """
-        # Get the absolute path to the programs directory
+        # Get the absolute path to the programs directory, located two levels up and in 'programs'
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.programs_dir = os.path.join(current_dir, '..', 'programs')
         os.makedirs(self.programs_dir, exist_ok=True)  # Create programs dir if it doesn't exist
@@ -38,12 +50,17 @@ class PathPlanner:
         self.load_program()
     
     def get_available_programs(self) -> List[str]:
-        """
-        Returns a list of available program filenames in the programs directory.
+        """Retrieves a sorted list of available program filenames in the programs directory.
+
+        This method lists all files ending with '.json' in the programs directory,
+        sorts them alphabetically, and returns the sorted list.
         
-        :return: List of program filenames
+        Returns:
+            List[str]: A sorted list of program filenames.
+            If an error occurs while listing the programs, returns an empty list.
         """
         try:
+            # Get all .json files in the programs directory and sort them
             # Get all .json files in the programs directory
             programs = [f for f in os.listdir(self.programs_dir) if f.endswith('.json')]
             return sorted(programs)
@@ -52,14 +69,18 @@ class PathPlanner:
             return []
 
     def capture_pose(self, robot) -> None:
-        """
-        Saves the current robot pose, including joint angles and Cartesian coordinates, 
-        and immediately visualizes it in MeshCat.
+        """Captures and stores the current robot pose, including joint angles and Cartesian coordinates.
 
-        :param robot: The robot instance that provides the current joint angles and end-effector position.
-        :type robot: ArctosPinocchioRobot (or equivalent class)
+        This method gets the current joint angles and the end-effector Cartesian position
+        from the robot instance, stores them in the `self.poses` list, and visualizes the
+        pose in MeshCat immediately.
+
+        Args:
+            robot (ArctosPinocchioRobot): The robot instance that provides the current joint angles
+                and end-effector position.
         """
         # Retrieve current joint angles
+        # Retrieve current joint angles and cartesian coordinates from the robot
         current_pose = robot.get_current_joint_angles()
 
         # Retrieve the Cartesian position of the end-effector
@@ -77,13 +98,15 @@ class PathPlanner:
         self.visualize_saved_poses(robot)
 
     def delete_pose(self, index: int, robot) -> None:
-        """
-        Deletes a stored pose and removes its corresponding visualization from MeshCat.
+        """Deletes a stored pose and removes its visualization from MeshCat.
 
-        :param index: The index of the pose to be deleted.
-        :type index: int
-        :param robot: The robot instance that contains the MeshCat viewer.
-        :type robot: ArctosPinocchioRobot (or equivalent class)
+        Args:
+            index (int): The index of the pose to be deleted (0-based).
+            robot (ArctosPinocchioRobot): The robot instance that contains the MeshCat viewer.
+
+        The method does the following:
+        - Removes the pose from the list of stored poses.
+        - Deletes the corresponding sphere in MeshCat.
         """
         if 0 <= index < len(self.poses):
             # Remove the pose from the list
@@ -105,11 +128,18 @@ class PathPlanner:
             self.visualize_saved_poses(robot)
 
     def save_program(self, program_name: Optional[str] = None) -> Tuple[bool, str]:
-        """
-        Saves the recorded joint poses into a JSON file with the given name.
+        """Saves the recorded joint poses into a JSON file.
         
-        :param program_name: Optional name for the program file (without extension)
-        :return: Tuple of (success, message)
+        This method saves the current set of stored joint poses (`self.poses`) into a JSON file.
+        If a program_name is provided, it will save the poses to that file. Otherwise, it will
+        use the current filename.
+
+        Args:
+            program_name (str, optional): Optional name for the program file (without extension).
+            If provided, it will override the current filename. Defaults to None.
+
+        Returns:
+            Tuple[bool, str]: A tuple containing a boolean indicating success or failure, and a message string.
         """
         try:
             if program_name:
@@ -130,12 +160,20 @@ class PathPlanner:
             return False, error_msg
 
     def load_program(self, program_name: Optional[str] = None) -> Tuple[bool, str]:
-        """
-        Loads a previously saved set of joint poses from a JSON file and ensures correct formatting.
+        """Loads a previously saved set of joint poses from a JSON file.
         
-        :param program_name: Optional name of the program file to load (without extension)
-        :return: Tuple of (success, message)
+        This method attempts to load joint poses from a JSON file. If the program_name is provided,
+        it will load from that file. Otherwise, it will use the current filename. It also checks
+        if the loaded data has the correct format.
+
+        Args:
+            program_name (str, optional): Optional name of the program file to load (without extension).
+                If provided, it will override the current filename. Defaults to None.
+        
+        Returns:
+            Tuple[bool, str]: A tuple containing a boolean indicating success or failure, and a message string.
         """
+        # Check if a custom program name is provided
         try:
             if program_name:
                 # Ensure the name has .json extension
@@ -170,11 +208,20 @@ class PathPlanner:
             return False, error_msg
 
     def execute_path(self, robot, Arctos) -> None:
-        """
-        Moves the robot through the recorded poses using Pinocchio visualization.
+        """Executes a path by moving the robot through the recorded poses.
 
-        :param robot: The robot instance (ArctosPinocchioRobot).
-        :param sleep_time: The delay between executing poses (in seconds).
+        This method iterates through the stored poses in `self.poses` and moves the robot
+        to each pose sequentially. It uses the robot's visualization capabilities to animate
+        the movement and the Arctos controller to move the real robot.
+
+        Args:
+            robot (ArctosPinocchioRobot): The robot instance.
+            Arctos (ArctosController): The instance of the Arctos controller
+
+        The method does the following:
+        - Verifies that there are stored poses to execute.
+        - Iterates through each pose.
+        - Moves the robot to the pose.
         """
         if not self.poses:
             logger.debug("⚠️ No stored program available!")
@@ -216,11 +263,18 @@ class PathPlanner:
         logger.debug("✅ Path execution completed!")
 
     def visualize_saved_poses(self, robot) -> None:
-        """
-        Visualizes all stored end-effector positions in MeshCat as small spheres.
+        """Visualizes all stored end-effector positions in MeshCat as small spheres.
 
-        :param robot: The robot instance that contains the MeshCat viewer.
-        :type robot: ArctosPinocchioRobot (or equivalent class)
+        This method iterates through all stored poses in `self.poses`, extracts the Cartesian
+        coordinates of the end-effector, and visualizes them as spheres in MeshCat.
+
+        Args:
+            robot (ArctosPinocchioRobot): The robot instance that contains the MeshCat viewer.
+        
+        The method does the following:
+        - Verifies that there are stored poses to visualize.
+        - Iterates through each stored pose.
+        - Visualizes the end-effector position as a sphere in MeshCat.
         """
         if not self.poses:
             logger.debug("⚠️ No stored poses to visualize!")

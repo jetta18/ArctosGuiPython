@@ -1,37 +1,61 @@
+"""
+This module defines the control page for the Arctos Robot GUI.
+
+It provides functionality for controlling the robot's movement, viewing its current state,
+and executing path planning tasks.
+"""
 from nicegui import ui
 from utils import utils
 from core import homing
 
-# Import local modules
-
+# Define the URL for the MeshCat visualization server.
 MESH_CAT_URL = "http://127.0.0.1:7000/static/"
 
-def create(Arctos, robot, planner, settings_manager):
+
+def create(Arctos, robot, planner, settings_manager) -> None:
     """
-    Creates the control page for robot operation.
+    Creates the control page for the Arctos Robot GUI.
+
+    This function sets up the layout and functionality of the control page,
+    including live updates, joint control, end-effector control, path planning,
+    gripper control, and a 3D visualization.
+
+    Args:
+        Arctos: The ArctosController instance for robot communication.
+        robot: The ArctosPinocchioRobot instance for robot kinematics.
+        planner: The PathPlanner instance for path planning.
+        settings_manager: An object that manages the GUI settings.
+
+    Returns:
+        None
     """
 
-    # ✅ Apply UI Theme on page init
+    # Apply UI Theme on page init
+    # Check if the user has set the dark theme
     if settings_manager.get("theme") == "Dark":
         ui.dark_mode().enable()
     else:
         ui.dark_mode().disable()
 
-
+    # page header
     ui.label("Control Page").classes('text-3xl font-bold text-center mb-4')
-    # ✅ Conditional UI Timers
+    # Conditional UI Timers
+    # Check if the user enabled live joint updates
     if settings_manager.get("enable_live_joint_updates", True):
+        # if live joint updates are enabled, show card with current joint positions.
         with ui.card().classes('w-full bg-blue-50 border border-blue-300 rounded-2xl shadow-md p-4 mb-6'):
             ui.label("Live Joint-States").classes('text-lg font-semibold text-blue-800 mb-2 text-center')
-            
+            # create a grid with 6 labels to display the current joint values
             with ui.grid(columns=6).classes('w-full'):
                 joint_positions_encoder = [
                     ui.label(f"J{i+1}: --.--°")
-                    .classes('text-sm text-center font-mono text-blue-900 bg-white rounded-lg px-2 py-1 border border-blue-200 shadow-sm') 
+                    .classes(
+                        'text-sm text-center font-mono text-blue-900 bg-white rounded-lg px-2 py-1 border border-blue-200 shadow-sm'
+                    )
                     for i in range(6)
                 ]
 
-    # 🎮 Add keyboard listener directly in `create()`
+    # Add keyboard listener directly in `create()`
     ui.keyboard(lambda event: utils.on_key(event, robot, Arctos))
     # Layout with two columns: Control on the left | Visualization & Console on the right
     with ui.grid(columns=2).classes('w-full gap-4'):
@@ -50,14 +74,18 @@ def create(Arctos, robot, planner, settings_manager):
                 .tooltip("Move all joints to 0° without using homing or encoders") \
                 .classes('bg-gray-700 text-white px-4 py-2 rounded-lg mt-2')
 
-            # --- Expandable Joint Control Section ---
+            # Expandable Joint Control Section
+            # Expandable section for joint control
             with ui.expansion("🦾 Joint Control", icon="settings", value=False).classes('w-full border-2 border-gray-400'):
-                
+                # Description label
                 ui.label("View and set the joint angles.").classes('text-gray-600 mb-2')
 
                 # Display current joint positions (Read-Only Labels)
+                # Create a grid with 6 labels for the joint positions
                 with ui.grid(columns=3).classes('gap-4 w-full'):
-                    joint_positions = [ui.label(f"Joint {i+1}: 0.0°").classes('text-lg w-full text-center') for i in range(6)]
+                    joint_positions = [
+                        ui.label(f"Joint {i+1}: 0.0°").classes('text-lg w-full text-center') for i in range(6)
+                    ]
 
                 # Input fields for setting new joint angles
                 with ui.grid(columns=3).classes('gap-4 w-full'):
@@ -68,8 +96,9 @@ def create(Arctos, robot, planner, settings_manager):
                     .tooltip("Send entered joint angles to the robot using forward kinematics") \
                     .classes('bg-green-500 text-white w-full mt-2 py-2 rounded-lg')
 
+            # End-Effector control section
             with ui.expansion('End-Effector', value=False).classes('w-full border-2 border-gray-400'):
-
+                # End-Effector Position section
                 # --- End-Effector Position Section ---
                 with ui.expansion("End-Effector Position", icon="location_on", value=False).classes('w-full border-2 border-gray-400'):
                     ui.label("View and set the end-effector position.").classes('text-gray-600 mb-2')
@@ -88,7 +117,7 @@ def create(Arctos, robot, planner, settings_manager):
                             for axis in ["X", "Y", "Z"]
                         }
 
-                # --- End-Effector Orientation (RPY) Section ---
+                # End-Effector Orientation (RPY) Section
                 with ui.expansion('🔄 End-Effector Orientation (RPY)', icon='rotate_right', value=False).classes('w-full border-2 border-gray-400'):
                     ui.label("Set and monitor the end-effector orientation").classes('text-lg font-semibold mb-2')
 
@@ -120,12 +149,10 @@ def create(Arctos, robot, planner, settings_manager):
                 ).tooltip("Uses inverse kinematics to move the end-effector to the specified position and orientation") \
                 .classes('bg-teal-600 text-white w-full mt-2 py-2 rounded-lg')
 
-
-
-            # Gripper Control inside an expandable accordion
+            # Gripper Control Section
             with ui.expansion("🛠 Gripper Control", icon="hand", value=False).classes('w-full border-2 border-gray-400'):
                 ui.label("Control the gripper's movement.").classes('text-gray-600 mb-2')
-                
+                # open and close gripper buttons
                 with ui.row().classes('justify-center gap-4'):
                     ui.button("Open Gripper", on_click=lambda: utils.open_gripper(Arctos)) \
                         .tooltip("Send command to open the robot gripper") \
@@ -135,10 +162,10 @@ def create(Arctos, robot, planner, settings_manager):
                         .tooltip("Send command to close the robot gripper") \
                         .classes('bg-orange-500 text-white px-4 py-2 rounded-lg')
 
-            # --- Expandable Path Planning Section ---
+            # Expandable Path Planning Section
             with ui.expansion("📌 Path Planning", icon="map", value=False).classes('w-full border-2 border-gray-400'):
-                
-                ui.label("Manage and execute path planning tasks.").classes('text-gray-600 text-center mb-2')
+                ui.label("Manage and execute path planning tasks.").classes(
+                    'text-gray-600 text-center mb-2')
 
                 with ui.row().classes('w-full'):
                     pose_container = ui.column().classes('w-full')
@@ -166,22 +193,23 @@ def create(Arctos, robot, planner, settings_manager):
                 .tooltip("Send robot to predefined 'home' configuration") \
                 .classes('bg-purple-500 text-white px-4 py-2 rounded-lg')
 
+            # Sleep button
             ui.button("💤 Move to Sleep Pose", on_click=lambda: homing.move_to_sleep_pose(Arctos)) \
                 .tooltip("Send robot to safe resting position (sleep pose)") \
                 .classes('bg-gray-500 text-white px-4 py-2 rounded-lg')
 
-
-        # --- RIGHT SECTION: MeshCat & Console ---
+        # RIGHT SECTION: MeshCat & Console
         with ui.column().classes('w-full'):
-            # MeshCat Visualization (now full width!)
+            # MeshCat Visualization
             with ui.card().classes('w-full p-4 bg-gray-100 border border-gray-300 rounded-lg flex-grow'):
                 ui.label("🖥️ 3D Visualization").classes('text-xl font-bold mb-2')
-                ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 500px; border: none;"></iframe>''').classes('w-full')
-                
+                ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 500px; border: none;"></iframe>''')\
+                    .classes('w-full')
+
                 with ui.row().classes('w-full justify-center items-start mt-4 gap-12'):
-                    
-                    # 🎮 Keyboard Control Switch
+                    # Keyboard Control Switch
                     with ui.column().classes("items-center"):
+
                         ui.label("🎮 Keyboard Control").classes("text-sm font-medium text-gray-700 mb-1")
                         keyboard_control_switch = ui.switch("", value=False)
                         keyboard_control_switch.on('click', utils.toggle_keyboard_control)
@@ -200,13 +228,14 @@ def create(Arctos, robot, planner, settings_manager):
                         ).props('label-always').classes('w-64')
 
 
-
-
-    # UI starten
+    # UI timers
+    # live update of the joint positions
     ui.timer(0.25, lambda: utils.update_joint_states(robot, joint_positions))
+    # live update of the ee position
     ui.timer(0.25, lambda: utils.live_update_ee_postion(robot, ee_position_labels))
+    # live update of the ee orientation
     ui.timer(0.25, lambda: utils.live_update_ee_orientation(robot, ee_orientation_labels))
-    # ✅ Conditional UI Timers
+    # Conditional UI Timers, live update of the joint states encoder
     if settings_manager.get("enable_live_joint_updates", True):
         ui.timer(0.3, lambda: utils.threaded_initialize_current_joint_states(robot, Arctos))
         ui.timer(0.25, lambda: utils.update_joint_states_encoder(robot, joint_positions_encoder))

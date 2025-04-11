@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)  
 
 
+
+
+
+
+
+
+
 class ArctosPinocchioRobot:
     """
     A class to manage a robotic model using Pinocchio.
@@ -30,11 +37,12 @@ class ArctosPinocchioRobot:
     """
 
     def __init__(self, ee_frame_name="gripper"):
-        """
-        Initializes the robot, loads the URDF, and sets up the Meshcat viewer.
+        """Initializes the robot model, loads the URDF, sets up the Meshcat viewer, and initializes robot state.
 
-        :param urdf_path: Path to the URDF file of the robot.
-        :param ee_frame_name: The name of the end-effector frame.
+        Args:
+            ee_frame_name (str, optional): The name of the end-effector frame in the URDF model. Defaults to "gripper".
+
+        Raises:
         """
 
 
@@ -54,7 +62,7 @@ class ArctosPinocchioRobot:
         )
         self.geom_data = self.geom_model.createData()
 
-        # Load collision model (for future collision detection)
+                # Load collision model (for future collision detection)
         self.collision_model = pin.buildGeomFromUrdf(
             self.model, urdf_path, pin.GeometryType.COLLISION, None, [os.path.dirname(urdf_path)]
         )
@@ -80,13 +88,17 @@ class ArctosPinocchioRobot:
         # Display initial configuration
         self.display()
 
-
     def initialize_viewer(self, model_name: str = "arctos_robot") -> MeshcatVisualizer:
-        """
-        Initialisiert den Meshcat-Visualizer und speichert die tatsächlich verwendete URL.
+        """Initializes the Meshcat viewer and stores the actual used URL.
 
-        :param model_name: Der Name unter dem der Roboter in Meshcat gespeichert wird.
-        :return: Eine Instanz von MeshcatVisualizer.
+        Args:
+            model_name (str, optional): The name under which the robot is stored in Meshcat. Defaults to "arctos_robot".
+
+        Returns:
+            MeshcatVisualizer: An instance of MeshcatVisualizer.
+
+        Raises:
+
         """
         # Falls Meshcat noch nicht gestartet wurde, starte den Server
         if not hasattr(self, 'meshcat_server'):
@@ -96,8 +108,8 @@ class ArctosPinocchioRobot:
         viz = MeshcatVisualizer(self.model, self.geom_model, self.geom_model)
         visualizer_instance = meshcat.Visualizer()
         zmq_url = visualizer_instance.url()  # Holt die tatsächliche URL
-  
-        viz.initViewer(viewer=visualizer_instance)  
+
+        viz.initViewer(viewer=visualizer_instance)
         viz.loadViewerModel(model_name)
 
         # Konvertiere ZeroMQ URL in HTTP URL für die Anzeige in NiceGUI
@@ -106,11 +118,15 @@ class ArctosPinocchioRobot:
         return viz
 
     def check_joint_limits(self, q: np.ndarray) -> bool:
-        """
-        Checks if the first 6 joint values are within the specified limits.
+        """Checks if the first 6 joint values are within the specified limits.
 
-        :param q: A numpy array representing the joint configuration.
-        :return: True if all first 6 joint values are within limits, False otherwise.
+        Args:
+            q (np.ndarray): A numpy array representing the joint configuration.
+
+        Returns:
+            bool: True if all first 6 joint values are within limits, False otherwise.
+
+        Raises:
         """
         q_limited = q[:6]  # Consider only first 6 joints
         below_limits = q_limited < self.lower_limits[:6]
@@ -127,14 +143,15 @@ class ArctosPinocchioRobot:
 
         return True
 
-
-
     def instant_display_state(self, q: np.ndarray = None) -> None:
-        """
-        Displays the robot in Meshcat using the given joint configuration.
+        """Displays the robot in Meshcat using the given joint configuration.
         If no configuration is given, it uses the current state `self.q`.
 
-        :param q: Optional. A numpy array representing the joint configuration.
+        Args:
+            q (np.ndarray, optional): A numpy array representing the joint configuration. If None, uses the current state `self.q`. Defaults to None.
+
+        Raises:
+            ValueError: If joint limits are exceeded.
         """
         if q is None:
             q = self.q  # Use stored joint state if none provided
@@ -151,6 +168,16 @@ class ArctosPinocchioRobot:
             logger.debug("Error: Visualizer not initialized.")
 
     def display(self, q: np.ndarray = None):
+        """Displays the robot in Meshcat using the given joint configuration.
+        If no configuration is given, it uses the current state `self.q`.
+
+        Args:
+            q (np.ndarray, optional): A numpy array representing the joint configuration. If None, uses the current state `self.q`. Defaults to None.
+
+        Raises:
+            ValueError: If joint limits are exceeded.
+
+        """
         if q is None:
             q = self.q
         if not self.check_joint_limits(q):
@@ -164,7 +191,16 @@ class ArctosPinocchioRobot:
             logger.debug("Error: Visualizer not initialized.")
     
     def animate_display(self, q_target, duration=2.0, steps=50):
+        """Animates the robot's movement from its current configuration to a target configuration over a given duration.
+
+        Args:
+            q_target (np.ndarray): The target joint configuration.
+            duration (float, optional): The duration of the animation in seconds. Defaults to 2.0.
+            steps (int, optional): The number of steps in the animation. Defaults to 50.
+        """
+        #copy the current joint angles
         q_start = self.q.copy()
+        #loop over the steps
         for t in range(steps + 1):
             alpha = t / steps
             q_interp = (1 - alpha) * q_start + alpha * q_target
@@ -172,7 +208,16 @@ class ArctosPinocchioRobot:
             time.sleep(duration / steps)
     
     def set_joint_angles_animated(self, q_target, duration=1.0, steps=50):
+        """Sets the joint angles to a target configuration with animation.
+
+        Args:
+            q_target (np.ndarray): The target joint configuration.
+            duration (float, optional): The duration of the animation in seconds. Defaults to 1.0.
+            steps (int, optional): The number of steps in the animation. Defaults to 50.
+        """
+        #start the animation in a new thread
         threading.Thread(target=self.animate_display, args=(q_target, duration, steps)).start()
+        # Set the angles direct
         self.q = q_target  # Gelenkwinkel direkt setzen, aber animiert in der Anzeige
 
 
@@ -180,6 +225,9 @@ class ArctosPinocchioRobot:
         """
         Computes and updates the current Roll-Pitch-Yaw (RPY) orientation of the end-effector.
         Stores the result in `self.ee_orientation`.
+
+        Raises:
+
         """
         frame_id = self.model.getFrameId(self.ee_frame_name)  # Frame-ID abrufen
         pin.forwardKinematics(self.model, self.data, self.q)  # Kinematik aktualisieren
@@ -191,6 +239,10 @@ class ArctosPinocchioRobot:
     def update_end_effector_position(self) -> None:
         """
         Computes and updates the current Cartesian position of the end-effector.
+
+        Raises:
+
+
         """
         frame_id = self.model.getFrameId(self.ee_frame_name)
         pin.forwardKinematics(self.model, self.data, self.q)
@@ -202,6 +254,9 @@ class ArctosPinocchioRobot:
         """
         Returns the last computed Roll-Pitch-Yaw (RPY) orientation of the end-effector.
 
+
+        Raises:
+
         :return: A numpy array [roll, pitch, yaw] representing the end-effector orientation in radians.
         """
         return self.ee_orientation.copy()  # Gibt gespeicherte Orientierung zurück
@@ -209,6 +264,9 @@ class ArctosPinocchioRobot:
     def get_end_effector_position(self) -> np.ndarray:
         """
         Returns the current Cartesian position of the end-effector.
+
+
+        Raises:
 
         :return: A numpy array [x, y, z] representing the end-effector position.
         """
@@ -218,13 +276,25 @@ class ArctosPinocchioRobot:
         """
         Returns the current joint angles.
 
+
+        Raises:
+
         :return: A numpy array containing the current joint angles.
         """
         return self.q[:6].copy()
 
     def inverse_kinematics_pink(self, target_xyz: np.ndarray, target_rpy: np.ndarray = None) -> np.ndarray:
-        """
-        PINK-IK für Position oder Pose, kompatibel mit neuer FrameTask-Signatur.
+        """Computes the inverse kinematics for a target position or pose using the PINK library.
+
+        Args:
+            target_xyz (np.ndarray): The target Cartesian position [x, y, z].
+            target_rpy (np.ndarray, optional): The target Roll-Pitch-Yaw orientation [roll, pitch, yaw]. If None, only position IK is performed. Defaults to None.
+
+        Returns:
+            np.ndarray: The joint configuration (joint angles) that achieve the target position or pose.
+
+        Raises:
+            ValueError: If the IK solution violates joint limits.
         """
 
         # Zielrotation berechnen
