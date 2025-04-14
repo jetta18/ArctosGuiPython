@@ -3,24 +3,17 @@ import time
 import pinocchio as pin
 import numpy as np
 import threading
-import meshcat
-import meshcat.servers
 import logging
-from pinocchio.visualize import MeshcatVisualizer
 from pink.tasks import FrameTask
 from pink import solve_ik, Configuration
 from scipy.spatial.transform import Rotation as R
 import qpsolvers
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)  
+from robomeshcat import Scene, Robot
 
 
 
-
-
-
-
+logger = logging.getLogger(__name__) # Setup Logger
+logger.setLevel(logging.INFO)
 
 
 class ArctosPinocchioRobot:
@@ -49,73 +42,49 @@ class ArctosPinocchioRobot:
         repo_path = os.path.dirname(os.path.abspath(__file__))
         urdf_path = os.path.join(repo_path, '..', 'models', 'urdf', 'arctos_urdf.urdf')
         self.urdf_path = urdf_path
-
-        self.ee_frame_name = ee_frame_name  # Name of the end-effector frame
+        self.ee_frame_name = ee_frame_name
 
         # Load kinematic model
         self.model = pin.buildModelFromUrdf(urdf_path)
         self.data = self.model.createData()
 
-        # Load geometric model (Visual representation)
+        # Load geometric model (Visual)
         self.geom_model = pin.buildGeomFromUrdf(
             self.model, urdf_path, pin.GeometryType.VISUAL, None, [os.path.dirname(urdf_path)]
         )
         self.geom_data = self.geom_model.createData()
 
-                # Load collision model (for future collision detection)
+        # Load collision model (optional)
         self.collision_model = pin.buildGeomFromUrdf(
             self.model, urdf_path, pin.GeometryType.COLLISION, None, [os.path.dirname(urdf_path)]
         )
         self.collision_data = self.collision_model.createData()
 
-        # Retrieve joint limits from URDF
+        # Joint limits
         self.lower_limits = self.model.lowerPositionLimit
         self.upper_limits = self.model.upperPositionLimit
 
-        # Initialize Meshcat viewer automatically
-        self.viz = self.initialize_viewer()
+        # RoboMeshCat setup
+        self.scene = Scene(open=False, wait_for_open=False)
+        self.robot = Robot(
+            pinocchio_model=self.model,
+            pinocchio_data=self.data,
+            pinocchio_geometry_model=self.geom_model,
+            pinocchio_geometry_data=self.geom_data,
+            name="arctos"
+        )
+        self.scene.add_robot(self.robot)
+        self.meshcat_url = self.scene.vis.url().replace("tcp://", "http://")
 
-        # Initialize robot state (joint angles and Cartesian position)
-        self.q = np.zeros(self.model.nq)  # Stores the current joint angles
-
+        # Robot state
+        self.q = np.zeros(self.model.nq)
         self.q_encoder = np.zeros(self.model.nq)
-        self.ee_position = np.zeros(3)  # Stores the Cartesian position of the end-effector
+        self.ee_position = np.zeros(3)
         self.ee_orientation = np.zeros(3)
-        # Compute initial Cartesian position
         self.update_end_effector_position()
         self.update_end_effector_orientation()
-
-        # Display initial configuration
         self.display()
 
-    def initialize_viewer(self, model_name: str = "arctos_robot") -> MeshcatVisualizer:
-        """Initializes the Meshcat viewer and stores the actual used URL.
-
-        Args:
-            model_name (str, optional): The name under which the robot is stored in Meshcat. Defaults to "arctos_robot".
-
-        Returns:
-            MeshcatVisualizer: An instance of MeshcatVisualizer.
-
-        Raises:
-
-        """
-        # Falls Meshcat noch nicht gestartet wurde, starte den Server
-        if not hasattr(self, 'meshcat_server'):
-            self.meshcat_server = meshcat.servers.zmqserver.start_zmq_server_as_subprocess()
-
-        # Erstelle den Meshcat Visualizer und erhalte die tatsächliche URL
-        viz = MeshcatVisualizer(self.model, self.geom_model, self.geom_model)
-        visualizer_instance = meshcat.Visualizer()
-        zmq_url = visualizer_instance.url()  # Holt die tatsächliche URL
-
-        viz.initViewer(viewer=visualizer_instance)
-        viz.loadViewerModel(model_name)
-
-        # Konvertiere ZeroMQ URL in HTTP URL für die Anzeige in NiceGUI
-        self.meshcat_url = zmq_url.replace("tcp://", "http://")
-
-        return viz
 
     def check_joint_limits(self, q: np.ndarray) -> bool:
         """Checks if the first 6 joint values are within the specified limits.
@@ -168,39 +137,18 @@ class ArctosPinocchioRobot:
             logger.debug("Error: Visualizer not initialized.")
 
     def display(self, q: np.ndarray = None):
-        """Displays the robot in Meshcat using the given joint configuration.
-        If no configuration is given, it uses the current state `self.q`.
-
-        Args:
-            q (np.ndarray, optional): A numpy array representing the joint configuration. If None, uses the current state `self.q`. Defaults to None.
-
-        Raises:
-            ValueError: If joint limits are exceeded.
-
-        """
         if q is None:
             q = self.q
         if not self.check_joint_limits(q):
             raise ValueError("❌ Cannot display! Joint limits exceeded.")
-
-        if self.viz is not None:
-            self.viz.display(q)
-            self.update_end_effector_position()
-            self.update_end_effector_orientation() 
-        else:
-            logger.debug("Error: Visualizer not initialized.")
+        self.q = q
+        self.robot[:] = q
+        self.scene.render()
+        self.update_end_effector_position()
+        self.update_end_effector_orientation()
     
     def animate_display(self, q_target, duration=2.0, steps=50):
-        """Animates the robot's movement from its current configuration to a target configuration over a given duration.
-
-        Args:
-            q_target (np.ndarray): The target joint configuration.
-            duration (float, optional): The duration of the animation in seconds. Defaults to 2.0.
-            steps (int, optional): The number of steps in the animation. Defaults to 50.
-        """
-        #copy the current joint angles
         q_start = self.q.copy()
-        #loop over the steps
         for t in range(steps + 1):
             alpha = t / steps
             q_interp = (1 - alpha) * q_start + alpha * q_target
