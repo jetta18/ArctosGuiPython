@@ -199,23 +199,21 @@ class ArctosPinocchioRobot:
     
     
     def animate_display(self, q_target, duration=2.0, steps=50):
-        """Animates the robot's transition from its current state to a target joint configuration.
-
-        This method interpolates the joint positions from the current configuration to the target configuration
-        over a specified number of steps and duration, creating a smooth animation.
-
-        Args:
-            q_target (np.ndarray): The target joint configuration to reach.
-            duration (float, optional): The total duration of the animation in seconds. Defaults to 2.0.
-            steps (int, optional): The number of interpolation steps in the animation. Defaults to 50.
-        """
-    def animate_display(self, q_target, duration=2.0, steps=50):
+        """Animates the robot's motion using RoboMeshCat's built-in animation system."""
         q_start = self.q.copy()
-        for t in range(steps + 1):
-            alpha = t / steps
-            q_interp = (1 - alpha) * q_start + alpha * q_target
-            self.display(q_interp)
-            time.sleep(duration / steps)
+        trajectory = [(1 - t / steps) * q_start + (t / steps) * q_target for t in range(steps + 1)]
+        
+        fps = steps / duration if duration > 0 else 30
+
+        with self.scene.animation(fps=int(fps)):
+            for q in trajectory:
+                self.robot[:] = q
+                self.q = q
+                self.scene.render()
+
+        self.update_end_effector_position()
+        self.update_end_effector_orientation()
+
     
     def set_joint_angles_animated(self, q_target, duration=1.0, steps=50):
         """Sets the joint angles to a target configuration with animation.
@@ -226,7 +224,8 @@ class ArctosPinocchioRobot:
             q_target (np.ndarray): The target joint configuration.
             duration (float, optional): The duration of the animation in seconds. Defaults to 1.0.
             steps (int, optional): The number of steps in the animation. Defaults to 50.
-"""
+        """
+
         #start the animation in a new thread
         self.animate_display(q_target, duration, steps)
         # Set the angles direct

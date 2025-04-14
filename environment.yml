@@ -8,3 +8,4 @@ dependencies:
   - python-can
   - pyyaml
   - nicegui
+  - robomeshcat

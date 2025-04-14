@@ -4,6 +4,8 @@ from typing import List, Dict, Optional, Tuple
 import logging
 import os
 from robomeshcat import Object
+import meshcat.geometry as g
+import meshcat.transformations as tf
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -134,22 +136,16 @@ class PathPlanner:
             logger.debug(error_msg)
             return False, error_msg
 
-    def load_program(self, program_name: Optional[str] = None) -> Tuple[bool, str]:
+    def load_program(self, program_name: Optional[str] = None, robot=None) -> Tuple[bool, str]:
         """
-        Loads a program from a JSON file.
+        Loads a program from a JSON file and visualizes the poses if a robot instance is provided.
 
         Args:
             program_name (Optional[str]): The name of the program to load. If None, the currently loaded filename is used.
+            robot: Optional instance of the ArctosPinocchioRobot to visualize the loaded poses.
 
         Returns:
-            Tuple[bool, str]: A tuple containing a boolean indicating success or failure and a message.
-                               The message describes whether the program was loaded successfully,
-                               if the file was not found, or if there was a JSON decoding error.
-        Raises:
-            TypeError: if program name is not type str
-            FileNotFoundError: If the program file does not exist.
-            json.JSONDecodeError: If the JSON file is corrupted or has an invalid format.
-
+            Tuple[bool, str]: A tuple containing a boolean indicating success or failure and a status message.
         """
         try:
             if program_name:
@@ -163,6 +159,10 @@ class PathPlanner:
                 if isinstance(data, list) and all(isinstance(pose, dict) for pose in data):
                     self.poses = data
                     logger.debug(f"✅ Program loaded: {self.current_program_path}")
+
+                    if robot is not None:
+                        self.visualize_saved_poses(robot)
+
                     return True, f"Program {self.filename} loaded successfully"
                 else:
                     self.poses = []
@@ -174,6 +174,7 @@ class PathPlanner:
         except json.JSONDecodeError:
             self.poses = []
             return False, f"❌ JSON file {self.filename} is corrupted, poses cleared."
+
 
     def execute_path(self, robot, Arctos) -> None:
         """
@@ -239,9 +240,26 @@ class PathPlanner:
         for idx, pose in enumerate(self.poses):
             try:
                 cartesian = np.array(pose["cartesian"])
-                sphere = Object.create_sphere(radius=0.02, name=f"pose_{idx+1}", color=[0, 0, 1], opacity=0.7)
+                rounded = np.round(cartesian, 3)
+
+                # Farbverlauf berechnen (grün → rot)
+                t = idx / max(1, len(self.poses) - 1)
+                color = [round(1.0 * t, 2), round(1.0 - t, 2), 0.0]  # [r, g, b]
+
+                # Name zusammensetzen mit Index, Position und Farbe
+                name = f"Pose {idx+1} | x={rounded[0]} y={rounded[1]} z={rounded[2]} | color={color}"
+
+                # Kugel erstellen
+                sphere = Object.create_sphere(
+                    radius=0.02,
+                    name=name,
+                    color=color,
+                    opacity=0.8
+                )
                 robot.scene.add_object(sphere)
                 sphere.pos = cartesian
                 self.visualized_objects[idx] = sphere
+
             except Exception as e:
                 logger.warning(f"⚠️ Fehler beim Visualisieren von Pose {idx + 1}: {e}")
+

@@ -120,7 +120,7 @@ def load_program(planner, pose_container=None, robot=None) -> None:
 
         def load_selected_program(program_name):
             if program_name:
-                success, message = planner.load_program(program_name)
+                success, message = planner.load_program(program_name, robot)
                 ui.notify(message, color='green' if success else 'red')
 
                 # Update pose table if container and robot are provided
@@ -530,7 +530,7 @@ def adjust_position(robot, Arctos):
     except Exception as e:
         logger.error(f"❌ Unerwarteter Fehler bei adjust_position: {e}")
 
-        
+
 def on_key(event, robot, Arctos):
     """Handles keyboard events using NiceGUI."""
     global key_states
