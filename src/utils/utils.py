@@ -522,8 +522,15 @@ def adjust_position(robot, Arctos):
     if 's' in key_states:
         current_position[1] += step
 
-    robot.instant_display_state(robot.inverse_kinematics_pink(current_position, current_orientation))
+    try:
+        q_solution = robot.inverse_kinematics_pink(current_position, current_orientation)
+        robot.instant_display_state(q_solution)
+    except ValueError as e:
+        logger.warning(f"⚠️ IK Fehler bei Tastatureingabe: {e}")
+    except Exception as e:
+        logger.error(f"❌ Unerwarteter Fehler bei adjust_position: {e}")
 
+        
 def on_key(event, robot, Arctos):
     """Handles keyboard events using NiceGUI."""
     global key_states

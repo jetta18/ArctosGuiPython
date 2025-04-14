@@ -240,8 +240,8 @@ class PathPlanner:
             try:
                 cartesian = np.array(pose["cartesian"])
                 sphere = Object.create_sphere(radius=0.02, name=f"pose_{idx+1}", color=[0, 0, 1], opacity=0.7)
-                sphere.pos = cartesian
                 robot.scene.add_object(sphere)
+                sphere.pos = cartesian
                 self.visualized_objects[idx] = sphere
             except Exception as e:
                 logger.warning(f"⚠️ Fehler beim Visualisieren von Pose {idx + 1}: {e}")

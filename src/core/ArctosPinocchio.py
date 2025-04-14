@@ -145,37 +145,33 @@ class ArctosPinocchioRobot:
         return True
 
     def instant_display_state(self, q: np.ndarray = None) -> None:
-        """Updates and displays the robot's state in Meshcat based on the provided or current joint configuration.
-
-        This method displays the robot in the RoboMeshCat visualization environment using the given joint
-        configuration `q`. If `q` is not provided, it uses the current joint state `self.q`. It also checks
-        if the given or current joint configuration is within the defined joint limits.
-
-        The function performs the following steps:
-        1. Checks if the provided joint configuration `q` is within the joint limits.
-        2. Displays the robot in MeshCat with the joint configuration `q`.
-        3. Updates the current joint configuration `self.q` and the end-effector's position and orientation.
-
+        """
+        Updates and displays the robot's state in RoboMeshCat based on the provided or current joint configuration.
+        
         Args:
-            q (np.ndarray, optional): Joint configuration to display. If None, uses the current state `self.q`. Defaults to None.
-
+            q (np.ndarray, optional): Joint configuration to display. If None, uses the current state `self.q`.
+        
         Raises:
             TypeError: If the provided joint configuration is not a NumPy array.
             ValueError: If joint limits are exceeded.
         """
         if q is None:
-            q = self.q  # Use stored joint state if none provided
+            q = self.q
+
+        if not isinstance(q, np.ndarray):
+            raise TypeError("❌ Joint configuration must be a NumPy array.")
 
         if not self.check_joint_limits(q):
             raise ValueError("❌ Cannot display! Joint limits exceeded.")
-        
-        if self.viz is not None:
-            self.viz.display(q)
-            self.q = q  # Store updated joint angles
-            self.update_end_effector_position()  # Update Cartesian position
-            self.update_end_effector_orientation() 
-        else:
-            logger.debug("Error: Visualizer not initialized.")
+
+        self.robot[:] = q
+        self.scene.render()
+
+        self.q = q  # Update internal state
+        self.update_end_effector_position()
+        self.update_end_effector_orientation()
+        logger.debug("✅ Robot state updated and displayed.")
+
 
     def display(self, q: np.ndarray = None):
         """Displays the robot in the RoboMeshCat scene with a given joint configuration.
@@ -232,7 +228,7 @@ class ArctosPinocchioRobot:
             steps (int, optional): The number of steps in the animation. Defaults to 50.
 """
         #start the animation in a new thread
-        threading.Thread(target=self.animate_display, args=(q_target, duration, steps)).start()
+        self.animate_display(q_target, duration, steps)
         # Set the angles direct
         self.q = q_target  # Gelenkwinkel direkt setzen, aber animiert in der Anzeige
 
