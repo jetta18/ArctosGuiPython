@@ -1,4 +1,5 @@
 from nicegui import ui, app
+import os
 
 def create_menu():
     """Creates the navigation menu for the application.
@@ -8,10 +9,18 @@ def create_menu():
     includes options for the home page, robot control, settings, MKS configuration,
     and an exit option to shut down the application.
     """
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    assets_path = os.path.abspath(os.path.join(current_dir, '..', '..', 'assets'))
+    app.add_static_files('/assets', assets_path)
+
     # Create a header container for the navigation menu
     with ui.header().classes('bg-gray-800 text-white p-2'):
-        # Add a label for the application name, styled as a header
-        ui.label("🤖 Arctos Robot Control").classes('text-2xl font-bold ml-4')
+        with ui.row():
+            # Add a label for the application name, styled as a header
+            ui.image('/assets/icon.png').classes('w-8 h-8')
+
+            ui.label("Arctos Robot Control").classes('text-2xl font-bold ml-4')
 
         # Create a menu button (hamburger icon) that triggers the dropdown menu
         with ui.button(icon='menu').classes('ml-auto'):

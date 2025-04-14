@@ -211,8 +211,8 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                     with ui.column().classes("items-center"):
 
                         ui.label("🎮 Keyboard Control").classes("text-sm font-medium text-gray-700 mb-1")
-                        keyboard_control_switch = ui.switch("", value=False)
-                        keyboard_control_switch.on('click', utils.toggle_keyboard_control)
+                        keyboard_control_switch = ui.switch("Keyboard Control", value=utils.keyboard_control_active)
+                        keyboard_control_switch.on('update:model-value', lambda: utils.toggle_keyboard_control())
 
                     # 🪜 Step Size Slider with Label + Tooltip
                     with ui.column().classes("items-center"):

@@ -481,7 +481,7 @@ def toggle_keyboard_control():
 
     Toggles keyboard control on/off and updates the UI to reflect the current state.
     """
-    global keyboard_control_active
+    global keyboard_control_active 
     keyboard_control_active = not keyboard_control_active  
 
     if keyboard_control_active:

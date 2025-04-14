@@ -30,7 +30,7 @@ def create():
         # Arctos Robot Logo
         # The logo is displayed at the top of the page with interactive hover effect
         ui.image('/assets/icon.png').classes(
-            'w-40 h-40 mt-6 drop-shadow-xl hover:scale-105 transition-transform duration-300')
+            'w-60 h-60 mt-6 drop-shadow-xl hover:scale-110 transition-transform duration-300')
 
         # Main Headings
         # Main heading and sub-heading for the page, designed for high visual impact
