@@ -58,10 +58,10 @@ def create(Arctos, robot, planner, settings_manager) -> None:
     # Add keyboard listener directly in `create()`
     ui.keyboard(lambda event: utils.on_key(event, robot, Arctos))
     # Layout with two columns: Control on the left | Visualization & Console on the right
-    with ui.grid(columns=2).classes('w-full gap-4'):
+    with ui.row().classes('w-full gap-4'):
 
         # --- LEFT SECTION: Control ---
-        with ui.column().classes('w-full'):
+        with ui.column().classes('flex-[1]'):
                         
             # Home and Sleep Pose buttons
             with ui.row().classes('w-full justify-center mt-4 gap-4'):
@@ -199,7 +199,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                 .classes('bg-gray-500 text-white px-4 py-2 rounded-lg')
 
         # RIGHT SECTION: MeshCat & Console
-        with ui.column().classes('w-full'):
+        with ui.column().classes('flex-[2] sticky top-0'):
             # MeshCat Visualization
             with ui.card().classes('w-full p-4 bg-gray-100 border border-gray-300 rounded-lg flex-grow'):
                 ui.label("🖥️ 3D Visualization").classes('text-xl font-bold mb-2')
