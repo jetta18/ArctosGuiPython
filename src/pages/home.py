@@ -1,4 +1,5 @@
-from nicegui import ui
+from nicegui import ui, app
+import os
 
 
 def create():
@@ -16,6 +17,9 @@ def create():
     """
     # Set dark mode for the UI
     ui.dark_mode()
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    assets_path = os.path.abspath(os.path.join(current_dir, '..', '..', 'assets'))
+    app.add_static_files('/assets', assets_path)
 
     # Main container for the home page layout
     # The animated gradient is applied here to create a dynamic background
@@ -25,7 +29,7 @@ def create():
 
         # Arctos Robot Logo
         # The logo is displayed at the top of the page with interactive hover effect
-        ui.image('../assets/icon.png').classes(
+        ui.image('/assets/icon.png').classes(
             'w-40 h-40 mt-6 drop-shadow-xl hover:scale-105 transition-transform duration-300')
 
         # Main Headings
