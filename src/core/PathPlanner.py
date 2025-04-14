@@ -10,8 +10,22 @@ logger.setLevel(logging.INFO)
 
 
 class PathPlanner:
+    """
+    A class for managing and executing robot motion paths.
+
+    This class handles the loading, saving, and execution of programs, which consist of a sequence of robot poses.
+    It also manages visualization of the saved poses using RoboMeshCat.
+    """
+
     def __init__(self, filename: str = None):
-        current_dir = os.path.dirname(os.path.abspath(__file__))
+        """
+        Initializes the PathPlanner.
+
+        Args:
+            filename (str, optional): The filename of the program to load. Defaults to "default_program.json".
+        """
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current script
+        # Construct the path to the programs directory
         self.programs_dir = os.path.join(current_dir, '..', 'programs')
         os.makedirs(self.programs_dir, exist_ok=True)
 
@@ -25,6 +39,15 @@ class PathPlanner:
         self.load_program()
 
     def get_available_programs(self) -> List[str]:
+        """
+        Retrieves a list of available programs in the programs directory.
+
+        Returns:
+            List[str]: A sorted list of program filenames (with .json extension) in the programs directory.
+                       Returns an empty list if an error occurs while listing programs.
+
+        Raises:
+        """
         try:
             return sorted([f for f in os.listdir(self.programs_dir) if f.endswith('.json')])
         except Exception as e:
@@ -32,6 +55,16 @@ class PathPlanner:
             return []
 
     def capture_pose(self, robot) -> None:
+        """
+        Captures the current pose of the robot and appends it to the program.
+
+        Args:
+            robot: An instance of the ArctosPinocchioRobot class representing the robot.
+
+        Raises:
+            TypeError: if robot is not type ArctosPinocchioRobot
+        
+        """
         current_pose = robot.get_current_joint_angles()
         cartesian_coords = robot.ee_position
 
@@ -44,6 +77,19 @@ class PathPlanner:
         self.visualize_saved_poses(robot)
 
     def delete_pose(self, index: int, robot) -> None:
+        """
+        Deletes a pose from the program at the specified index.
+
+        Args:
+            index (int): The index of the pose to delete.
+            robot: An instance of the ArctosPinocchioRobot class representing the robot.
+
+        Raises:
+            ValueError: If the index is out of range.
+            TypeError: if robot is not type ArctosPinocchioRobot
+            IndexError: If the index is out of bounds for the list of poses.
+
+        """
         if 0 <= index < len(self.poses):
             deleted_pose = self.poses.pop(index)
             logger.debug(f"🗑️ Pose {index + 1} gelöscht: {deleted_pose}")
@@ -58,6 +104,19 @@ class PathPlanner:
             self.visualize_saved_poses(robot)
 
     def save_program(self, program_name: Optional[str] = None) -> Tuple[bool, str]:
+        """
+        Saves the current program to a JSON file.
+
+        Args:
+            program_name (Optional[str]): The name of the program to save. If None, the currently loaded filename is used.
+
+        Returns:
+            Tuple[bool, str]: A tuple containing a boolean indicating success or failure and a message.
+
+        Raises:
+            TypeError: if program name is not type str
+            
+        """
         try:
             if program_name:
                 if not program_name.endswith('.json'):
@@ -76,6 +135,22 @@ class PathPlanner:
             return False, error_msg
 
     def load_program(self, program_name: Optional[str] = None) -> Tuple[bool, str]:
+        """
+        Loads a program from a JSON file.
+
+        Args:
+            program_name (Optional[str]): The name of the program to load. If None, the currently loaded filename is used.
+
+        Returns:
+            Tuple[bool, str]: A tuple containing a boolean indicating success or failure and a message.
+                               The message describes whether the program was loaded successfully,
+                               if the file was not found, or if there was a JSON decoding error.
+        Raises:
+            TypeError: if program name is not type str
+            FileNotFoundError: If the program file does not exist.
+            json.JSONDecodeError: If the JSON file is corrupted or has an invalid format.
+
+        """
         try:
             if program_name:
                 if not program_name.endswith('.json'):
@@ -101,6 +176,18 @@ class PathPlanner:
             return False, f"❌ JSON file {self.filename} is corrupted, poses cleared."
 
     def execute_path(self, robot, Arctos) -> None:
+        """
+        Executes the loaded program by moving the robot through the stored poses.
+
+        Args:
+            robot: An instance of the ArctosPinocchioRobot class representing the robot.
+            Arctos: An instance of the ArctosController class for communicating with the actual robot hardware.
+
+        Raises:
+            TypeError: if robot is not type ArctosPinocchioRobot or Arctos is not type ArctosController
+            ValueError: If the joint configuration in a pose exceeds the robot's joint limits.
+        """
+
         if not self.poses:
             logger.debug("⚠️ No stored program available!")
             return
@@ -132,6 +219,15 @@ class PathPlanner:
         logger.debug("✅ Path execution completed!")
 
     def visualize_saved_poses(self, robot) -> None:
+        """
+        Visualizes the saved poses in the RoboMeshCat scene.
+
+        Args:
+            robot: An instance of the ArctosPinocchioRobot class representing the robot.
+
+        Raises:
+            TypeError: if robot is not type ArctosPinocchioRobot
+        """
         # Bestehende löschen
         for obj in self.visualized_objects.values():
             try:

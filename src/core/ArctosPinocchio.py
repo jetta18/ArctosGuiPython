@@ -17,7 +17,16 @@ logger.setLevel(logging.INFO)
 
 
 class ArctosPinocchioRobot:
-    """
+    """ArctosPinocchioRobot Class:
+
+    This class is a wrapper around the Pinocchio library, providing an interface for working with robotic models,
+    specifically designed for the Arctos robot. It leverages Pinocchio's kinematic and dynamic functionalities to
+    simulate and control the robot's movements, compute inverse kinematics, and manage the robot's state.
+
+    The class also integrates with RoboMeshCat for visualization and provides methods for checking joint limits,
+    updating the end-effector's position and orientation, and retrieving current joint angles.
+    
+
     A class to manage a robotic model using Pinocchio.
     
     Features:
@@ -30,12 +39,25 @@ class ArctosPinocchioRobot:
     """
 
     def __init__(self, ee_frame_name="gripper"):
-        """Initializes the robot model, loads the URDF, sets up the Meshcat viewer, and initializes robot state.
+        """Initializes the ArctosPinocchioRobot instance.
+
+        This constructor initializes the robot model by loading the URDF file, setting up the geometric and
+        collision models, configuring joint limits, and initializing the RoboMeshCat visualizer. It also sets
+        up the initial robot state, including joint angles, end-effector position, and orientation.
+
+        The constructor performs the following main operations:
+        1. Loads the robot's URDF model using Pinocchio.
+        2. Creates the geometric (visual) and collision models for the robot.
+        3. Initializes the joint limits based on the URDF.
+        4. Sets up the RoboMeshCat scene for robot visualization.
+        5. Initializes the robot's state, including setting joint angles to zero, calculating the initial
+           end-effector position and orientation, and displaying the initial state in MeshCat.
 
         Args:
-            ee_frame_name (str, optional): The name of the end-effector frame in the URDF model. Defaults to "gripper".
+            ee_frame_name (str, optional): Name of the end-effector frame in the URDF model. Defaults to "gripper".
 
         Raises:
+            FileNotFoundError: If the URDF file is not found.
         """
 
 
@@ -87,7 +109,17 @@ class ArctosPinocchioRobot:
 
 
     def check_joint_limits(self, q: np.ndarray) -> bool:
-        """Checks if the first 6 joint values are within the specified limits.
+        """Checks if the given joint configuration is within the specified limits.
+
+        This method checks if the first 6 joint values in the provided joint configuration `q` are within
+        the lower and upper position limits defined for the robot. It logs a warning for each joint that
+        violates its limits, specifying whether it is below or above the respective limit.
+
+        Note:
+        - The method considers only the first 6 joint values for the limit check.
+        - It logs detailed information about each joint limit violation, including the joint number and the
+          extent to which the limit is violated.
+
 
         Args:
             q (np.ndarray): A numpy array representing the joint configuration.
@@ -113,13 +145,22 @@ class ArctosPinocchioRobot:
         return True
 
     def instant_display_state(self, q: np.ndarray = None) -> None:
-        """Displays the robot in Meshcat using the given joint configuration.
-        If no configuration is given, it uses the current state `self.q`.
+        """Updates and displays the robot's state in Meshcat based on the provided or current joint configuration.
+
+        This method displays the robot in the RoboMeshCat visualization environment using the given joint
+        configuration `q`. If `q` is not provided, it uses the current joint state `self.q`. It also checks
+        if the given or current joint configuration is within the defined joint limits.
+
+        The function performs the following steps:
+        1. Checks if the provided joint configuration `q` is within the joint limits.
+        2. Displays the robot in MeshCat with the joint configuration `q`.
+        3. Updates the current joint configuration `self.q` and the end-effector's position and orientation.
 
         Args:
-            q (np.ndarray, optional): A numpy array representing the joint configuration. If None, uses the current state `self.q`. Defaults to None.
+            q (np.ndarray, optional): Joint configuration to display. If None, uses the current state `self.q`. Defaults to None.
 
         Raises:
+            TypeError: If the provided joint configuration is not a NumPy array.
             ValueError: If joint limits are exceeded.
         """
         if q is None:
@@ -137,6 +178,17 @@ class ArctosPinocchioRobot:
             logger.debug("Error: Visualizer not initialized.")
 
     def display(self, q: np.ndarray = None):
+        """Displays the robot in the RoboMeshCat scene with a given joint configuration.
+
+        This method updates the robot's joint positions in the RoboMeshCat visualization to match the
+        provided joint configuration `q`. If no configuration is provided, it uses the current state `self.q`.
+
+        Args:
+            q (np.ndarray, optional): The joint configuration to display. If None, uses the current state `self.q`. Defaults to None.
+
+        Raises:
+            ValueError: If the provided joint configuration exceeds the joint limits.
+        """
         if q is None:
             q = self.q
         if not self.check_joint_limits(q):
@@ -147,6 +199,20 @@ class ArctosPinocchioRobot:
         self.update_end_effector_position()
         self.update_end_effector_orientation()
     
+    
+    
+    
+    def animate_display(self, q_target, duration=2.0, steps=50):
+        """Animates the robot's transition from its current state to a target joint configuration.
+
+        This method interpolates the joint positions from the current configuration to the target configuration
+        over a specified number of steps and duration, creating a smooth animation.
+
+        Args:
+            q_target (np.ndarray): The target joint configuration to reach.
+            duration (float, optional): The total duration of the animation in seconds. Defaults to 2.0.
+            steps (int, optional): The number of interpolation steps in the animation. Defaults to 50.
+        """
     def animate_display(self, q_target, duration=2.0, steps=50):
         q_start = self.q.copy()
         for t in range(steps + 1):
@@ -158,11 +224,13 @@ class ArctosPinocchioRobot:
     def set_joint_angles_animated(self, q_target, duration=1.0, steps=50):
         """Sets the joint angles to a target configuration with animation.
 
+        This method animates the robot's movement to the target joint configuration over a specified duration.
+
         Args:
             q_target (np.ndarray): The target joint configuration.
             duration (float, optional): The duration of the animation in seconds. Defaults to 1.0.
             steps (int, optional): The number of steps in the animation. Defaults to 50.
-        """
+"""
         #start the animation in a new thread
         threading.Thread(target=self.animate_display, args=(q_target, duration, steps)).start()
         # Set the angles direct
@@ -170,12 +238,13 @@ class ArctosPinocchioRobot:
 
 
     def update_end_effector_orientation(self) -> None:
-        """
-        Computes and updates the current Roll-Pitch-Yaw (RPY) orientation of the end-effector.
-        Stores the result in `self.ee_orientation`.
+        """Updates the end-effector's Roll-Pitch-Yaw (RPY) orientation.
+
+        This method computes the current Roll-Pitch-Yaw (RPY) orientation of the end-effector frame
+        based on the robot's current joint configuration. It updates the internal `self.ee_orientation`
+        attribute with the calculated RPY values.
 
         Raises:
-
         """
         frame_id = self.model.getFrameId(self.ee_frame_name)  # Frame-ID abrufen
         pin.forwardKinematics(self.model, self.data, self.q)  # Kinematik aktualisieren
@@ -185,12 +254,12 @@ class ArctosPinocchioRobot:
         self.ee_orientation = pin.rpy.matrixToRpy(current_rotation)  # RPY berechnen & speichern
 
     def update_end_effector_position(self) -> None:
-        """
-        Computes and updates the current Cartesian position of the end-effector.
+        """Updates the Cartesian position of the end-effector.
+
+        This method calculates the current Cartesian position (x, y, z) of the end-effector frame
+        based on the robot's current joint configuration and updates the `self.ee_position` attribute.
 
         Raises:
-
-
         """
         frame_id = self.model.getFrameId(self.ee_frame_name)
         pin.forwardKinematics(self.model, self.data, self.q)
@@ -199,40 +268,47 @@ class ArctosPinocchioRobot:
 
 
     def get_end_effector_orientation(self) -> np.ndarray:
-        """
-        Returns the last computed Roll-Pitch-Yaw (RPY) orientation of the end-effector.
+        """Retrieves the end-effector's current Roll-Pitch-Yaw (RPY) orientation.
 
+        This method returns the last computed Roll-Pitch-Yaw (RPY) orientation of the end-effector,
+        which is stored in the `self.ee_orientation` attribute.
 
-        Raises:
-
-        :return: A numpy array [roll, pitch, yaw] representing the end-effector orientation in radians.
+        Returns:
+            np.ndarray: A numpy array [roll, pitch, yaw] representing the end-effector orientation in radians.
         """
         return self.ee_orientation.copy()  # Gibt gespeicherte Orientierung zurück
 
     def get_end_effector_position(self) -> np.ndarray:
-        """
-        Returns the current Cartesian position of the end-effector.
+        """Retrieves the end-effector's current Cartesian position.
 
+        This method returns the last computed Cartesian position (x, y, z) of the end-effector,
+        stored in the `self.ee_position` attribute.
 
-        Raises:
-
-        :return: A numpy array [x, y, z] representing the end-effector position.
+        Returns:
+            np.ndarray: A numpy array [x, y, z] representing the end-effector position.
         """
         return self.ee_position.copy()
 
     def get_current_joint_angles(self) -> np.ndarray:
-        """
-        Returns the current joint angles.
+        """Retrieves the current joint angles of the robot.
 
+        This method returns a copy of the current joint angles for the first 6 joints of the robot,
+        which are stored in the `self.q` attribute.
 
-        Raises:
-
-        :return: A numpy array containing the current joint angles.
+        Returns:
+            np.ndarray: A numpy array containing the current joint angles.
         """
         return self.q[:6].copy()
 
     def inverse_kinematics_pink(self, target_xyz: np.ndarray, target_rpy: np.ndarray = None) -> np.ndarray:
         """Computes the inverse kinematics for a target position or pose using the PINK library.
+
+        This method calculates the joint configuration required for the robot to reach a specified target
+        position or pose. It utilizes the PINK (Pinocchio Inverse Kinematics) library to solve the inverse
+        kinematics problem. The method supports solving for position only or for both position and orientation,
+        depending on whether `target_rpy` is provided.
+
+
 
         Args:
             target_xyz (np.ndarray): The target Cartesian position [x, y, z].
