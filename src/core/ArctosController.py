@@ -87,10 +87,10 @@ class ArctosController:
             self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(self.gear_ratios)]
 
         # Initialize CAN Bus
-        #self.bus = self.initialize_can_bus()
+        self.bus = self.initialize_can_bus()
 
         # Initialize Servos
-        #self.servos = self.initialize_servos()
+        self.servos = self.initialize_servos()
 
     def angle_to_encoder(self, angle_rad: float, axis_index: int) -> int:  # Correct the return type here
         """
