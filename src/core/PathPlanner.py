@@ -176,48 +176,65 @@ class PathPlanner:
             return False, f"❌ JSON file {self.filename} is corrupted, poses cleared."
 
 
-    def execute_path(self, robot, Arctos) -> None:
+    def execute_path(
+            self,
+            robot,
+            arctos,
+            speeds: list[int] | int = 500,
+            acceleration: int = 150,
+    ) -> None:
         """
-        Executes the loaded program by moving the robot through the stored poses.
+        Play the stored pose list on the physical robot.
 
-        Args:
-            robot: An instance of the ArctosPinocchioRobot class representing the robot.
-            Arctos: An instance of the ArctosController class for communicating with the actual robot hardware.
-
-        Raises:
-            TypeError: if robot is not type ArctosPinocchioRobot or Arctos is not type ArctosController
-            ValueError: If the joint configuration in a pose exceeds the robot's joint limits.
+        Parameters
+        ----------
+        robot : ArctosPinocchioRobot
+        arctos : ArctosController
+        speeds : int | list[int]
+            Either one global RPM value **or** a list of six values
+            (one per joint).  Defaults to 500 RPM.
+        acceleration : int
+            Global acceleration (0‑255).  Defaults to 150.
         """
-
         if not self.poses:
-            logger.debug("⚠️ No stored program available!")
+            logger.warning("⚠️  No stored program.")
             return
+
+        # --- build 6‑element speed list --------------------------------------
+        if isinstance(speeds, int):
+            speed_list = [max(0, min(speeds, 3000))] * 6
+        else:
+            if len(speeds) != 6:
+                raise ValueError("speeds must have length 6")
+            speed_list = [max(0, min(s, 3000)) for s in speeds]
 
         for idx, pose in enumerate(self.poses):
             try:
-                joint_angles = np.array(pose["joints"])
+                q = np.asarray(pose["joints"])
                 if len(joint_angles) < robot.model.nq:
                     missing = robot.model.nq - len(joint_angles)
                     joint_angles = np.concatenate((joint_angles, np.zeros(missing)))
-
                 logger.debug(f"🔹 Executing Pose {idx + 1}: {np.degrees(joint_angles)}")
 
-                if not robot.check_joint_limits(joint_angles):
-                    logger.debug("❌ Pose überschreitet Gelenkgrenzen. Übersprungen.")
+                if not robot.check_joint_limits(q):
+                    logger.warning("Pose %d violates limits – skipped.", idx + 1)
                     continue
 
-                robot.set_joint_angles_animated(joint_angles)
+                # twin animation
+                robot.set_joint_angles_animated(q, duration=1.0, steps=15)
                 joint_positions_rad = robot.get_current_joint_angles()
                 if joint_positions_rad is None:
                     return
 
-                Arctos.move_to_angles(joint_positions_rad)
-                Arctos.wait_for_motors_to_stop()
+                # physical move
+                arctos.move_to_angles(q, speeds=speed_list, acceleration=acceleration)
+                arctos.wait_for_motors_to_stop()
 
             except Exception as e:
-                logger.debug(f"⚠️ Fehler bei Pose {idx + 1}: {e}")
+                logger.error("Pose %d failed: %s", idx + 1, e)
 
-        logger.debug("✅ Path execution completed!")
+        logger.info("✅ Path execution completed")
+
 
     def visualize_saved_poses(self, robot) -> None:
         """
