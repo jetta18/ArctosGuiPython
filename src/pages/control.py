@@ -39,6 +39,27 @@ def create(Arctos, robot, planner, settings_manager) -> None:
 
     # page header
     ui.label("Control Page").classes('text-3xl font-bold text-center mb-4')
+
+    with ui.row().classes('gap-3 items-center'):
+        ui.label('⏩ Speed Scale')
+
+        speed_input = ui.number(
+            value=settings_manager.get('speed_scale', 1.0),
+            min=0.1, max=2.0, step=0.1,
+            format='%.1f'                    # eine Nachkommastelle
+        ).classes('w-24')
+
+        ui.button('Übernehmen', on_click=lambda: apply_speed(speed_input.value))
+
+    def apply_speed(val: float | None):
+        if val is None or not (0.1 <= val <= 2.0):
+            ui.notify('Bitte Wert zwischen 0.1 und 2.0 eingeben', color='negative')
+            return
+        utils.set_speed_scale(val)
+        settings_manager.set('speed_scale', val)
+        ui.notify(f'Speed‑Scale auf {int(val*100)} % gesetzt', color='positive')
+
+    
     # Conditional UI Timers
     # Check if the user enabled live joint updates
     if settings_manager.get("enable_live_joint_updates", True):
@@ -65,7 +86,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                         
             # Home and Sleep Pose buttons
             with ui.row().classes('w-full justify-center mt-4 gap-4'):
-                ui.button("▶️ Start Movement", on_click=lambda: utils.run_move_can(robot, Arctos)) \
+                ui.button("▶️ Start Movement", on_click=lambda: utils.run_move_can(robot, Arctos, settings_manager)) \
                 .tooltip("Execute the currently set joint angles on the physical robot") \
                 .classes('bg-red-500 text-white w-full mt-2 py-2 rounded-lg')
             
@@ -184,7 +205,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                         .tooltip("Save all recorded poses into a named program file") \
                         .classes('bg-indigo-700 text-white px-4 py-2 rounded-lg')
 
-                    ui.button("Execute Program", on_click=lambda: utils.execute_path(planner, robot, Arctos)) \
+                    ui.button("Execute Program", on_click=lambda: utils.execute_path(planner, robot, Arctos, settings_manager)) \
                         .tooltip("Run the full program on the robot in real-time") \
                         .classes('bg-red-700 text-white px-4 py-2 rounded-lg')
 

@@ -133,17 +133,13 @@ def load_program(planner, pose_container=None, robot=None) -> None:
 
     dialog.open()
 
-def execute_path(planner, robot, Arctos) -> None:
-    """
-    Executes the planned path using a separate thread to prevent UI freezing.
-    
-    Args:
-        planner: The path planner instance that executes the movement.
-        robot: The robot instance that performs the movement.
-    """
-    planner.execute_path(robot, Arctos)
+def execute_path(planner, robot, arctos, settings_manager) -> None:
+    speed_cfg = settings_manager.get("joint_speeds", {i: 500 for i in range(6)})
+    speeds = [speed_cfg.get(i, 500) for i in range(6)]
 
-    ui.notify("🚀 Path executed!")
+    Thread(target=lambda: planner.execute_path(robot, arctos, speeds=speeds), daemon=True).start()
+    ui.notify("🚀 Path executing …")
+
 
 def update_pose_table(planner, robot, pose_container) -> None:
     """
@@ -229,32 +225,26 @@ def delete_pose(planner, index, robot, pose_container) -> None:
 # ------------------------------
 
 
-def run_move_can(robot, arctos) -> None:
-    """Run the robot movement process in a separate thread.
-
-    This function initiates the robot's movement in a separate thread to
-    prevent the main UI thread from being blocked, ensuring the GUI remains
-    responsive. It retrieves the current joint angles, moves the robot to those
-    angles, and waits for the motors to come to a stop.
-
-    Args:
-        robot: The robot instance providing joint angle information.
-        arctos: The robot controller used to execute the movement.
-
-    Returns:
-        None
+def run_move_can(robot, arctos, settings_manager) -> None:
+    """
+    Move the physical robot to *robot.q* using the per‑joint speeds
+    defined in settings ('joint_speeds').  Defaults to 500 RPM.
     """
     def task():
-        joint_positions_rad = robot.get_current_joint_angles()
-        if joint_positions_rad is None:
-            ui.notify("❌ No valid joint positions received!", color='red')
+        q_rad = robot.get_current_joint_angles()
+        if q_rad is None:
+            ui.notify("❌ No valid joint positions!", color="red")
             return
 
-        arctos.move_to_angles(joint_positions_rad)
+        # Build the 6‑element speed list, clamped to 0‑3000
+        raw = settings_manager.get("joint_speeds", {})
+        speeds = [max(0, min(raw.get(i, 500)* speed_scale, 3000)) for i in range(6)]
+
+        arctos.move_to_angles(q_rad, speeds=speeds)
         arctos.wait_for_motors_to_stop()
 
     Thread(target=task, daemon=True).start()
-    ui.notify("✅ Robot moved successfully!", color='green')
+    ui.notify("✅ Robot moving...", color="green")
 
 
 def set_zero_position(robot) -> None:
@@ -346,7 +336,7 @@ def set_ee_position_from_input(robot, ee_position_inputs):
         q_solution = robot.inverse_kinematics_pink(target_xyz)
 
         # Bewegung ausführen
-        robot.set_joint_angles_animated(q_solution, duration=1.0, steps=50)
+        robot.set_joint_angles_animated(q_solution, duration=1.0, steps=15)
         ui.notify(f"✅ Moved to position: X={x}, Y={y}, Z={z}")
 
     except ValueError as e:
@@ -372,7 +362,7 @@ def set_ee_orientation_from_input(robot, ee_orientation_inputs):
         q_solution = robot.inverse_kinematics_pink(current_xyz, target_rpy)
 
         # Bewegung ausführen
-        robot.set_joint_angles_animated(q_solution, duration=1.5, steps=50)
+        robot.set_joint_angles_animated(q_solution, duration=1.5, steps=15)
 
         ui.notify("✅ End-Effector Orientation Updated!")
 
@@ -422,7 +412,7 @@ def set_ee_pose_from_input(robot, ee_position_inputs, ee_orientation_inputs, use
         q_solution = robot.inverse_kinematics_pink(target_xyz, target_rpy)
 
         # Animate motion to the new pose
-        robot.set_joint_angles_animated(q_solution, duration=1.5, steps=50)
+        robot.set_joint_angles_animated(q_solution, duration=1.5, steps=15)
 
         # Notify user
         msg = f"✅ Moved to position: X={x:.3f}, Y={y:.3f}, Z={z:.3f}"
@@ -454,14 +444,14 @@ def set_joint_angles_from_gui(robot, new_joint_inputs):
             if new_joint_inputs[i].value is not None:
                 q_target[i] = np.radians(new_joint_inputs[i].value)
         ui.notify("Robot moving to joint angles...")
-        robot.set_joint_angles_animated(q_target, duration=1.0, steps=50)
+        robot.set_joint_angles_animated(q_target, duration=1.5, steps=15)
 
 def reset_to_zero_position(robot):
     """Moves the robot back to its default zero position, ensuring the correct shape for q_target."""
     if robot:
         q_target = robot.q.copy()
         q_target[:6] = 0
-        robot.set_joint_angles_animated(q_target, duration=0.5, steps=50)
+        robot.set_joint_angles_animated(q_target, duration=1.5, steps=15)
     else:
         ui.notify("⚠️ Robot instance not found!", type="warning")
 
@@ -600,3 +590,11 @@ def threaded_initialize_current_joint_states(robot, Arctos):
         except Exception as e:
             print(f"❌ Error updating joint states: {e}")
     Thread(target=task, daemon=True).start()
+
+# Globale Skalierungs­variable
+speed_scale = 1.0
+
+def set_speed_scale(val: float) -> None:
+    """Update global speed scale (0.1 … 2.0)."""
+    global speed_scale
+    speed_scale = val

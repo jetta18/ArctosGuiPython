@@ -83,6 +83,25 @@ def create(settings_manager):
                               ui.notify(f"Joint {index+1} direction set to {e.value}")
                           )).classes("w-64")
 
+        with ui.expansion("⚡ Joint Speeds (RPM)", icon="speed", value=False):
+            speeds = settings.get("joint_speeds", {i: 500 for i in range(6)})
+
+            for i in range(6):
+                ui.number(
+                    label=f"Joint {i+1} Speed",
+                    value=speeds.get(i, 500),
+                    min=0, max=3000, step=10,
+                    on_change=lambda e, idx=i: (
+                        settings_manager.set(
+                            "joint_speeds",
+                            {**settings_manager.get("joint_speeds", {}),
+                            idx: int(e.value or 500)}
+                        ),
+                        ui.notify(f"Speed J{idx+1} set to {int(e.value)} RPM")
+                    )
+                ).classes("w-40")
+
+
         # Reset Settings Button
         ui.button("🔄 Reset Settings", on_click=lambda: (
             # Reset settings to default values

@@ -215,7 +215,7 @@ class ArctosPinocchioRobot:
         self.update_end_effector_orientation()
 
     
-    def set_joint_angles_animated(self, q_target, duration=1.0, steps=50):
+    def set_joint_angles_animated(self, q_target, duration=1.5, steps=15):
         """Sets the joint angles to a target configuration with animation.
 
         This method animates the robot's movement to the target joint configuration over a specified duration.

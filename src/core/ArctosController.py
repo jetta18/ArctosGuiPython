@@ -171,50 +171,63 @@ class ArctosController:
         logger.debug(f"✅ All servos initialized in {duration:.2f} seconds.")
         return servos
 
-    def move_to_angles(self, angles_rad: list, speed: int = 500, acceleration: int = 150) -> None:
+    def move_to_angles(
+        self,
+        angles_rad: list[float],
+        *,
+        speeds: int | list[int] = 500,
+        acceleration: int = 150,
+    ) -> None:
+        """Move every joint to *angles_rad* with optional **per‑joint speeds**.
+
+        Parameters
+        ----------
+        angles_rad
+            List of target joint angles **in radians**. Must have length 6.
+        speeds
+            - If *int*: one global speed (RPM) applied to all joints.
+            - If *list[int]*: exactly six RPM values, one per joint
+              (indices 0–5).  Values are clamped to the safe range
+              ``0 … 3000``.
+        acceleration
+            Global acceleration (0 … 255) forwarded verbatim to the servo
+            firmware.  Per‑joint acceleration is not yet supported.
+
+        Notes
+        -----
+        *The historical B/C‑axis coupling was removed.*  Each servo now
+        receives the angle corresponding to its own joint index.
+        The call is executed in parallel via :class:`concurrent.futures.ThreadPoolExecutor`.
         """
-        Moves the robot's joints to the specified angles.
+        # --- Validation -----------------------------------------------------
+        if len(angles_rad) != 6:
+            raise ValueError("'angles_rad' must contain 6 joint values")
 
-        This method moves each joint of the robotic arm to the target angles, specified in radians.
-        It handles the coupling of the B and C axes (servos 4 and 5) to generate the correct target angle.
-        The movement is performed in parallel for all axes to minimize the total execution time.
+        # Normalise speeds to a list of six ints --------------------------------
+        if isinstance(speeds, int):
+            speed_list: list[int] = [speeds] * 6
+        else:
+            if len(speeds) != 6:
+                raise ValueError("'speeds' list must contain 6 elements")
+            speed_list = list(speeds)
 
-        Args:
-            angles_rad (list): A list of angles in radians for each joint.
-            speed (int, optional): The speed of the motor movement. Ranges from 0 to 3000 RPM.
-                Defaults to 500.
-            acceleration (int, optional): The acceleration of the motor movement. Ranges from 0 to 255.
-                Defaults to 150.
-        """
+        # Clamp speeds to firmware limits (0–3000 RPM) -------------------------
+        speed_list = [max(0, min(int(s), 3000)) for s in speed_list]
 
-        def move_servo(i, angle_rad):
-            """
-            Helper function to move a single servo to the target angle.
-            """
-            encoder_value = self.angle_to_encoder(angle_rad, i)
-            logger.debug(f"Axis {i}: Angle {math.degrees(angle_rad):.2f}° -> Encoder value {encoder_value}")
-            self.servos[i].run_motor_absolute_motion_by_axis(speed, acceleration, encoder_value)
+        # Helper to move one servo -------------------------------------------
+        def _move_servo(i: int, angle_rad: float) -> None:
+            encoder_val = self.angle_to_encoder(angle_rad, i)
+            logger.debug(
+                f"Axis {i}: {math.degrees(angle_rad):.2f}° -> enc {encoder_val} @ {speed_list[i]} RPM"
+            )
+            self.servos[i].run_motor_absolute_motion_by_axis(
+                speed_list[i], acceleration, encoder_val
+            )
 
-        # Calculate the target angles for the B and C axes, which are coupled to axes 4 and 5
-        # B-axis and C-axis coupling calculation
-        # B-axis (servo 6) = angles_rad[5] + angles_rad[4]
-        # C-axis (servo 5) = angles_rad[4] - angles_rad[5]
-        b_axis = angles_rad[5] + angles_rad[4]
-        c_axis = angles_rad[4] - angles_rad[5]
+        # --- Execute in parallel --------------------------------------------
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            pool.map(_move_servo, range(6), angles_rad)
 
-        # Erstelle die finale Winkel-Liste mit der gewünschten Vorzeichenlogik
-        final_angles = [
-            angles_rad[0],  # A0
-            angles_rad[1],  # A1
-            angles_rad[2],  # A2
-            angles_rad[3],  # A3
-            b_axis,         # B-Achse (kopplung)
-            c_axis          # C-Achse (kopplung)
-        ]
-
-        # Move all axes simultaneously using ThreadPoolExecutor
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(move_servo, range(len(self.servos)), final_angles)
 
     def get_joint_angles(self) -> List[float]:
         """

@@ -21,7 +21,9 @@ DEFAULT_SETTINGS = {
     "ui_color_theme": "Blue",  # Default color theme for UI elements
     "max_fps": 30,  # Maximum frames per second
     "auto_update_saved_poses": False,  # Whether to auto-update saved poses
-    "joint_directions": {i: 1 for i in range(6)}  # Default direction for each joint (1 or -1)
+    "joint_speeds": {i: 500 for i in range(6)},
+    "joint_directions": {i: 1 for i in range(6)},  # Default direction for each joint (1 or -1)
+    "speed_scale": 1.0 
 }
 
 class SettingsManager:
