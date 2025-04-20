@@ -61,7 +61,7 @@ def control_page():
 @ui.page('/settings')
 def settings_page():
     create_menu()
-    settings.create(settings_manager)  # ✅ Pass settings
+    settings.create(settings_manager, arctos=Arctos)  # ✅ Pass settings
 
 @ui.page('/mks')
 def mks_page():

@@ -24,7 +24,9 @@ DEFAULT_SETTINGS = {
     "joint_speeds": {i: 500 for i in range(6)},
     'joint_acceleration': {i: 150 for i in range(6)},
     "joint_directions": {i: 1 for i in range(6)},  # Default direction for each joint (1 or -1)
-    "speed_scale": 1.0 
+    "speed_scale": 1.0, 
+    "enable_live_joint_updates": False,  # Enable live encoder updates in U
+    "homing_offsets": {i: 0 for i in range(6)},  # Homing offset for each joint
 }
 
 class SettingsManager:
