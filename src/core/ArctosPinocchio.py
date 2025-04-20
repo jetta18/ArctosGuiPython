@@ -198,8 +198,15 @@ class ArctosPinocchioRobot:
     
     
     
-    def animate_display(self, q_target, duration=2.0, steps=50):
-        """Animates the robot's motion using RoboMeshCat's built-in animation system."""
+    def animate_display(self, q_target: np.ndarray, duration: float = 2.0, steps: int = 50) -> None:
+        """
+        Animates the robot's motion using RoboMeshCat's built-in animation system.
+
+        Args:
+            q_target (np.ndarray): Target joint configuration for the animation.
+            duration (float, optional): Duration of the animation in seconds. Defaults to 2.0.
+            steps (int, optional): Number of steps in the animation. Defaults to 50.
+        """
         q_start = self.q.copy()
         trajectory = [(1 - t / steps) * q_start + (t / steps) * q_target for t in range(steps + 1)]
         
@@ -229,7 +236,7 @@ class ArctosPinocchioRobot:
         #start the animation in a new thread
         self.animate_display(q_target, duration, steps)
         # Set the angles direct
-        self.q = q_target  # Gelenkwinkel direkt setzen, aber animiert in der Anzeige
+        self.q = q_target  # Set joint angles directly, but animate in display
 
 
     def update_end_effector_orientation(self) -> None:
@@ -271,7 +278,7 @@ class ArctosPinocchioRobot:
         Returns:
             np.ndarray: A numpy array [roll, pitch, yaw] representing the end-effector orientation in radians.
         """
-        return self.ee_orientation.copy()  # Gibt gespeicherte Orientierung zurück
+        return self.ee_orientation.copy()  # Returns stored orientation
 
     def get_end_effector_position(self) -> np.ndarray:
         """Retrieves the end-effector's current Cartesian position.
@@ -316,7 +323,7 @@ class ArctosPinocchioRobot:
             ValueError: If the IK solution violates joint limits.
         """
 
-        # Zielrotation berechnen
+        # Compute target rotation
         if target_rpy is not None:
             target_rot = R.from_euler('xyz', target_rpy).as_matrix()
         else:
@@ -327,10 +334,10 @@ class ArctosPinocchioRobot:
 
         target_SE3 = pin.SE3(target_rot, target_xyz)
 
-        # Konfiguration
+        # Configuration
         configuration = Configuration(self.model, self.data, self.q.copy())
 
-        # IK-Task definieren (ohne target im Konstruktor!)
+        # Define IK task (without target in constructor!)
         task = FrameTask(
             frame=self.ee_frame_name,
             position_cost=2.0,
@@ -344,7 +351,7 @@ class ArctosPinocchioRobot:
 
         # solve_ik
         dt = 0.05
-        for _ in range(300):  # 3 Iterationen für mehr Genauigkeit
+        for _ in range(300):  # 3 iterations for more accuracy
             velocity = solve_ik(configuration, tasks=[task], dt=dt, solver=solver)
             configuration.integrate_inplace(velocity, dt)
 

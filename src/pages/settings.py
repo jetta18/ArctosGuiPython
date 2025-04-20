@@ -1,117 +1,112 @@
-"""
-Module: settings.py
-
-This module defines the settings page for the Arctos Robot GUI, allowing users to configure
-various settings such as theme, live joint updates, and joint rotation directions.
-"""
-
 from nicegui import ui
+from nicegui.elements.toggle import Toggle
+from nicegui.elements.switch import Switch
+from typing import Any
 
-def create(settings_manager):
+
+def create(settings_manager: Any) -> None:
     """
-    Creates the settings page for general configurations.
+    Construct the settings page for configuring various aspects of the robot UI and behavior.
 
-    This function constructs the settings page, which includes UI elements to modify
-    various aspects of the application's behavior. It reads and updates settings via
-    the provided `settings_manager`.
+    This function builds a user interface using NiceGUI, where users can:
+    - Switch between light and dark theme
+    - Enable or disable live joint updates
+    - Configure per-joint direction, speed (RPM), and acceleration
+    - Reset all settings to defaults
 
     Args:
-        settings_manager: An object that provides methods to get and set application settings.
+        settings_manager (Any): An instance managing the persistent settings, providing `get` and `set` methods.
 
     Returns:
         None
     """
-    # Retrieve all current settings from the settings manager
     settings = settings_manager.all()
 
-    # Set the initial theme based on the 'theme' setting
+    # Set theme
     if settings.get("theme") == "Dark":
         ui.dark_mode().enable()
     else:
         ui.dark_mode().disable()
 
-    # Create the main column for the settings page
-    with ui.column().classes('p-4'):
-        # Page header
-        ui.label("⚙️ Settings").classes('text-3xl font-bold')
+    with ui.column().classes("p-6 max-w-3xl mx-auto gap-6"):
+        ui.label("⚙️ Arctos Settings").classes("text-4xl font-bold mb-2")
 
-        # Theme Setting
-        with ui.row():
-            # Theme label
-            ui.label("🌗 Theme")
-            # Theme toggle
-            ui.toggle(["Light", "Dark"], value=settings["theme"], 
+        # --- Theme Toggle ---
+        with ui.card().classes("w-full shadow-md p-4"):
+            ui.label("🌗 Theme").classes("text-xl font-semibold mb-1")
+            ui.toggle(["Light", "Dark"], value=settings.get("theme", "Light"),
                       on_change=lambda e: (
-                          # Update the theme setting
                           settings_manager.set("theme", e.value),
-                          # Enable or disable dark mode based on the selected theme
                           ui.dark_mode().enable() if e.value == "Dark" else ui.dark_mode().disable()
                       ))
 
-        # Live Joint Updates Setting
-        with ui.row():
-            # Label for the live joint updates toggle
-            ui.label("📡 Enable Live Joint Updates")
-            # Toggle switch for enabling/disabling live joint updates
-            live_toggle = ui.switch(value=settings.get("enable_live_joint_updates", True))
-            # Action when the toggle changes
-            live_toggle.on_value_change(lambda e: (
-                ui.notify("Live Joint Updates Enabled" if e.value else "Disabled"),
-                settings_manager.set("enable_live_joint_updates", e.value)
-            ))
+        # --- Live Joint Updates ---
+        with ui.card().classes("w-full shadow-md p-4"):
+            ui.label("📡 Live Joint Updates").classes("text-xl font-semibold mb-1")
+            toggle: Switch = ui.switch("Enable Live Updates",
+                                       value=settings.get("enable_live_joint_updates", True))
+            toggle.on_value_change(lambda e:
+                (ui.notify("Live Updates Enabled" if e.value else "Disabled"),
+                 settings_manager.set("enable_live_joint_updates", e.value)))
 
-        # Joint Direction Settings
-        with ui.expansion("🌀 Joint Rotation Directions", icon="swap_vert", value=False):
-            # Get the current joint directions from the settings
+        # --- Joint Rotation Directions ---
+        with ui.expansion("🌀 Joint Rotation Directions", icon="swap_vert", value=False).classes("shadow-md"):
             directions = settings.get("joint_directions", {i: 1 for i in range(6)})
-            # Create a select for each joint
             for i in range(6):
-                # Determine if the joint direction is inverted or normal
                 current = "Inverted" if directions.get(i, 1) == -1 else "Normal"
-                # Select box for the direction
                 ui.select(["Normal", "Inverted"],
                           value=current,
-                          label=f"Joint {i+1} Direction",
+                          label=f"Joint {i + 1}",
                           on_change=lambda e, index=i: (
-                              # Update the joint direction setting
                               settings_manager.set("joint_directions", {
-                                  # Merge the updated direction with the existing directions
                                   **settings_manager.get("joint_directions", {i: 1 for i in range(6)}),
                                   index: -1 if e.value == "Inverted" else 1
                               }),
-                              # Notify the user about the change
-                              ui.notify(f"Joint {index+1} direction set to {e.value}")
+                              ui.notify(f"Joint {index + 1} set to {e.value}")
                           )).classes("w-64")
 
-        with ui.expansion("⚡ Joint Speeds (RPM)", icon="speed", value=False):
+        # --- Joint Speeds ---
+        with ui.expansion("⚡ Joint Speeds (RPM)", icon="speed", value=False).classes("shadow-md"):
             speeds = settings.get("joint_speeds", {i: 500 for i in range(6)})
-
             for i in range(6):
                 ui.number(
-                    label=f"Joint {i+1} Speed",
+                    label=f"Joint {i + 1}",
                     value=speeds.get(i, 500),
                     min=0, max=3000, step=10,
                     on_change=lambda e, idx=i: (
-                        settings_manager.set(
-                            "joint_speeds",
-                            {**settings_manager.get("joint_speeds", {}),
-                            idx: int(e.value or 500)}
-                        ),
-                        ui.notify(f"Speed J{idx+1} set to {int(e.value)} RPM")
+                        settings_manager.set("joint_speeds", {
+                            **settings_manager.get("joint_speeds", {}),
+                            idx: int(e.value or 500)
+                        }),
+                        ui.notify(f"Speed J{idx + 1} set to {int(e.value)} RPM")
                     )
                 ).classes("w-40")
 
+        # --- Joint Accelerations ---
+        with ui.expansion("🚀 Joint Accelerations", icon="bolt", value=False).classes("shadow-md"):
+            accels = settings.get("joint_accelerations", {i: 150 for i in range(6)})
+            for i in range(6):
+                ui.number(
+                    label=f"Joint {i + 1}",
+                    value=accels.get(i, 150),
+                    min=0, max=255, step=5,
+                    on_change=lambda e, idx=i: (
+                        settings_manager.set("joint_accelerations", {
+                            **settings_manager.get("joint_accelerations", {}),
+                            idx: int(e.value or 150)
+                        }),
+                        ui.notify(f"Acceleration J{idx + 1} set to {int(e.value)}")
+                    )
+                ).classes("w-40")
 
-        # Reset Settings Button
-        ui.button("🔄 Reset Settings", on_click=lambda: (
-            # Reset settings to default values
+        # --- Reset All Settings ---
+        ui.button("🔄 Reset All Settings", on_click=lambda: (
             [settings_manager.set(k, v) for k, v in {
-                # Default Settings
                 "theme": "Light",
-                "language": "English",
                 "enable_live_joint_updates": True,
-                "joint_directions": {i: 1 for i in range(6)}
+                "joint_directions": {i: 1 for i in range(6)},
+                "joint_speeds": {i: 500 for i in range(6)},
+                "joint_accelerations": {i: 150 for i in range(6)}
             }.items()],
-            # Notify the user that the settings have been reset
-            ui.notify("Settings have been reset!")
-        )).classes('bg-red-500 text-white px-4 py-2 rounded-lg')
+            ui.notify("All settings have been reset!", color="primary")
+        )).classes("bg-red-500 text-white px-4 py-2 rounded-lg self-start")

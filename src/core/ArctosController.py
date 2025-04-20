@@ -15,9 +15,6 @@ from services.mks_servo_can import mks_servo
 from services.mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
 import concurrent.futures
 import platform
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from src.config.settings import Settings
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +46,7 @@ class ArctosController:
             cls._instance = super(ArctosController, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, encoder_resolution: int = 16384, bitrate: int = 500000, settings_manager: Optional["Settings"] = None):
+    def __init__(self, encoder_resolution: int = 16384, bitrate: int = 500000, settings_manager = None):
         """
         Initializes the CAN interface, servo motors, and gear ratio settings.
 
@@ -176,57 +173,63 @@ class ArctosController:
         angles_rad: list[float],
         *,
         speeds: int | list[int] = 500,
-        acceleration: int = 150,
+        acceleration: int | list[int] = 150,
     ) -> None:
-        """Move every joint to *angles_rad* with optional **per‑joint speeds**.
-
-        Parameters
-        ----------
-        angles_rad
-            List of target joint angles **in radians**. Must have length 6.
-        speeds
-            - If *int*: one global speed (RPM) applied to all joints.
-            - If *list[int]*: exactly six RPM values, one per joint
-              (indices 0–5).  Values are clamped to the safe range
-              ``0 … 3000``.
-        acceleration
-            Global acceleration (0 … 255) forwarded verbatim to the servo
-            firmware.  Per‑joint acceleration is not yet supported.
-
-        Notes
-        -----
-        *The historical B/C‑axis coupling was removed.*  Each servo now
-        receives the angle corresponding to its own joint index.
-        The call is executed in parallel via :class:`concurrent.futures.ThreadPoolExecutor`.
         """
-        # --- Validation -----------------------------------------------------
+        Move all robot joints to the specified target angles with optional per-joint speeds and accelerations.
+
+        Args:
+            angles_rad (list[float]):
+                Target joint angles in radians. Must be a list of exactly six values.
+            speeds (int | list[int], optional):
+                Either a single global speed in RPM (applied to all joints),
+                or a list of six individual speeds (one per joint).
+                Each value is clamped to the valid servo range [0, 3000]. Defaults to 500.
+            acceleration (int | list[int], optional):
+                Either a single global acceleration value (applied to all joints),
+                or a list of six individual acceleration values (one per joint).
+                Each value is clamped to the firmware-supported range [0, 255]. Defaults to 150.
+
+        Raises:
+            ValueError: If `angles_rad` does not contain exactly 6 values.
+            ValueError: If `speeds` or `acceleration` is a list but does not contain exactly 6 elements.
+
+        Returns:
+            None
+        """
         if len(angles_rad) != 6:
             raise ValueError("'angles_rad' must contain 6 joint values")
 
-        # Normalise speeds to a list of six ints --------------------------------
+        # --- Normalize speeds --------------------------------------------------
         if isinstance(speeds, int):
             speed_list: list[int] = [speeds] * 6
         else:
             if len(speeds) != 6:
                 raise ValueError("'speeds' list must contain 6 elements")
-            speed_list = list(speeds)
+            speed_list = [max(0, min(int(s), 3000)) for s in speeds]
 
-        # Clamp speeds to firmware limits (0–3000 RPM) -------------------------
-        speed_list = [max(0, min(int(s), 3000)) for s in speed_list]
+        # --- Normalize accelerations -------------------------------------------
+        if isinstance(acceleration, int):
+            acc_list: list[int] = [acceleration] * 6
+        else:
+            if len(acceleration) != 6:
+                raise ValueError("'acceleration' list must contain 6 elements")
+            acc_list = [max(0, min(int(a), 255)) for a in acceleration]
 
-        # Helper to move one servo -------------------------------------------
+        # --- Move Helper -------------------------------------------------------
         def _move_servo(i: int, angle_rad: float) -> None:
             encoder_val = self.angle_to_encoder(angle_rad, i)
             logger.debug(
-                f"Axis {i}: {math.degrees(angle_rad):.2f}° -> enc {encoder_val} @ {speed_list[i]} RPM"
+                f"Axis {i}: {math.degrees(angle_rad):.2f}° -> enc {encoder_val} @ {speed_list[i]} RPM / accel {acc_list[i]}"
             )
             self.servos[i].run_motor_absolute_motion_by_axis(
-                speed_list[i], acceleration, encoder_val
+                speed_list[i], acc_list[i], encoder_val
             )
 
-        # --- Execute in parallel --------------------------------------------
+        # --- Execute in parallel -----------------------------------------------
         with concurrent.futures.ThreadPoolExecutor() as pool:
             pool.map(_move_servo, range(6), angles_rad)
+
 
 
     def get_joint_angles(self) -> List[float]:

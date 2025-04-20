@@ -1,5 +1,7 @@
 auto_update_saved_poses: false
 enable_live_joint_updates: false
+joint_accelerations:
+  0: 185
 joint_directions:
   0: 1
   1: -1

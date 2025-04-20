@@ -22,6 +22,7 @@ DEFAULT_SETTINGS = {
     "max_fps": 30,  # Maximum frames per second
     "auto_update_saved_poses": False,  # Whether to auto-update saved poses
     "joint_speeds": {i: 500 for i in range(6)},
+    'joint_acceleration': {i: 150 for i in range(6)},
     "joint_directions": {i: 1 for i in range(6)},  # Default direction for each joint (1 or -1)
     "speed_scale": 1.0 
 }

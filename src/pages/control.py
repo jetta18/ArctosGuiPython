@@ -41,23 +41,30 @@ def create(Arctos, robot, planner, settings_manager) -> None:
     ui.label("Control Page").classes('text-3xl font-bold text-center mb-4')
 
     with ui.row().classes('gap-3 items-center'):
-        ui.label('⏩ Speed Scale')
+        with ui.row().classes('items-center gap-1'):
+            ui.label('Speed Scale')
+            ui.icon('help').tooltip(
+                'Scales the overall robot movement speed.\n'
+                '1.0 = 100 %'
+            ).classes('text-blue-500 cursor-help')
 
         speed_input = ui.number(
             value=settings_manager.get('speed_scale', 1.0),
             min=0.1, max=2.0, step=0.1,
-            format='%.1f'                    # eine Nachkommastelle
+            format='%.1f'
         ).classes('w-24')
 
-        ui.button('Übernehmen', on_click=lambda: apply_speed(speed_input.value))
+        ui.button('Apply', on_click=lambda: apply_speed(speed_input.value))
 
     def apply_speed(val: float | None):
         if val is None or not (0.1 <= val <= 2.0):
-            ui.notify('Bitte Wert zwischen 0.1 und 2.0 eingeben', color='negative')
+            ui.notify('Please enter a value between 0.1 and 2.0', color='negative')
             return
         utils.set_speed_scale(val)
         settings_manager.set('speed_scale', val)
-        ui.notify(f'Speed‑Scale auf {int(val*100)} % gesetzt', color='positive')
+        ui.notify(f'Speed scale set to {int(val*100)} %', color='positive')
+
+
 
     
     # Conditional UI Timers

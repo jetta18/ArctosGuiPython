@@ -37,7 +37,7 @@ class PathPlanner:
         self.filename = filename
         self.current_program_path = os.path.join(self.programs_dir, self.filename)
         self.poses: List[Dict[str, List[float]]] = []
-        self.visualized_objects: Dict[int, Object] = {}  # Für RoboMeshCat-Sphären
+        self.visualized_objects: Dict[int, Object] = {}  # For RoboMeshCat spheres
         self.load_program()
 
     def get_available_programs(self) -> List[str]:
@@ -211,10 +211,11 @@ class PathPlanner:
         for idx, pose in enumerate(self.poses):
             try:
                 q = np.asarray(pose["joints"])
-                if len(joint_angles) < robot.model.nq:
-                    missing = robot.model.nq - len(joint_angles)
-                    joint_angles = np.concatenate((joint_angles, np.zeros(missing)))
-                logger.debug(f"🔹 Executing Pose {idx + 1}: {np.degrees(joint_angles)}")
+                if len(q) < robot.model.nq:
+                    missing = robot.model.nq - len(q)
+                    q = np.concatenate((q, np.zeros(missing)))
+
+                logger.debug("🔹 Executing Pose %d: %s", idx + 1, np.degrees(q))
 
                 if not robot.check_joint_limits(q):
                     logger.warning("Pose %d violates limits – skipped.", idx + 1)
@@ -246,7 +247,7 @@ class PathPlanner:
         Raises:
             TypeError: if robot is not type ArctosPinocchioRobot
         """
-        # Bestehende löschen
+        # Remove existing
         for obj in self.visualized_objects.values():
             try:
                 robot.scene.remove_object(obj)
@@ -266,7 +267,7 @@ class PathPlanner:
                 # Name zusammensetzen mit Index, Position und Farbe
                 name = f"Pose {idx+1} | x={rounded[0]} y={rounded[1]} z={rounded[2]} | color={color}"
 
-                # Kugel erstellen
+                # Create sphere
                 sphere = Object.create_sphere(
                     radius=0.02,
                     name=name,
@@ -278,5 +279,5 @@ class PathPlanner:
                 self.visualized_objects[idx] = sphere
 
             except Exception as e:
-                logger.warning(f"⚠️ Fehler beim Visualisieren von Pose {idx + 1}: {e}")
+                logger.warning(f"⚠️ Error visualizing pose {idx + 1}: {e}")
 
