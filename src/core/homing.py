@@ -2,9 +2,8 @@
 File: core/homing.py
 
 This module provides functions to home the robot axes and move them into a safe sleep pose.
-Extended to support six axes with configurable offsets, speeds, and accelerations.
+Homing zero positions are entirely determined by offsets saved in settings (no hardcoded base zeros).
 """
-import time
 import logging
 from typing import Any, Dict
 
@@ -20,33 +19,16 @@ MOTOR_IDS = [1, 2, 3, 4, 5, 6]
 # Homing sequence: start at joint 6 and end at joint 1
 HOMING_SEQUENCE = list(reversed(MOTOR_IDS))
 
-# Predefined zero positions for each axis (raw units)
-# Axis 3: -2410, Axis 2: -3300, Axis 1: -1038 (as per existing calibration)
-ZERO_POSITIONS: Dict[int, int] = {
-    1: -1038,
-    2: -3300,
-    3: -2410,
-    4:    0,  # TODO: calibrate zero position for axis 4
-    5:    0,  # TODO: calibrate zero position for axis 5
-    6:    0,  # TODO: calibrate zero position for axis 6
-}
-
 # Predefined sleep positions for each axis (raw units)
-SLEEP_POSITIONS: Dict[int, int] = {
-    1: 0,  # TODO: set actual sleep pose for axis 1
-    2: 0,  # TODO: set actual sleep pose for axis 2
-    3: 0,  # TODO: set actual sleep pose for axis 3
-    4: 0,  # TODO: set actual sleep pose for axis 4
-    5: 0,  # TODO: set actual sleep pose for axis 5
-    6: 0,  # TODO: set actual sleep pose for axis 6
-}
+# TODO: Set appropriate sleep positions as needed
+SLEEP_POSITIONS: Dict[int, int] = {axis: 0 for axis in MOTOR_IDS}
 
 
 def move_to_zero_pose(arctos: Any, settings_manager: SettingsManager) -> None:
     """
     Perform the homing routine for all axes in reverse order (joint 6 to 1):
     1. Move to the home switch via built-in b_go_home().
-    2. Move to the configured zero position plus user offset.
+    2. Move to the configured zero position (offset) from settings.
     3. Set the current axis position to zero in software.
 
     Args:
@@ -56,9 +38,9 @@ def move_to_zero_pose(arctos: Any, settings_manager: SettingsManager) -> None:
     Returns:
         None
     """
-    logger.info("Starting homing process for all axes (6->1)")
+    logger.info("Starting homing process for all axes (6->1) using settings offsets")
 
-    # Retrieve settings for offsets, speeds, and accelerations
+    # Retrieve user-defined zero offsets, speeds, and accelerations
     offsets: Dict[int, int] = settings_manager.get("homing_offsets", {})
     speeds: Dict[int, int] = settings_manager.get("joint_speeds", {})
     accelerations: Dict[int, int] = settings_manager.get("joint_acceleration", {})
@@ -67,44 +49,40 @@ def move_to_zero_pose(arctos: Any, settings_manager: SettingsManager) -> None:
         try:
             servo = arctos.servos[axis - 1]
 
-            # Compute target zero position with user-defined offset
+            # Determine zero position from stored offset (raw units)
             user_offset = offsets.get(axis - 1, 0)
-            base_zero = ZERO_POSITIONS.get(axis, 0)
-            target_zero = base_zero + user_offset
+            target_zero = user_offset
 
             # Retrieve speed and acceleration settings (with defaults)
             speed = speeds.get(axis - 1, 500)
             accel = accelerations.get(axis - 1, 150)
 
             logger.info(
-                f"Homing axis {axis}: base_zero={base_zero}, offset={user_offset}, "
-                f"speed={speed}, accel={accel}"
+                f"Homing axis {axis}: target_zero={target_zero}, speed={speed}, accel={accel}"
             )
 
-            # 1) Move to home switch
+            # 1) Move to home switch (resets encoder to zero)
             servo.b_go_home()
-            arctos.wait_for_motors_to_stop()
 
-            # 2) Move to zero position (+ offset)
+            # 2) Move to desired zero position (offset)
             raw_target = target_zero * 100  # convert to servo raw units
             servo.run_motor_absolute_motion_by_axis(speed, accel, raw_target)
-            arctos.wait_for_motors_to_stop()
 
-            # 3) Align software with hardware reference
+            # 3) Align software reference to current hardware position
             servo.set_current_axis_to_zero()
-            logger.info(f"Axis {axis} homed successfully")
+            logger.info(f"Axis {axis} homed successfully at offset {target_zero}")
 
         except Exception as e:
             logger.error(f"Error homing axis {axis}: {e}", exc_info=True)
 
-    logger.info("All axes have been homed.")
+    logger.info("All axes have been homed using settings offsets.")
 
 
 def move_to_sleep_pose(arctos: Any, settings_manager: SettingsManager) -> None:
     """
     Move all axes to a safe sleep pose in reverse order (joint 6 to 1):
-    1. Move to the home switch via built-in b_go_home().
-    2. Move to the predefined sleep position.
+    1. Optionally move to home switch via b_go_home().
+    2. Move to the predefined sleep position from SLEEP_POSITIONS.
 
     Args:
         arctos: Robot controller instance.
@@ -132,16 +110,16 @@ def move_to_sleep_pose(arctos: Any, settings_manager: SettingsManager) -> None:
                 f"Axis {axis}: moving to sleep_pos={sleep_pos}, speed={speed}, accel={accel}"
             )
 
-            # 1) Move to home switch
+            # Move to home switch first to ensure consistent start (optional)
             servo.b_go_home()
             arctos.wait_for_motors_to_stop()
 
-            # 2) Move to sleep position
+            # Move to sleep position
             raw_target = sleep_pos * 100  # convert to servo raw units
             servo.run_motor_absolute_motion_by_axis(speed, accel, raw_target)
             arctos.wait_for_motors_to_stop()
 
-            logger.info(f"Axis {axis} moved to sleep position")
+            logger.info(f"Axis {axis} moved to sleep position {sleep_pos}")
 
         except Exception as e:
             logger.error(f"Error moving axis {axis} to sleep pose: {e}", exc_info=True)
