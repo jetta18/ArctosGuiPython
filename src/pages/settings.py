@@ -1,208 +1,165 @@
 """
-File: settings.py
-
-This module constructs the Settings page for configuring various aspects of the robot UI,
-including theme, live updates, joint parameters, and a Homing Calibration Wizard.
+Enhanced Settings page with vertical tabs inside a splitter and responsive
+layout.  *Homing* tab now leverages a responsive **CSS Grid** so that the offsets
+ table and the calibration wizard are shown **side‑by‑side on medium and larger
+ screens** while automatically stacking on mobiles. All behaviour (callbacks,
+ settings persistence) remains unchanged.
 """
 from nicegui import ui
 from nicegui.elements.switch import Switch
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from utils.settings_manager import SettingsManager
-from core.homing import ZERO_POSITIONS, HOMING_SEQUENCE
+from core.homing import HOMING_SEQUENCE
 
 
 def create(settings_manager: SettingsManager, arctos: Any) -> None:
-    """
-    Construct the Settings page with general options and a
-    wizard for homing offset calibration.
-
-    Args:
-        settings_manager: SettingsManager instance for persistent settings.
-        arctos: Robot controller instance for servo commands.
-
-    Returns:
-        None
-    """
+    """Build the Settings page with vertical tabs and responsive scaling."""
     settings: Dict[str, Any] = settings_manager.all()
 
-    # Apply theme
-    if settings.get("theme") == "Dark":
-        ui.dark_mode().enable()
-    else:
-        ui.dark_mode().disable()
+    # Apply theme immediately
+    (ui.dark_mode().enable() if settings.get("theme") == "Dark" else ui.dark_mode().disable())
 
-    # Main container
-    with ui.column().classes("p-6 max-w-3xl mx-auto gap-6"):
-        ui.label("⚙️ Arctos Settings").classes("text-4xl font-bold mb-2")
+    # Page header
+    ui.label("⚙️ Settings").classes("text-4xl font-bold text-center my-4")
 
-        # --- Theme Toggle ---
-        with ui.card().classes("w-full shadow-md p-4"):
-            ui.label("🌗 Theme").classes("text-xl font-semibold mb-1")
-            ui.toggle(
-                ["Light", "Dark"],
-                value=settings.get("theme", "Light"),
-                on_change=lambda e: (
-                    settings_manager.set("theme", e.value),
-                    ui.dark_mode().enable() if e.value == "Dark" else ui.dark_mode().disable()
-                )
-            )
+    # ───────────── Splitter with vertical tabs ──────────────
+    with ui.splitter(value=20).classes("w-full h-[calc(100vh-8rem)]") as splitter:
+        # -------- Tabs (left side) --------
+        with splitter.before:
+            with ui.tabs().props("vertical").classes("w-full") as tabs:
+                tab_general = ui.tab("General", icon="tune")
+                tab_joints = ui.tab("Joints", icon="developer_board")
+                tab_homing = ui.tab("Homing", icon="home")
 
-        # --- Live Joint Updates ---
-        with ui.card().classes("w-full shadow-md p-4"):
-            ui.label("📡 Live Joint Updates").classes("text-xl font-semibold mb-1")
-            toggle: Switch = ui.switch(
-                "Enable Live Updates",
-                value=settings.get("enable_live_joint_updates", True)
-            )
-            toggle.on_value_change(lambda e:
-                (ui.notify("Live Updates Enabled" if e.value else "Live Updates Disabled"),
-                 settings_manager.set("enable_live_joint_updates", e.value))
-            )
+        # -------- Panels (right side) --------
+        with splitter.after:
+            with ui.tab_panels(tabs, value=tab_general).props("vertical").classes("w-full h-full overflow-y-auto"):
 
-        # --- Joint Rotation Directions ---
-        with ui.expansion("🌀 Joint Rotation Directions", icon="swap_vert", value=False).classes("shadow-md"):
-            directions: Dict[int, int] = settings.get("joint_directions", {i: 1 for i in range(6)})
-            for i in range(6):
-                current = "Inverted" if directions.get(i, 1) == -1 else "Normal"
-                ui.select(
-                    ["Normal", "Inverted"],
-                    value=current,
-                    label=f"Joint {i+1}",
-                    on_change=lambda e, idx=i: (
-                        settings_manager.set(
-                            "joint_directions",
-                            {**settings_manager.get("joint_directions", {j: 1 for j in range(6)}), idx: (-1 if e.value == "Inverted" else 1)}
-                        ),
-                        ui.notify(f"Joint {idx+1} set to {e.value}")
-                    )
-                ).classes("w-64")
+                # ==================== General Tab ====================
+                with ui.tab_panel(tab_general):
+                    with ui.card().classes("p-4 mb-4"):
+                        ui.label("Appearance").classes("text-xl font-semibold mb-2")
+                        ui.toggle(["Light", "Dark"],
+                                  value=settings.get("theme", "Light"),
+                                  on_change=lambda e: (
+                                      settings_manager.set("theme", e.value),
+                                      ui.dark_mode().enable() if e.value == "Dark" else ui.dark_mode().disable(),
+                                      ui.notify(f"Theme set to {e.value}")
+                                  )
+                                  ).tooltip("Choose between light and dark UI themes.")
 
-        # --- Joint Speeds ---
-        with ui.expansion("⚡ Joint Speeds (RPM)", icon="speed", value=False).classes("shadow-md"):
-            speeds: Dict[int, int] = settings.get("joint_speeds", {i: 500 for i in range(6)})
-            for i in range(6):
-                ui.number(
-                    label=f"Joint {i+1}",
-                    value=speeds.get(i, 500),
-                    min=0, max=3000, step=10,
-                    on_change=lambda e, idx=i: (
-                        settings_manager.set(
-                            "joint_speeds",
-                            {**settings_manager.get("joint_speeds", {}), idx: int(e.value or 500)}
-                        ),
-                        ui.notify(f"Speed J{idx+1} set to {int(e.value)} RPM")
-                    )
-                ).classes("w-40")
+                    with ui.card().classes("p-4"):
+                        ui.label("Live Joint Updates").classes("text-xl font-semibold mb-2")
+                        live_switch: Switch = ui.switch(
+                            "Enable live joint angle updates",
+                            value=settings.get("enable_live_joint_updates", True)
+                        )
+                        live_switch.on_value_change(lambda e: (
+                            settings_manager.set("enable_live_joint_updates", e.value),
+                            ui.notify("Live updates enabled" if e.value else "Live updates disabled")
+                        ))
+                        live_switch.tooltip("Toggle real-time display of joint encoder readings.")
 
-        # --- Joint Accelerations ---
-        with ui.expansion("🚀 Joint Accelerations", icon="bolt", value=False).classes("shadow-md"):
-            accels: Dict[int, int] = settings.get("joint_accelerations", {i: 150 for i in range(6)})
-            for i in range(6):
-                ui.number(
-                    label=f"Joint {i+1}",
-                    value=accels.get(i, 150),
-                    min=0, max=255, step=5,
-                    on_change=lambda e, idx=i: (
-                        settings_manager.set(
-                            "joint_accelerations",
-                            {**settings_manager.get("joint_accelerations", {}), idx: int(e.value or 150)}
-                        ),
-                        ui.notify(f"Acceleration J{idx+1} set to {int(e.value)}")
-                    )
-                ).classes("w-40")
+                # ==================== Joints Tab ====================
+                with ui.tab_panel(tab_joints):
+                    with ui.row().classes("flex-wrap gap-4"):
+                        for title, key, default, label_fmt, tooltip in [
+                            ("Joint Directions", "joint_directions", {i: 1 for i in range(6)}, "Joint {}", "Invert or normal rotation direction."),
+                            ("Joint Speeds (RPM)", "joint_speeds", {i: 500 for i in range(6)}, "J{}", "Set max speed in RPM."),
+                            ("Joint Accelerations", "joint_accelerations", {i: 150 for i in range(6)}, "J{}", "Set acceleration (0-255).")
+                        ]:
+                            with ui.card().classes("p-4 grow md:max-w-[30%]"):
+                                ui.label(title).classes("text-xl font-semibold mb-2")
+                                vals: Dict[int, int] = settings.get(key, default)
+                                with ui.row().classes("flex-wrap gap-2"):
+                                    for i in range(6):
+                                        widget = ui.select if title == "Joint Directions" else ui.number
+                                        val_i = vals.get(i)
+                                        init_val = "Inverted" if (title == "Joint Directions" and val_i == -1) else (val_i if title != "Joint Directions" else "Normal")
+                                        params: Dict[str, Any] = {"label": label_fmt.format(i + 1), "value": init_val}
+                                        if widget is ui.select:
+                                            params["options"] = ["Normal", "Inverted"]
+                                        else:
+                                            params.update({"min": 0, "max": 3000 if key == "joint_speeds" else 255, "step": 10 if key == "joint_speeds" else 5})
+                                        w = widget(**params).classes("w-24 sm:w-28 md:w-32")
+                                        w.on('change', (lambda k, idx: lambda e: (
+                                            settings_manager.set(k, {**settings_manager.get(k, default), idx: (-1 if k == "joint_directions" and e.value == "Inverted" else int(e.value))}),
+                                            ui.notify(f"{title.split()[1]} {idx + 1} set to {e.value}")
+                                        ))(key, i))
+                                        w.tooltip(tooltip)
 
+                # ==================== Homing Tab ====================
+                with ui.tab_panel(tab_homing):
+                    # -------- Grid container (table + wizard) --------
+                    with ui.element('div').classes("w-full grid grid-cols-1 md:grid-cols-2 gap-4 items-start"):
+                        # ---- Offsets table ----
+                        with ui.card().classes("p-4 overflow-x-auto"):
+                            ui.label("Homing Offsets").classes("text-xl font-semibold mb-2")
+                            offsets: Dict[int, int] = settings_manager.get("homing_offsets", {i: 0 for i in range(6)})
+                            rows = [{"Axis": f"J{axis}", "Offset": offsets.get(axis - 1, 0)} for axis in HOMING_SEQUENCE]
+                            ui.table(
+                                columns=[{"name": "Axis", "label": "Axis"}, {"name": "Offset", "label": "Offset"}],
+                                rows=rows
+                            ).classes("min-w-full").tooltip("Current zero offsets for each joint.")
 
-        # --- Homing Offsets Display ---
-        with ui.card().classes("w-full shadow-md p-4"):
-            ui.label("📐 Homing Offsets").classes("text-xl font-semibold mb-1")
-            offsets: Dict[int, int] = settings_manager.get("homing_offsets", {i: 0 for i in range(6)})
-            rows: List[Dict[str, Any]] = [
-                {"Axis": f"J{axis}", "Offset": offsets.get(axis-1, 0)}
-                for axis in HOMING_SEQUENCE
-            ]
-            ui.table(
-                columns=[{"name": "Axis", "label": "Axis"}, {"name": "Offset", "label": "Offset (units)"}],
-                rows=rows
-            ).classes("w-full mb-6")
+                        # ---- Calibration Wizard ----
+                        with ui.card().classes("p-4") as wizard_card:
+                            ui.label("Calibration Wizard").classes("text-xl font-semibold mb-2")
+                            # First line: axis selection + buttons
+                            with ui.row().classes("gap-2 flex-wrap mb-2"):
+                                axis_sel = ui.select([f"Axis {i}" for i in HOMING_SEQUENCE], label="Axis", value=f"Axis {HOMING_SEQUENCE[0]}").classes("w-32")
+                                axis_sel.tooltip("Select the joint to calibrate.")
+                                home_btn = ui.button("🏠 Home").tooltip("Drive joint to limit switch (zero encoder).")
+                                save_btn = ui.button("💾 Save").tooltip("Save current encoder value as zero offset.")
+                            # Second line: step value + move buttons
+                            with ui.row().classes("gap-2 flex-wrap mb-2 items-center"):
+                                ui.label("Step:").classes("w-12")
+                                step_in = ui.number(label=None, value=100, min=1, step=1).classes("w-20")
+                                step_in.tooltip("Incremental step size for manual adjustment.")
+                                dec_btn = ui.button("◀").tooltip("Move joint negative by step.")
+                                inc_btn = ui.button("▶").tooltip("Move joint positive by step.")
+                            # Position read‑out
+                            pos_lbl = ui.label("Position: --").classes("mt-2 font-mono")
 
-        # --- Homing Calibration Wizard ---
-        with ui.card().classes("w-full shadow-md p-4 border-blue-400"):
-            ui.label("🛠 Homing Calibration Wizard").classes("text-xl font-semibold mb-2")
+                            # ---------- Handlers ----------
+                            def on_home():
+                                idx = int(axis_sel.value.split()[-1]) - 1
+                                arctos.servos[idx].b_go_home()
+                                pos_lbl.text = "Position: 0"
 
-            # 1) Axis selection
-            axis_select = ui.select(
-                options=[f"Axis {i}" for i in HOMING_SEQUENCE],
-                label="Select Axis",
-                value=f"Axis {HOMING_SEQUENCE[0]}"
-            ).classes("w-1/2")
+                            def on_move(dir_: int):
+                                idx = int(axis_sel.value.split()[-1]) - 1
+                                raw = int(step_in.value or 0) * dir_
+                                sp = settings_manager.get("joint_speeds", {}).get(idx, 500)
+                                ac = settings_manager.get("joint_accelerations", {}).get(idx, 150)
+                                arctos.servos[idx].run_motor_relative_motion_by_axis(sp, ac, raw)
+                                val = arctos.servos[idx].read_encoder_value_addition() or 0
+                                pos_lbl.text = f"Position: {val}"
 
-            # 2) Home to physical limit (resets encoder to zero)
-            home_button = ui.button('Home Selected Axis').classes("bg-blue-500 text-white mt-4")
-            homing_status = ui.label(" ").classes("mt-2 text-sm text-blue-700")
+                            def on_save():
+                                idx = int(axis_sel.value.split()[-1]) - 1
+                                val = arctos.servos[idx].read_encoder_value_addition() or 0
+                                d = settings_manager.get("homing_offsets", {})
+                                d[idx] = val
+                                settings_manager.set("homing_offsets", d)
+                                ui.notify(f"Saved offset J{idx + 1}: {val}")
 
-            # 3) Manual stepwise adjustment
-            step_input = ui.number(
-                label='Step Size (units)',
-                value=500,
-                min=1,
-                step=50
-            ).classes("w-40 mt-2")
-            move_negative = ui.button('< Move -').classes("bg-gray-200 px-3 py-1 rounded-lg mt-2 mr-2")
-            move_positive = ui.button('Move + >').classes("bg-gray-200 px-3 py-1 rounded-lg mt-2")
-            current_pos_label = ui.label("Current Position: --").classes("mt-2 font-mono")
+                            # Bind handlers after definition
+                            home_btn.on('click', lambda _: on_home())
+                            dec_btn.on('click', lambda _: on_move(-1))
+                            inc_btn.on('click', lambda _: on_move(1))
+                            save_btn.on('click', lambda _: on_save())
 
-            # 4) Save offset at desired position
-            save_button = ui.button('Save Offset').classes("bg-green-500 text-white mt-4")
+            # ───────────── End of panels ─────────────
 
-            def on_home_click() -> None:
-                """
-                Perform homing on selected axis to reset encoder to zero.
-                """
-                idx = int(axis_select.value.split()[-1]) - 1
-                arctos.servos[idx].b_go_home()
-                homing_status.text = f'Axis {idx+1} homed: encoder reset to 0'
-                current_pos_label.text = 'Current Position: 0'
-
-            def on_move_click(direction: int) -> None:
-                """
-                Move selected axis stepwise in given direction.
-
-                Args:
-                    direction: -1 for negative, +1 for positive movement.
-                """
-                idx = int(axis_select.value.split()[-1]) - 1
-                step = int(step_input.value or 0)
-                raw_step = step * direction
-                # Retrieve speed/accel settings
-                speed = settings_manager.get('joint_speeds', {}).get(idx, 500)
-                accel = settings_manager.get('joint_accelerations', {}).get(idx, 150)
-                arctos.servos[idx].run_motor_relative_motion_by_axis(speed, accel, raw_step)
-                # Read current encoder value
-                raw_val = arctos.servos[idx].read_encoder_value_addition() or 0
-                current_pos_label.text = f'Current Position: {raw_val}'
-
-            def on_save_click() -> None:
-                """
-                Save current encoder value as new homing offset.
-                """
-                idx = int(axis_select.value.split()[-1]) - 1
-                raw_val = arctos.servos[idx].read_encoder_value_addition() or 0
-                offsets_dict = settings_manager.get('homing_offsets', {i: 0 for i in range(6)})
-                offsets_dict[idx] = raw_val
-                settings_manager.set('homing_offsets', offsets_dict)
-                ui.notify(f'Offset for Axis {idx+1} saved: {raw_val}', color='positive')
-
-            # Bind event handlers
-            home_button.on('click', on_home_click)
-            move_negative.on('click', lambda: on_move_click(-1))
-            move_positive.on('click', lambda: on_move_click(1))
-            save_button.on('click', on_save_click)
-
-        # --- Reset All Settings ---
-        ui.button(
-            "🔄 Reset All Settings",
-            on_click=lambda: (
+    # ═══════════ Global actions outside splitter ═══════════
+    with ui.dialog() as dlg, ui.card().classes("p-4"):
+        ui.label("Confirm Reset").classes("text-xl font-semibold mb-2")
+        ui.label("Are you sure you want to reset all settings? This cannot be undone.")
+        with ui.row().classes("justify-end mt-4 gap-2"):
+            ui.button("Cancel", on_click=dlg.close)
+            ui.button("Confirm").classes("bg-red-500 text-white").on('click', lambda: (
                 [settings_manager.set(k, v) for k, v in {
                     "theme": "Light",
                     "enable_live_joint_updates": True,
@@ -211,7 +168,7 @@ def create(settings_manager: SettingsManager, arctos: Any) -> None:
                     "joint_accelerations": {i: 150 for i in range(6)},
                     "homing_offsets": {i: 0 for i in range(6)}
                 }.items()],
-                ui.notify("All settings have been reset!", color="primary")
-            )
-        ).classes("bg-red-500 text-white px-4 py-2 rounded-lg self-start")
+                ui.notify("Settings reset to defaults."), dlg.close()
+            ))
 
+    ui.button("🔄 Reset All", on_click=lambda: dlg.open()).classes("mt-4 bg-red-500 text-white px-4 py-2 rounded-lg")
