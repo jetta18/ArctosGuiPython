@@ -63,10 +63,12 @@ def move_to_zero_pose(arctos: Any, settings_manager: SettingsManager) -> None:
 
             # 1) Move to home switch (resets encoder to zero)
             servo.b_go_home()
+            arctos.wait_for_motors_to_stop()
 
             # 2) Move to desired zero position (offset)
             raw_target = target_zero * 100  # convert to servo raw units
             servo.run_motor_absolute_motion_by_axis(speed, accel, raw_target)
+            arctos.wait_for_motors_to_stop()
 
             # 3) Align software reference to current hardware position
             servo.set_current_axis_to_zero()
