@@ -161,7 +161,6 @@ def create(settings_manager: SettingsManager, arctos: Any) -> None:
                 """
                 idx = int(axis_select.value.split()[-1]) - 1
                 arctos.servos[idx].b_go_home()
-                arctos.wait_for_motors_to_stop()
                 homing_status.text = f'Axis {idx+1} homed: encoder reset to 0'
                 current_pos_label.text = 'Current Position: 0'
 
@@ -179,7 +178,6 @@ def create(settings_manager: SettingsManager, arctos: Any) -> None:
                 speed = settings_manager.get('joint_speeds', {}).get(idx, 500)
                 accel = settings_manager.get('joint_accelerations', {}).get(idx, 150)
                 arctos.servos[idx].run_motor_relative_motion_by_axis(speed, accel, raw_step)
-                arctos.wait_for_motors_to_stop()
                 # Read current encoder value
                 raw_val = arctos.servos[idx].read_encoder_value_addition() or 0
                 current_pos_label.text = f'Current Position: {raw_val}'
