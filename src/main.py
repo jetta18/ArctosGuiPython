@@ -69,7 +69,7 @@ def mks_page():
     This page allows to configure the mks servos.
     """
     create_menu()
-    mks_config.create(Arctos)
+    mks_config.create(Arctos, settings_manager)
 
 
 # Launch the NiceGUI application

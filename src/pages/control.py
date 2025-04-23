@@ -93,7 +93,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                         
             # Home and Sleep Pose buttons
             with ui.row().classes('w-full justify-center mt-4 gap-4'):
-                ui.button("▶️ Start Movement", on_click=lambda: utils.run_move_can(robot, Arctos, settings_manager)) \
+                ui.button("Start Movement", on_click=lambda: utils.run_move_can(robot, Arctos, settings_manager)) \
                 .tooltip("Execute the currently set joint angles on the physical robot") \
                 .classes('bg-red-500 text-white w-full mt-2 py-2 rounded-lg')
             
@@ -104,7 +104,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
 
             # Expandable Joint Control Section
             # Expandable section for joint control
-            with ui.expansion("🦾 Joint Control", icon="settings", value=False).classes('w-full border-2 border-gray-400'):
+            with ui.expansion("Joint Control", icon="360", value=False).classes('w-full border-2 border-gray-400'):
                 # Description label
                 ui.label("View and set the joint angles.").classes('text-gray-600 mb-2')
 
@@ -120,12 +120,12 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                     new_joint_inputs = [ui.number(label=f"Joint {i+1} (°)").classes('w-full') for i in range(6)]
 
                 # Button to Set Joint Angles
-                ui.button("✅ Set Joint Angles", on_click=lambda: utils.set_joint_angles_from_gui(robot, new_joint_inputs)) \
+                ui.button("Set Joint Angles", on_click=lambda: utils.set_joint_angles_from_gui(robot, new_joint_inputs)) \
                     .tooltip("Send entered joint angles to the robot using forward kinematics") \
                     .classes('bg-green-500 text-white w-full mt-2 py-2 rounded-lg')
 
             # End-Effector control section
-            with ui.expansion('End-Effector', value=False).classes('w-full border-2 border-gray-400'):
+            with ui.expansion("End-Effector", icon="open_with", value=False).classes('w-full border-2 border-gray-400'):
                 # End-Effector Position section
                 # --- End-Effector Position Section ---
                 with ui.expansion("End-Effector Position", icon="location_on", value=False).classes('w-full border-2 border-gray-400'):
@@ -146,7 +146,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                         }
 
                 # End-Effector Orientation (RPY) Section
-                with ui.expansion('🔄 End-Effector Orientation (RPY)', icon='rotate_right', value=False).classes('w-full border-2 border-gray-400'):
+                with ui.expansion('End-Effector Orientation (RPY)', icon='rotate_right', value=False).classes('w-full border-2 border-gray-400'):
                     ui.label("Set and monitor the end-effector orientation").classes('text-lg font-semibold mb-2')
 
                     # Read-only labels showing current RPY
@@ -165,7 +165,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
 
                 # --- Orientation Switch and Combined Button ---
                 with ui.row().classes('justify-center mt-2'):
-                    use_orientation_switch = ui.switch("🔄 Include Orientation (RPY)", value=False)
+                    use_orientation_switch = ui.switch("Include Orientation (RPY)", value=False)
 
                 ui.button("🚀 Set End-Effector Pose", on_click=lambda:
                     utils.set_ee_pose_from_input(
@@ -178,7 +178,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                 .classes('bg-teal-600 text-white w-full mt-2 py-2 rounded-lg')
 
             # Gripper Control Section
-            with ui.expansion("🛠 Gripper Control", icon="hand", value=False).classes('w-full border-2 border-gray-400'):
+            with ui.expansion("Gripper Control", icon="precision_manufacturing", value=False).classes('w-full border-2 border-gray-400'):
                 ui.label("Control the gripper's movement.").classes('text-gray-600 mb-2')
                 # open and close gripper buttons
                 with ui.row().classes('justify-center gap-4'):
@@ -191,7 +191,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                         .classes('bg-orange-500 text-white px-4 py-2 rounded-lg')
 
             # ───── Path Planning Expansion ─────
-            with ui.expansion("📌 Path Planning", icon="map", value=False).classes("w-full border-2 border-gray-400"):
+            with ui.expansion("Path Planning", icon="map", value=False).classes("w-full border-2 border-gray-400"):
                 ui.label("Manage and execute path planning tasks.").classes("text-gray-600 text-center mb-2")
 
                 # --- Scrollable pose table -----------------------------------

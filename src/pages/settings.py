@@ -21,6 +21,66 @@ def create(settings_manager: SettingsManager, arctos: Any) -> None:
     # Apply theme immediately
     (ui.dark_mode().enable() if settings.get("theme") == "Dark" else ui.dark_mode().disable())
 
+    # ───────────────── Gear-Ratio Wizard (90-degree method) ─────────────────
+    def _current_ratio(axis_idx: int) -> float:
+        """Return stored ratio or default fallback."""
+        return settings_manager.get(
+            "gear_ratios",
+            [13.5, 150, 150, 48, 67.82/2, 67.82/2]
+        )[axis_idx]
+
+    def open_ratio_wizard():
+        dlg_ratio.open()
+
+    with ui.dialog() as dlg_ratio, ui.card().classes("p-4 w-[26rem]"):
+        ui.label("Gear-Ratio Wizard").classes("text-xl font-semibold mb-1")
+        ui.label("Rotate ~90 ° by current ratio → measure → save")
+
+        # -------- UI controls --------
+        axis_sel_wz = ui.select([f"Axis {i+1}" for i in range(6)],
+                            value="Axis 1", label="Axis").classes("w-full")
+        with ui.row().classes("gap-3 mt-4"):
+            btn_rotate = ui.button("Rotate 90 °").props("color=primary")
+            angle_in   = ui.number(label="Measured °", min=0.1, step=0.1)\
+                           .classes("w-32")
+            btn_save   = ui.button("Save").props("color=positive")
+
+        info_lbl = ui.label("").classes("mt-3 font-mono")
+
+        # -------- Handlers --------
+        def _rotate():
+            idx = int(axis_sel_wz.value.split()[-1]) - 1
+            r   = _current_ratio(idx)
+            ticks = int(r * arctos.encoder_resolution / 4)
+            arctos.servos[idx].run_motor_relative_motion_by_axis(300, 150, ticks)
+            ui.notify(f"Axis rotated (~90° based on {r:.3f}). Measure angle.", color="info")
+        btn_rotate.on("click", lambda _: _rotate())
+        
+        def _save():
+            idx  = int(axis_sel_wz.value.split()[-1]) - 1
+            meas = angle_in.value
+            if not meas:
+                ui.notify("Enter measured angle!", color="negative"); return
+            r_cur = _current_ratio(idx)
+            r_new = r_cur * 90 / float(meas)                   # adjust around old ratio
+
+            ratios = list(settings_manager.get("gear_ratios", []))
+            ratios[idx] = r_new
+            settings_manager.set("gear_ratios", ratios)
+
+            # live-update controller (requires set_gear_ratios method)
+            if hasattr(arctos, "set_gear_ratios"):
+                arctos.set_gear_ratios(
+                    ratios,
+                    settings_manager.get("joint_directions", {i: 1 for i in range(6)})
+                )
+
+            info_lbl.text = f"Axis {idx+1}: {r_cur:.3f} → {r_new:.3f}  (saved)"
+            ui.notify(f"Gear ratio J{idx+1} updated to {r_new:.3f}", color="positive")
+        btn_save.on("click", lambda _: _save())
+    # ─────────────────────────────────────────────────────────────────────────
+
+
     # Page header
     ui.label("⚙️ Settings").classes("text-4xl font-bold text-center my-4")
 
@@ -145,6 +205,11 @@ def create(settings_manager: SettingsManager, arctos: Any) -> None:
                                         on_change=make_ratio_handler(i)
                                     ).classes("w-24 sm:w-28 md:w-32")\
                                      .tooltip("Set gear reduction ratio")
+                                # ------------- Wizard trigger button -------------
+                                ui.button("⚙️ Gear-Ratio Wizard",
+                                        on_click=open_ratio_wizard) \
+                                .props("color=secondary") \
+                                .classes("mt-2")
 
 
                 # ==================== Homing Tab ====================

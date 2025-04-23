@@ -68,14 +68,21 @@ def apply_button(label, action_fn):
     """
     ui.button(label, on_click=action_fn).classes('w-full mt-2')
 
-def create(ArctosConfig):
+def create(Arctos, settings_manager):
     settings = load_servo_settings()
+
+    # Apply UI Theme on page init
+    # Check if the user has set the dark theme
+    if settings_manager.get("theme") == "Dark":
+        ui.dark_mode().enable()
+    else:
+        ui.dark_mode().disable()
 
     with ui.column().classes('p-4 w-full'):
         ui.label("🔧 MKS Servo Configuration").classes('text-3xl font-bold text-center mb-4')
         
         # Iterate over each servo in the ArctosConfig
-        for i in range(len(ArctosConfig.servos)):
+        for i in range(len(Arctos.servos)):
             # Create servo key
             servo_key = f"servo_{i}"
             # Load settings for the current servo, or default to an empty dictionary
@@ -99,7 +106,7 @@ def create(ArctosConfig):
                             
                             # Function to apply working mode settings
                             def apply_working_mode(index=i, selector=mode_select):
-                                ArctosConfig.servos[index].set_work_mode(selector.value)
+                                Arctos.servos[index].set_work_mode(selector.value)
                                 # Save setting to file
                                 save_servo_setting(index, "work_mode", selector.value)
                                 ui.notify(f"✅ Servo {index+1} Working Mode updated.", type='positive')
@@ -110,7 +117,7 @@ def create(ArctosConfig):
                             current_input = ui.number(value=servo_data.get("current", 1600), min=0, max=5200, step=100).classes('w-full')
                             def apply_current(index=i, input_field=current_input):
                                 # Apply current to servo and save setting to file
-                                ArctosConfig.servos[index].set_working_current(int(input_field.value))
+                                Arctos.servos[index].set_working_current(int(input_field.value))
                                 save_servo_setting(index, "current", int(input_field.value))
                                 ui.notify(f"✅ Servo {index+1} Current updated.", type='positive')
                             apply_button("Apply Operating Current", apply_current)
@@ -120,7 +127,7 @@ def create(ArctosConfig):
                             microstep_select = ui.select([1, 2, 4, 8, 16, 32, 64, 128, 256], value=servo_data.get("microsteps", 16)).classes('w-full')
                             def apply_microsteps(index=i, selector=microstep_select):
                                 # Apply microstep to servo and save setting to file
-                                ArctosConfig.servos[index].set_subdivisions(selector.value)
+                                Arctos.servos[index].set_subdivisions(selector.value)
                                 save_servo_setting(index, "microsteps", selector.value)
                                 ui.notify(f"✅ Servo {index+1} Microsteps updated.", type='positive')
                             apply_button("Apply Microsteps", apply_microsteps)
@@ -141,7 +148,7 @@ def create(ArctosConfig):
                             ).props('inline')
                             def apply_holding(index=i, selector=hold_current):
                                 # Apply holding current to servo and save setting to file
-                                ArctosConfig.servos[index].set_holding_current(selector.value)
+                                Arctos.servos[index].set_holding_current(selector.value)
                                 save_servo_setting(index, "holding", selector.value)
                                 ui.notify(f"✅ Servo {index+1} Holding Current updated.", type='positive')
                             apply_button("Apply Holding Current", apply_holding)
@@ -155,7 +162,7 @@ def create(ArctosConfig):
                             ).classes('w-full')
                             def apply_direction(index=i, selector=direction_select):
                                 # Apply direction to servo and save setting to file
-                                ArctosConfig.servos[index].set_motor_rotation_direction(selector.value)
+                                Arctos.servos[index].set_motor_rotation_direction(selector.value)
                                 save_servo_setting(index, "direction", selector.value)
                                 ui.notify(f"✅ Servo {index+1} Direction updated.", type='positive')
                             apply_button("Apply Rotation Direction", apply_direction)
@@ -180,7 +187,7 @@ def create(ArctosConfig):
 
                         def apply_homing(index=i):
                             # Apply homing to servo and save settings to file
-                            ArctosConfig.servos[index].set_home(
+                            Arctos.servos[index].set_home(
                                 EndStopLevel.Low if endstop_level_select.value == "Low" else EndStopLevel.High,
                                 Direction.CW if home_direction_select.value == "CW" else Direction.CCW,
                                 int(home_speed_input.value),
@@ -202,7 +209,7 @@ def create(ArctosConfig):
                             endstop_switch = ui.switch(value=servo_data.get("endstop_enabled", False)).classes('w-full')
                             def apply_endstop(index=i, val=endstop_switch):
                                 # Apply endstop settings to servo and save to file
-                                ArctosConfig.servos[index].set_en_pin_config(
+                                Arctos.servos[index].set_en_pin_config(
                                     EnPinEnable.ActiveHigh if val.value else EnPinEnable.ActiveLow)
                                 save_servo_setting(index, "endstop_enabled", val.value)
                                 ui.notify(f"✅ Servo {index+1} Endstop Setting updated.", type='positive')
@@ -213,7 +220,7 @@ def create(ArctosConfig):
                             motor_protection_switch = ui.switch(value=servo_data.get("shaft_protect", False)).classes('w-full')
                             def apply_protect(index=i, val=motor_protection_switch):
                                 # Apply lock protection to servo and save to file
-                                ArctosConfig.servos[index].set_motor_shaft_locked_rotor_protection(
+                                Arctos.servos[index].set_motor_shaft_locked_rotor_protection(
                                     Enable.Enable if val.value else Enable.Disable)
                                 save_servo_setting(index, "shaft_protect", val.value)
                                 ui.notify(f"✅ Servo {index+1} Lock Protection updated.", type='positive')
