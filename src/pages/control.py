@@ -190,31 +190,42 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                         .tooltip("Send command to close the robot gripper") \
                         .classes('bg-orange-500 text-white px-4 py-2 rounded-lg')
 
-            # Expandable Path Planning Section
-            with ui.expansion("📌 Path Planning", icon="map", value=False).classes('w-full border-2 border-gray-400'):
-                ui.label("Manage and execute path planning tasks.").classes(
-                    'text-gray-600 text-center mb-2')
+            # ───── Path Planning Expansion ─────
+            with ui.expansion("📌 Path Planning", icon="map", value=False).classes("w-full border-2 border-gray-400"):
+                ui.label("Manage and execute path planning tasks.").classes("text-gray-600 text-center mb-2")
 
-                with ui.row().classes('w-full'):
-                    pose_container = ui.column().classes('w-full')
+                # --- Scrollable pose table -----------------------------------
+                with ui.element("div").classes("w-full max-h-[40vh] overflow-y-auto"):
+                    pose_container = ui.column().classes("w-full")
                     utils.update_pose_table(planner, robot, pose_container)
-                    ui.button("Save Pose", on_click=lambda: (
-                        utils.save_pose(planner, robot),
-                        utils.update_pose_table(planner, robot, pose_container))
+
+                # --- Action buttons ------------------------------------------
+                with ui.row().classes("w-full justify-center gap-4 mt-2"):
+                    ui.button(
+                        "Save Pose",
+                        on_click=lambda: (
+                            utils.save_pose(planner, robot),
+                            utils.update_pose_table(planner, robot, pose_container),
+                        ),
                     ).tooltip("Store the robot's current pose for later use") \
-                    .classes('bg-blue-700 text-white px-4 py-2 rounded-lg')
+                     .classes("bg-blue-700 text-white px-4 py-2 rounded-lg")
 
-                    ui.button("Load Program", on_click=lambda: utils.load_program(planner, pose_container, robot)) \
-                        .tooltip("Load a previously saved sequence of poses") \
-                        .classes('bg-green-700 text-white px-4 py-2 rounded-lg')
+                    ui.button(
+                        "Load Program",
+                        on_click=lambda: utils.load_program(planner, pose_container, robot),
+                    ).tooltip("Load a previously saved sequence of poses") \
+                     .classes("bg-green-700 text-white px-4 py-2 rounded-lg")
 
-                    ui.button("Save Program", on_click=lambda: utils.save_program(planner)) \
-                        .tooltip("Save all recorded poses into a named program file") \
-                        .classes('bg-indigo-700 text-white px-4 py-2 rounded-lg')
+                    ui.button(
+                        "Save Program", on_click=lambda: utils.save_program(planner)
+                    ).tooltip("Save all recorded poses into a named program file") \
+                     .classes("bg-indigo-700 text-white px-4 py-2 rounded-lg")
 
-                    ui.button("Execute Program", on_click=lambda: utils.execute_path(planner, robot, Arctos, settings_manager)) \
-                        .tooltip("Run the full program on the robot in real-time") \
-                        .classes('bg-red-700 text-white px-4 py-2 rounded-lg')
+                    ui.button(
+                        "Execute Program",
+                        on_click=lambda: utils.execute_path(planner, robot, Arctos, settings_manager),
+                    ).tooltip("Run the full program on the robot in real-time") \
+                     .classes("bg-red-700 text-white px-4 py-2 rounded-lg")
 
 
             ui.button("🏠 Move to Home Pose", on_click=lambda: homing.move_to_zero_pose(Arctos)) \

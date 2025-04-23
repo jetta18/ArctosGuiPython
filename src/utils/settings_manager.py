@@ -17,16 +17,13 @@ CONFIG_PATH = os.path.join(BASE_DIR, 'config', 'user_config.yaml')
 # Default settings used when the config file does not exist or is corrupted
 DEFAULT_SETTINGS = {
     "theme": "Light",  # Default UI theme
-    "language": "English",  # Default language
-    "ui_color_theme": "Blue",  # Default color theme for UI elements
-    "max_fps": 30,  # Maximum frames per second
-    "auto_update_saved_poses": False,  # Whether to auto-update saved poses
     "joint_speeds": {i: 500 for i in range(6)},
     'joint_acceleration': {i: 150 for i in range(6)},
     "joint_directions": {i: 1 for i in range(6)},  # Default direction for each joint (1 or -1)
     "speed_scale": 1.0, 
     "enable_live_joint_updates": False,  # Enable live encoder updates in U
     "homing_offsets": {i: 0 for i in range(6)},  # Homing offset for each joint
+    "gear_ratios": [13.5, 150, 150, 48, 33.91, 33.91],
 }
 
 class SettingsManager:

@@ -76,18 +76,22 @@ class ArctosController:
         self.bitrate = bitrate
         self.encoder_resolution = encoder_resolution
         self.servos = []
-        self.gear_ratios = [13.5, 150, 150, 48, (67.82 / 2), (67.82 / 2)]  # Gear ratios for each joint
+        default_ratios = [13.5, 150, 150, 48, 33.91, 33.91]
 
-        # ✅ Apply direction inversion if settings_manager is provided
         if settings_manager:
-            directions = settings_manager.get("joint_directions") or {i: 1 for i in range(6)}
-            self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(self.gear_ratios)]
+            base_ratios = settings_manager.get("gear_ratios", default_ratios)
+            directions  = settings_manager.get("joint_directions", {i: 1 for i in range(6)})
+        else:
+            base_ratios = default_ratios
+            directions  = {i: 1 for i in range(6)}
 
+        # Vorzeichen für invertierte Achsen anwenden
+        self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(base_ratios)]
         # Initialize CAN Bus
-        #self.bus = self.initialize_can_bus()
+        self.bus = self.initialize_can_bus()
 
         # Initialize Servos
-        #self.servos = self.initialize_servos()
+        self.servos = self.initialize_servos()
 
     def angle_to_encoder(self, angle_rad: float, axis_index: int) -> int:  # Correct the return type here
         """
@@ -412,3 +416,12 @@ class ArctosController:
             return True
         else:
             return False
+        
+    def set_gear_ratios(self, ratios: list[float], directions: dict[int, int] | None = None) -> None:
+        """
+        Update gear ratios at runtime. Optionally apply direction signs again.
+        """
+        if directions is None:
+            directions = {i: 1 for i in range(6)}
+        self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(ratios)]
+        logger.info(f"Gear ratios updated: {self.gear_ratios}")

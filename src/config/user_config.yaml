@@ -1,7 +1,19 @@
 auto_update_saved_poses: false
 enable_live_joint_updates: false
+gear_ratios:
+- 13.5
+- 150
+- 150
+- 48
+- 33.0
+- 33.0
 joint_accelerations:
-  0: 185
+  0: 190
+  1: 190
+  2: 190
+  3: 190
+  4: 190
+  5: 190
 joint_directions:
   0: 1
   1: -1
@@ -9,6 +21,13 @@ joint_directions:
   3: 1
   4: -1
   5: 1
+joint_speeds:
+  0: 540
+  1: 500
+  2: 500
+  3: 500
+  4: 510
+  5: 500
 language: English
 max_fps: 30
 speed_scale: 1.0
