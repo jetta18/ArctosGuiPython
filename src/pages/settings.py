@@ -146,7 +146,11 @@ def create(settings_manager: SettingsManager, arctos: Any) -> None:
                              {i: 150 for i in range(6)}, "J{}", "Set acceleration (0-255).")
                         ]:
                             with ui.card().classes("p-4 grow md:max-w-[30%]"):
-                                ui.label(title).classes("text-xl font-semibold mb-2")
+                                # ── header row (title + info icon) ──
+                                with ui.row().classes("items-center gap-1 mb-2"):
+                                    ui.label(title).classes("text-xl font-semibold")
+                                    with ui.icon("info").classes("text-blue-500 cursor-pointer"):
+                                        ui.tooltip(tooltip)       # use the tooltip text that was already in the tuple
                                 vals: Dict[int, int] = settings.get(key, default)
                                 with ui.row().classes("flex-wrap gap-2"):
                                     for i in range(6):
@@ -168,8 +172,7 @@ def create(settings_manager: SettingsManager, arctos: Any) -> None:
                                             })
                                         widget(**params,
                                                on_change=make_handler(key, i, default, title))\
-                                            .classes("w-24 sm:w-28 md:w-32")\
-                                            .tooltip(tooltip)
+                                            .classes("w-24 sm:w-28 md:w-32")
 
                         # ───── Card 4: Gear Ratios ─────
                         with ui.card().classes("p-4 grow md:max-w-[30%]"):
@@ -228,7 +231,18 @@ def create(settings_manager: SettingsManager, arctos: Any) -> None:
 
                         # ---- Calibration Wizard ----
                         with ui.card().classes("p-4") as wizard_card:
-                            ui.label("Calibration Wizard").classes("text-xl font-semibold mb-2")
+                            with ui.row().classes("items-center mb-2 gap-1"):
+                                ui.label("Calibration Wizard").classes("text-xl font-semibold")
+                                with ui.icon("info").classes("text-blue-500 cursor-pointer"):
+                                    # multiline / rich tooltip
+                                    with ui.tooltip().classes("text-body2 text-left"):
+                                        ui.html(
+                                            """
+                                            1. 🏠 <strong>Home</strong> – drive the joint to its limit switch (encoder = 0)<br>
+                                            2. ◀ / ▶ – jog the joint by the selected <em>Step</em> until the zero-mark aligns<br>
+                                            3. 💾 <strong>Save</strong> – write the current encoder count as the homing offset
+                                            """
+                                        )
                             # First line: axis selection + buttons
                             with ui.row().classes("gap-2 flex-wrap mb-2"):
                                 axis_sel = ui.select([f"Axis {i}" for i in HOMING_SEQUENCE], label="Axis", value=f"Axis {HOMING_SEQUENCE[0]}").classes("w-32")
