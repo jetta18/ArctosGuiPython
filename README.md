@@ -28,7 +28,37 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 ## 🔧 Installation Options
 
-You can install the project in two ways, depending on your preferences and whether you want to use `conda` for environment management.
+You can install and run the project in several ways, including with Docker for a quick and reproducible setup.
+
+---
+
+### 🐳 Option 0: Run with Docker (Recommended for Quick Start)
+
+You can use Docker to run the GUI without installing Python or dependencies directly on your system.
+
+#### 1. Clone the repository
+```bash
+git clone https://github.com/jetta18/ArctosGuiPython.git
+cd ArctosGuiPython
+```
+
+#### 2. Build and run with Docker Compose
+
+From the project root, run:
+```bash
+# Build and start the GUI and visualization server
+# (make sure you have Docker and Docker Compose installed)
+docker compose -f docker/docker-compose.yml up
+```
+- This will build the Docker image and start the GUI on [http://localhost:8080](http://localhost:8080).
+- The MeshCat visualizer will be available on [http://localhost:7000/static/](http://localhost:7000/static/).
+
+#### 2. (Optional) Use a prebuilt Docker image (not available yet!!)
+If a prebuilt image is provided (e.g., on Docker Hub):
+```bash
+docker run --rm -p 8080:8080 -p 7000:7000 yourusername/arctos-gui:latest
+```
+Replace `yourusername/arctos-gui:latest` with the actual image name if available.
 
 ---
 

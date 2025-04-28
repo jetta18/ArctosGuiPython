@@ -1,0 +1,20 @@
+# Ignore Python cache, test outputs, and other unnecessary files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.egg-info/
+.env
+.venv
+venv/
+build/
+dist/
+.git
+.gitignore
+README.md
+scripts/
+tests/
+# assets/ was removed from ignore list to ensure it is included in the Docker image

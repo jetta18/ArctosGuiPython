@@ -1,12 +1,10 @@
 nicegui
-pinocchio
 numpy>=1.24.0
 python-can
-asyncio
 pillow
 meshcat
-serial
-pin
+pyserial
 pin-pink
 scipy>=1.8
 qpsolvers>=1.6
+robomeshcat

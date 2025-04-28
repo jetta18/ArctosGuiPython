@@ -1,0 +1,9 @@
+services:
+  arctos-gui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+      - "7000:7000"
+    container_name: arctos-gui-python
