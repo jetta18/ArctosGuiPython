@@ -75,7 +75,6 @@ class ArctosController:
         self.can_interface = can_interface
         self.bitrate = bitrate
         self.encoder_resolution = encoder_resolution
-        self.servos = []
         default_ratios = [13.5, 150, 150, 48, 33.91, 33.91]
 
         if settings_manager:
@@ -85,13 +84,25 @@ class ArctosController:
             base_ratios = default_ratios
             directions  = {i: 1 for i in range(6)}
 
-        # Vorzeichen für invertierte Achsen anwenden
+        # Apply sign for inverted axes
         self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(base_ratios)]
-        # Initialize CAN Bus
-        self.bus = self.initialize_can_bus()
 
-        # Initialize Servos
-        self.servos = self.initialize_servos()
+        # Robust CAN Bus initialization
+        try:
+            self.bus = self.initialize_can_bus()
+        except Exception as e:
+            logger.warning(f"CAN bus initialization failed: {e}")
+            self.bus = None
+
+        # Robust Servo initialization
+        if self.bus is not None:
+            try:
+                self.servos = self.initialize_servos()
+            except Exception as e:
+                logger.warning(f"Servo initialization failed: {e}")
+                self.servos = []
+        else:
+            self.servos = []
 
     def angle_to_encoder(self, angle_rad: float, axis_index: int) -> int:  # Correct the return type here
         """

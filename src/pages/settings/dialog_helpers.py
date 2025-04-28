@@ -5,7 +5,6 @@ Provides helpers for settings reset and gear-ratio wizard dialogs.
 """
 
 from nicegui import ui
-from typing import Any, Dict
 
 def create_gear_ratio_wizard(settings_manager, arctos, get_current_ratio):
     """Create the Gear-Ratio Wizard dialog and return its open function.
@@ -22,14 +21,29 @@ def create_gear_ratio_wizard(settings_manager, arctos, get_current_ratio):
         Exception: If dialog creation fails due to missing dependencies or UI errors.
     """
     with ui.dialog() as dlg_ratio, ui.card().classes("p-4 w-[26rem]"):
-        ui.label("Gear-Ratio Wizard").classes("text-xl font-semibold mb-1")
+        with ui.row().classes("items-center mb-2 gap-1"):
+            ui.label("Gear-Ratio Wizard").classes("text-xl font-semibold")
+            with ui.icon("info").classes("text-blue-500 cursor-pointer"):
+                with ui.tooltip().classes("text-body2 text-left"):
+                    ui.html(
+                        """
+                        <strong>How to use the Gear-Ratio Wizard:</strong><br>
+                        1. ⚙️ <strong>Select</strong> the joint axis you want to calibrate.<br>
+                        2. ⟳ <strong>Rotate</strong> – click 'Rotate' to move the joint by 90°.<br>
+                        3. 📏 <strong>Measure</strong> – use a protractor or angle tool to measure the actual angle moved.<br>
+                        4. 📝 <strong>Enter</strong> the measured angle in degrees.<br>
+                        5. 💾 <strong>Save</strong> – update the gear ratio for more accurate motion.<br><br>
+                        <em>This process helps calibrate your robot's joint ratios for precise movement.</em>
+                        """
+                    )
         ui.label("Rotate ~90 ° by current ratio → measure → save")
         axis_sel_wz = ui.select([f"Axis {i+1}" for i in range(6)], value="Axis 1", label="Axis").classes("w-full")
         with ui.row().classes("gap-3 mt-4"):
             btn_rotate = ui.button("Rotate 90 °").props("color=primary")
             angle_in   = ui.number(label="Measured °", min=0.1, step=0.1).classes("w-32")
             btn_save   = ui.button("Save").props("color=positive")
-        info_lbl = ui.label("").classes("mt-3 font-mono")
+        with ui.row():
+            info_lbl = ui.label("").classes("mt-3 font-mono")
         def _rotate():
             """Rotate the selected axis by approximately 90 degrees."""
             idx = int(axis_sel_wz.value.split()[-1]) - 1
