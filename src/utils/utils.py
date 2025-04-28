@@ -587,98 +587,137 @@ def reset_to_zero_position(robot):
 
 
 # ----------------------------------
-# KEYBOARD CONTROL FUNCTIONS - START
+# ENHANCED KEYBOARD CONTROL CLASS - START
 # ----------------------------------
+import threading
+import time
 
-keyboard_control_active = False
-key_states = {}
-step_size_input = None
-
-
-def toggle_keyboard_control():
-    """Toggle keyboard control.
-
-    Toggles keyboard control on/off and updates the UI to reflect the current state.
+class KeyboardRobotController:
     """
-    global keyboard_control_active 
-    keyboard_control_active = not keyboard_control_active  
-
-    if keyboard_control_active:
-        ui.notify("🎮 Keyboard control activated!", color="green")
-    else:
-        key_states.clear()
-        ui.notify("🛑 Keyboard control deactivated!", color="red")
-
-def adjust_position(robot, Arctos):
-    """Adjust robot position.
-
-    This function incrementally adjusts the robot's end-effector position
-    based on the currently pressed keys, providing a fine-grained control
-    mechanism.
-
-    Args:
-        robot: The robot instance to move.
-        Arctos: The robot controller interface.
+    Enhanced, thread-safe, extensible keyboard control for robot with velocity-based movement and background IK.
     """
-    if not keyboard_control_active:
-        return
+    def __init__(self, robot, Arctos, step_size_input=None, notify_fn=None):
+        self.robot = robot
+        self.Arctos = Arctos
+        self.step_size_input = step_size_input
+        self.active = False
+        self.key_states = set()  # pressed keys
+        self._lock = threading.Lock()
+        self._thread = None
+        self._stop_event = threading.Event()
+        self._notify = notify_fn if notify_fn else lambda msg, color=None: ui.notify(msg, color=color)
+        self._last_ik_success = True
+        # Key mapping: key -> (axis, sign)
+        self.key_map = {
+            'a': ('x', -1), 'd': ('x', 1),
+            'w': ('y', -1), 's': ('y', 1),
+            'q': ('z', 1),  'e': ('z', -1),
+            # For future orientation: e.g., 'j': ('roll', -1), ...
+        }
+        # For velocity control
+        self.update_period = 0.05  # seconds
+        self.velocity_mode = True  # smooth repeat while key held
 
-    current_position = robot.get_end_effector_position()
-    current_orientation = robot.get_end_effector_orientation()
+    def start(self):
+        if self.active:
+            return
+        self.active = True
+        self._stop_event.clear()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+        self._notify("🎮 Keyboard control activated!", color="green")
 
-    step = step_size_input.value if step_size_input and step_size_input.value else 0.002
+    def stop(self):
+        if not self.active:
+            return
+        self.active = False
+        self._stop_event.set()
+        with self._lock:
+            self.key_states.clear()
+        self._notify("🛑 Keyboard control deactivated!", color="red")
 
-    if 'a' in key_states:
-        current_position[0] -= step
-    if 'd' in key_states:
-        current_position[0] += step
-    if 'q' in key_states:
-        current_position[2] += step
-    if 'e' in key_states:
-        current_position[2] -= step
-    if 'w' in key_states:
-        current_position[1] -= step
-    if 's' in key_states:
-        current_position[1] += step
+    def toggle(self):
+        if self.active:
+            self.stop()
+        else:
+            self.start()
 
-    try:
-        q_solution = robot.inverse_kinematics_pink(current_position, current_orientation)
-        robot.instant_display_state(q_solution)
-    except ValueError as e:
-        logger.warning(f"⚠️ IK Fehler bei Tastatureingabe: {e}")
-    except Exception as e:
-        logger.error(f"❌ Unerwarteter Fehler bei adjust_position: {e}")
+    def on_key_event(self, event):
+        key = event.key.name
+        with self._lock:
+            if event.action.keydown:
+                self.key_states.add(key)
+            elif event.action.keyup:
+                self.key_states.discard(key)
 
+    def _run(self):
+        while not self._stop_event.is_set():
+            moved = self._process_keys()
+            time.sleep(self.update_period)
+
+    def _process_keys(self):
+        with self._lock:
+            keys = list(self.key_states)
+        if not keys:
+            return False
+        # Get current pose
+        current_pos = self.robot.get_end_effector_position()
+        current_rpy = self.robot.get_end_effector_orientation()
+        step = self.step_size_input.value if self.step_size_input and self.step_size_input.value else 0.002
+        delta = {'x': 0, 'y': 0, 'z': 0}
+        # For future: delta_rpy = {'roll':0, ...}
+        for key in keys:
+            if key in self.key_map:
+                axis, sign = self.key_map[key]
+                delta[axis] += sign * step
+        # Apply deltas
+        target_pos = current_pos.copy()
+        target_pos[0] += delta['x']
+        target_pos[1] += delta['y']
+        target_pos[2] += delta['z']
+        # For future: target_rpy = ...
+        # Run IK in try/except, in background thread
+        try:
+            q_solution = self.robot.inverse_kinematics_pink(target_pos, current_rpy)
+            self.robot.instant_display_state(q_solution)
+            if not self._last_ik_success:
+                self._notify("✅ IK solution found.", color="green")
+            self._last_ik_success = True
+        except ValueError as e:
+            if self._last_ik_success:
+                self._notify(f"❌ IK error: {e}", color="red")
+            self._last_ik_success = False
+        except Exception as e:
+            if self._last_ik_success:
+                self._notify(f"❌ Unexpected error: {e}", color="red")
+            self._last_ik_success = False
+        return True
+
+# Singleton for UI integration
+keyboard_controller_instance = None
+
+def setup_keyboard_controller(robot, Arctos, step_size_input=None, notify_fn=None):
+    global keyboard_controller_instance
+    if keyboard_controller_instance is None:
+        keyboard_controller_instance = KeyboardRobotController(robot, Arctos, step_size_input, notify_fn)
+    return keyboard_controller_instance
+
+# NiceGUI event handler
 
 def on_key(event, robot, Arctos):
-    """Handles keyboard events using NiceGUI."""
-    global key_states
+    ctrl = keyboard_controller_instance
+    if ctrl and ctrl.active:
+        ctrl.on_key_event(event)
 
-    if not keyboard_control_active:
-        return
+# For UI switch
 
-    if event.action.keydown:
-        key_states[event.key.name] = True
-    elif event.action.keyup:
-        key_states.pop(event.key.name, None)
-
-    adjust_position(robot, Arctos)
-
-def initialize_keyboard_listeners(robot, Arctos):
-    """Initialize keyboard listeners.
-
-    Initializes the keyboard listeners within the NiceGUI framework to capture
-    keyboard events for robot control.
-
-    Args:
-        robot: The robot instance to be controlled.
-        Arctos: The robot controller interface.
-    """
-    ui.keyboard(lambda event: on_key(event, robot, Arctos), ignore=[])
-    logger.info("🎮 Keyboard control initialized via `ui.keyboard()`")
+def toggle_keyboard_control():
+    ctrl = keyboard_controller_instance
+    if ctrl:
+        ctrl.toggle()
 
 # ----------------------------------
-# KEYBOARD CONTROL FUNCTIONS - END
+# ENHANCED KEYBOARD CONTROL CLASS - END
 # ----------------------------------
 
 def initialize_current_joint_states(robot, Arctos):

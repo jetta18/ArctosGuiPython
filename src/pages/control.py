@@ -83,7 +83,16 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                     for i in range(6)
                 ]
 
-    # Add keyboard listener directly in `create()`
+    # --- ENHANCED KEYBOARD CONTROL INTEGRATION ---
+    # Setup the enhanced keyboard controller (singleton)
+    # Provide a notify_fn for UI notifications
+    def notify_fn(msg, color=None):
+        ui.notify(msg, color=color)
+    # Step size slider will be created below and attached
+    step_size_slider = None  # placeholder
+    # Setup controller instance (step_size_slider will be set after creation)
+    keyboard_ctrl = utils.setup_keyboard_controller(robot, Arctos, None, notify_fn)
+    # Attach NiceGUI keyboard event
     ui.keyboard(lambda event: utils.on_key(event, robot, Arctos))
     # Layout with two columns: Control on the left | Visualization & Console on the right
     with ui.row().classes('w-full gap-4'):
@@ -249,9 +258,40 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                     # Keyboard Control Switch
                     with ui.column().classes("items-center"):
 
-                        ui.label("🎮 Keyboard Control").classes("text-sm font-medium text-gray-700 mb-1")
-                        keyboard_control_switch = ui.switch("Keyboard Control", value=utils.keyboard_control_active)
-                        keyboard_control_switch.on('update:model-value', lambda: utils.toggle_keyboard_control())
+                        # Visual indicator for keyboard control
+                        keyboard_status_label = ui.label("").classes("text-xs font-semibold mb-1")
+                        def update_status_label():
+                            if keyboard_ctrl.active:
+                                keyboard_status_label.set_text("[ACTIVE]")
+                                keyboard_status_label.classes("text-green-600 font-bold")
+                            else:
+                                keyboard_status_label.set_text("[INACTIVE]")
+                                keyboard_status_label.classes("text-gray-400 font-bold")
+                        update_status_label()
+                        with ui.row().classes('items-center gap-1'):
+                            ui.label("🎮 Keyboard Control").classes("text-sm font-medium text-gray-700 mb-1")
+                            with ui.icon("info").classes("text-blue-500 cursor-pointer"):
+                                with ui.tooltip().classes("text-body2 text-left"):
+                                    ui.html(
+                                        """
+                                        <strong>Keyboard Control:</strong><br>
+                                        Enable or disable keyboard-based robot movement.<br><br>
+                                        <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                                            <li><b>W/S</b>: Move along Y-axis</li>
+                                            <li><b>A/D</b>: Move along X-axis</li>
+                                            <li><b>Q/E</b>: Move along Z-axis</li>
+                                        </ul>
+                                        Movement is velocity-based while keys are held.<br>
+                                        Use the <b>step size</b> slider to adjust increments.<br>
+                                        """
+                                    )
+                        keyboard_control_switch = ui.switch("Keyboard Control", value=keyboard_ctrl.active)
+                        def on_switch(val):
+                            # Use the controller's toggle logic
+                            if val != keyboard_ctrl.active:
+                                keyboard_ctrl.toggle()
+                            update_status_label()
+                        keyboard_control_switch.on('update:model-value', on_switch)
 
                     # 🪜 Step Size Slider with Label + Tooltip
                     with ui.column().classes("items-center"):
@@ -259,12 +299,14 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                             ui.label("Step Size (m)").classes("text-sm font-medium text-gray-700")
                             ui.icon("info").tooltip("Determines how far the robot moves per key press (W/A/S/D/Q/E).")
 
-                        utils.step_size_input = ui.slider(
+                        step_size_slider = ui.slider(
                             min=0.0005,
                             max=0.02,
                             value=0.002,
                             step=0.0005
                         ).props('label-always').classes('w-64')
+                        # Attach slider to controller
+                        keyboard_ctrl.step_size_input = step_size_slider
 
 
     # UI timers
