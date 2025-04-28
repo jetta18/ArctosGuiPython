@@ -1,7 +1,7 @@
 """
-This module provides a collection of utility functions that are used throughout the Arctos Robot GUI application.
+This module provides a collection of utility functions used throughout the Arctos Robot GUI application.
 These functions handle tasks such as saving, loading, and executing robot poses and programs, 
-controlling the robot's gripper, and updating the UI elements.
+controlling the robot's gripper, and updating UI elements.
 """
 import time
 import numpy as np
@@ -18,17 +18,14 @@ logger.setLevel(logging.INFO)
 
 
 def save_pose(planner, robot) -> None:
-    """Saves the current robot pose.
+    """
+    Save the current robot pose.
 
-    This function saves the current pose of the robot by capturing its current
-    joint states and Cartesian coordinates. The pose is then stored using the
-    provided planner instance.
+    Captures the robot's current joint states and Cartesian coordinates, then stores the pose using the provided planner instance.
 
     Args:
-        planner: The path planner instance responsible for managing and storing
-                 robot poses.
-        robot: The robot instance, which provides methods to retrieve current
-               joint states and Cartesian coordinates.
+        planner: The path planner instance responsible for managing and storing robot poses.
+        robot: The robot instance, which provides methods to retrieve current joint states and Cartesian coordinates.
 
     Returns:
         None
@@ -39,17 +36,13 @@ def save_pose(planner, robot) -> None:
 
 def save_program(planner, program_name=None) -> None:
     """
-    Saves the entire sequence of poses stored in the planner with an optional name.
-    
-    This function allows for saving the sequence of robot poses that have been
-    stored in the planner. If a program name is not provided, a dialog is
-    displayed to prompt the user to input a name. The program is then saved
-    with the given name.
+    Save the entire sequence of poses stored in the planner with an optional name.
+
+    If a program name is not provided, prompts the user to input a name via a dialog. The program is then saved with the given name.
 
     Args:
         planner: The path planner instance containing the sequence of stored poses.
-        program_name (str, optional): An optional name for the program file.
-            If not provided, a dialog will be displayed to request the name. Defaults to None.
+        program_name (str, optional): Optional name for the program file. If not provided, a dialog will prompt the user. Defaults to None.
 
     Returns:
         None
@@ -79,19 +72,15 @@ def save_program(planner, program_name=None) -> None:
 
 
 def load_program(planner, pose_container=None, robot=None) -> None:
-    """Load a saved program of robot poses.
+    """
+    Load a saved program of robot poses.
 
-    This function presents a dialog to the user, allowing them to select and
-    load a previously saved program of robot poses. Upon successful loading,
-    an optional UI container can be updated to display the newly loaded poses,
-    and the robot's pose visualization can be updated as well.
+    Presents a dialog to the user to select and load a previously saved program of robot poses. Upon successful loading, optionally updates the UI container and robot visualization.
 
     Args:
         planner: The path planner instance managing the pose sequence and loading.
-        pose_container (ui.element, optional): An optional UI container that
-            can be updated to display the loaded poses. Defaults to None.
-        robot: An optional robot instance used for updating the robot's pose
-            visualization. Defaults to None.
+        pose_container (ui.element, optional): UI container to update with loaded poses. Defaults to None.
+        robot: Optional robot instance for updating the robot's pose visualization. Defaults to None.
 
     Returns:
         None
@@ -127,32 +116,54 @@ def load_program(planner, pose_container=None, robot=None) -> None:
                 if success and pose_container is not None and robot is not None:
                     update_pose_table(planner, robot, pose_container)
             else:
-                ui.notify("⚠️ Please select a program", color='orange')
+                ui.notify("Please select a program", color='orange')
                 
             dialog.close()
 
     dialog.open()
 
+
 def execute_path(planner, robot, arctos, settings_manager) -> None:
+    """
+    Execute a stored path (program) on the robot.
+
+    Iterates through the stored poses in the planner and commands the robot to execute them in sequence.
+    Handles speed scaling and other settings as configured.
+
+    Args:
+        planner: The path planner instance containing the sequence of poses.
+        robot: The robot instance to be controlled.
+        arctos: The robot controller interface.
+        settings_manager: The settings manager instance for runtime settings.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: For any errors during path execution or robot communication.
+    """
     speed_cfg = settings_manager.get("joint_speeds", {i: 500 for i in range(6)})
     speeds = [speed_cfg.get(i, 500) for i in range(6)]
 
     Thread(target=lambda: planner.execute_path(robot, arctos, speeds=speeds), daemon=True).start()
-    ui.notify("🚀 Path executing …")
+    ui.notify("Path executing …")
 
 
 def update_pose_table(planner, robot, pose_container) -> None:
     """
-    Updates the UI table to display stored poses, including joint angles and Cartesian coordinates.
+    Update the UI table to display stored poses, including joint angles and Cartesian coordinates.
 
-    :param planner: The path planner instance managing stored poses.
-    :type planner: PathPlanner
-    :param robot: The robot instance required for pose deletion.
-    :type robot: Robot
-    :param pose_container: The UI container where the pose table will be rendered.
-    :type pose_container: ui.element
+    Args:
+        planner: The path planner instance managing stored poses.
+        robot: The robot instance required for pose deletion.
+        pose_container: The UI container where the pose table will be rendered.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: For any errors during table updates or pose rendering.
     """
-    
     # Clear the container
 
     pose_container.clear()
@@ -161,7 +172,7 @@ def update_pose_table(planner, robot, pose_container) -> None:
         ui.label("Stored Poses").classes('text-xl font-bold mb-2')
 
         if not planner.poses:
-            ui.label("⚠️ No stored poses!").classes('text-red-500')
+            ui.label("No stored poses!").classes('text-red-500')
             return
 
         # Create a table for stored poses (excluding buttons)
@@ -195,21 +206,27 @@ def update_pose_table(planner, robot, pose_container) -> None:
                 pose_table.rows.append(row)
 
                 with button_container:
-                    ui.button(f"🗑️ Delete Pose {idx + 1}", on_click=lambda i=idx: delete_pose(planner, i, robot, pose_container)).classes('bg-red-500 text-white px-3 py-1 rounded-lg mt-1')
+                    ui.button(f"Delete Pose {idx + 1}", on_click=lambda i=idx: delete_pose(planner, i, robot, pose_container)).classes('bg-red-500 text-white px-3 py-1 rounded-lg mt-1')
 
             except Exception as e:
-                print(f"⚠️ Error displaying pose {idx}: {e}")
+                print(f"Error displaying pose {idx}: {e}")
+
 
 def delete_pose(planner, index, robot, pose_container) -> None:
     """
-    Deletes a stored pose, updates the UI table, and removes the corresponding MeshCat visualization.
+    Delete a stored pose, update the UI table, and remove the corresponding MeshCat visualization.
 
-    :param planner: The path planner instance managing stored poses.
-    :type planner: PathPlanner
-    :param index: The index of the pose to be deleted.
-    :type index: int
-    :param robot: The robot instance required to remove the visualization from MeshCat.
-    :type robot: Robot
+    Args:
+        planner: The path planner instance managing stored poses.
+        index (int): The index of the pose to delete.
+        robot: The robot instance required to remove the visualization from MeshCat.
+        pose_container: The UI container for updating the pose table.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: For any errors during pose deletion or UI updates.
     """
     planner.delete_pose(index, robot)  # Call delete function in PathPlanner
     update_pose_table(planner, robot, pose_container)
@@ -227,16 +244,28 @@ def delete_pose(planner, index, robot, pose_container) -> None:
 
 def run_move_can(robot, arctos, settings_manager) -> None:
     """
-    Move the physical robot to *robot.q* using the per‑joint speeds
-    defined in settings ('joint_speeds').  Defaults to 500 RPM.
+    Move the physical robot to the current joint positions using per-joint speeds.
+
+    Uses the speeds defined in settings ('joint_speeds'). Defaults to 500 RPM if not specified.
+
+    Args:
+        robot: The robot instance to move.
+        arctos: The robot controller interface.
+        settings_manager: The settings manager instance providing speed settings.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: For any errors during robot movement or communication.
     """
     def task():
         q_rad = robot.get_current_joint_angles()
         if q_rad is None:
-            ui.notify("❌ No valid joint positions!", color="red")
+            ui.notify("No valid joint positions!", color="red")
             return
 
-        # Build the 6‑element speed list, clamped to 0‑3000
+        # Build the 6-element speed list, clamped to 0-3000
         raw = settings_manager.get("joint_speeds", {})
         speeds = [max(0, min(raw.get(i, 500)* speed_scale, 3000)) for i in range(6)]
         
@@ -249,14 +278,14 @@ def run_move_can(robot, arctos, settings_manager) -> None:
         arctos.wait_for_motors_to_stop()
 
     Thread(target=task, daemon=True).start()
-    ui.notify("✅ Robot moving...", color="green")
+    ui.notify("Robot moving...", color="green")
 
 
 def set_zero_position(robot) -> None:
-    """Move the robot to its zero position.
+    """
+    Move the robot to its zero position.
 
-    This function moves the robot to a predefined zero position, where all
-    joint angles are set to 0 radians.
+    Moves the robot to a predefined zero position, where all joint angles are set to 0 radians.
 
     Args:
         robot: The robot instance to move.
@@ -274,20 +303,32 @@ def set_zero_position(robot) -> None:
 
 def open_gripper(Arctos) -> None:
     """
-    Sends a command to open the gripper.
-    Args:
-        Arctos: The robot controller interface.
+    Sends a command to open the robot's gripper.
 
+    Args:
+        Arctos: The robot controller interface that manages hardware commands.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: If the gripper command fails, an exception may be raised by the controller.
     """
     Arctos.open_gripper()
     ui.notify("✅ Gripper opened.")
 
 def close_gripper(Arctos) -> None:
     """
-    Sends a command to close the gripper.
-    Args:
-        Arctos: The robot controller interface.
+    Sends a command to close the robot's gripper.
 
+    Args:
+        Arctos: The robot controller interface that manages hardware commands.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: If the gripper command fails, an exception may be raised by the controller.
     """
     Arctos.close_gripper()
     ui.notify("✅ Gripper closed.")
@@ -301,24 +342,78 @@ def close_gripper(Arctos) -> None:
 # Functions to update joint states
 
 def update_joint_states(robot, joint_positions):
+    """
+    Updates the UI labels with the robot's current joint positions (in degrees).
+
+    Args:
+        robot: The robot instance containing the current joint state (robot.q).
+        joint_positions (list): List of UI label elements to update with joint values.
+
+    Returns:
+        None
+
+    Raises:
+        AttributeError: If robot.q is not available or not iterable.
+        Exception: For any unexpected UI or robot errors.
+    """
     if robot:  # Stelle sicher, dass `robot` initialisiert ist
         for i in range(6):
             joint_positions[i].set_text(f"Joint {i+1}: {np.degrees(robot.q[i]):.2f}°")  # Umrechnung in Grad
 
 def update_joint_states_encoder(robot, joint_positions_encoder):
+    """
+    Updates the UI labels with the robot's encoder joint positions (in degrees).
+
+    Args:
+        robot: The robot instance containing the encoder joint state (robot.q_encoder).
+        joint_positions_encoder (list): List of UI label elements to update with encoder joint values.
+
+    Returns:
+        None
+
+    Raises:
+        AttributeError: If robot.q_encoder is not available or not iterable.
+        Exception: For any unexpected UI or robot errors.
+    """
     if robot:  # Stelle sicher, dass `robot` initialisiert ist
         for i in range(6):
             joint_positions_encoder[i].set_text(f"Joint {i+1}: {np.degrees(robot.q_encoder[i]):.2f}°")  # Umrechnung in Grad
 
 def live_update_ee_postion(robot, ee_position_labels):
-    """Liest die aktuelle Endeffektor-Position aus `robot` und aktualisiert die UI in Echtzeit."""
+    """
+    Reads the current end-effector position from the robot and updates the UI labels in real time.
+
+    Args:
+        robot: The robot instance providing the end-effector position (robot.get_end_effector_position()).
+        ee_position_labels (dict): Dictionary of UI label elements keyed by axis ("X", "Y", "Z").
+
+    Returns:
+        None
+
+    Raises:
+        AttributeError: If the robot does not provide position data or UI labels are missing.
+        Exception: For any unexpected UI or robot errors.
+    """
     if robot:  # Sicherstellen, dass `robot` initialisiert ist
         ee_pos = robot.get_end_effector_position()  # Holt die Position als np.array [x, y, z]
         for i, axis in enumerate(["X", "Y", "Z"]):
             ee_position_labels[axis].set_text(f"{axis}: {ee_pos[i]:.2f} m")  # Setzt die UI-Werte
 
 def live_update_ee_orientation(robot, ee_orientation_labels):
-    """Liest die aktuelle Endeffektor-Orientierung aus `robot` und aktualisiert die UI in Echtzeit."""
+    """
+    Reads the current end-effector orientation from the robot and updates the UI labels in real time.
+
+    Args:
+        robot: The robot instance providing the end-effector orientation (robot.get_end_effector_orientation()).
+        ee_orientation_labels (dict): Dictionary of UI label elements keyed by axis ("Roll", "Pitch", "Yaw").
+
+    Returns:
+        None
+
+    Raises:
+        AttributeError: If the robot does not provide orientation data or UI labels are missing.
+        Exception: For any unexpected UI or robot errors.
+    """
     if robot:  # Sicherstellen, dass `robot` existiert
         ee_orient = np.degrees(robot.get_end_effector_orientation())  # In Grad umwandeln
 
@@ -326,7 +421,20 @@ def live_update_ee_orientation(robot, ee_orientation_labels):
             ee_orientation_labels[axis].set_text(f"{axis}: {ee_orient[i]:.2f}°")  # UI aktualisieren
 
 def set_ee_position_from_input(robot, ee_position_inputs):
-    """Reads the XYZ inputs from the UI and moves the robot to the new position using inverse kinematics."""
+    """
+    Reads the XYZ position inputs from the UI and moves the robot to the new position using inverse kinematics.
+
+    Args:
+        robot: The robot instance to be moved.
+        ee_position_inputs (dict): Dictionary of UI input elements for "X", "Y", and "Z" axes.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If inverse kinematics fails to find a solution for the target position.
+        Exception: For any unexpected UI or robot errors.
+    """
     try:
         x = ee_position_inputs["X"].value
         y = ee_position_inputs["Y"].value
@@ -351,6 +459,20 @@ def set_ee_position_from_input(robot, ee_position_inputs):
 
 
 def set_ee_orientation_from_input(robot, ee_orientation_inputs):
+    """
+    Reads the RPY (Roll, Pitch, Yaw) orientation inputs from the UI and moves the robot to the new orientation using inverse kinematics.
+
+    Args:
+        robot: The robot instance to be moved.
+        ee_orientation_inputs (dict): Dictionary of UI input elements for "Roll", "Pitch", and "Yaw" axes.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If inverse kinematics fails to find a solution for the target orientation.
+        Exception: For any unexpected UI or robot errors.
+    """
     """Reads the RPY inputs from the UI and moves the robot to the new orientation using inverse kinematics."""
     try:
         # Eingaben aus der UI auslesen und von Grad in Radians umwandeln
@@ -433,15 +555,17 @@ def set_ee_pose_from_input(robot, ee_position_inputs, ee_orientation_inputs, use
 
 
 def set_joint_angles_from_gui(robot, new_joint_inputs):
-    """Set the robot's joint angles based on input from the GUI.
+    """
+    Set the robot's joint angles based on input from the GUI.
 
-    This function updates the robot's joint angles to the values specified in
-    the GUI input fields. It reads the input values for the first six joints
-    and updates the robot's configuration accordingly, followed by an animated movement.
+    Reads input values for the first six joints from the GUI and updates the robot's configuration. Executes an animated movement to the new joint angles.
 
     Args:
         robot: The robot instance to update.
-        new_joint_inputs: A list of UI input elements representing the new joint values.
+        new_joint_inputs (list): List of UI input elements representing the new joint values.
+
+    Returns:
+        None
     """
     if robot:
         q_target = robot.q.copy()
@@ -582,24 +706,41 @@ def threaded_initialize_current_joint_states(robot, Arctos):
     """
     Update the robot's joint states in a separate thread.
 
-    This function starts a separate thread to update the robot's joint states,
-    preventing the UI from freezing during this potentially time-consuming operation.
+    Starts a daemon thread to update the robot's joint states using the provided
+    robot and controller interface. This prevents the UI from freezing during
+    potentially time-consuming operations.
 
     Args:
-        robot: The robot instance to be controlled.
+        robot: The robot instance to be updated.
         Arctos: The robot controller interface.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: If updating the joint states fails, prints the error message.
     """
     def task():
         try:
             initialize_current_joint_states(robot, Arctos)
         except Exception as e:
-            print(f"❌ Error updating joint states: {e}")
+            print(f"Error updating joint states: {e}")
     Thread(target=task, daemon=True).start()
 
-# Globale Skalierungs­variable
+# Global scaling variable for speed
 speed_scale = 1.0
 
 def set_speed_scale(val: float) -> None:
-    """Update global speed scale (0.1 … 2.0)."""
+    """
+    Update the global speed scaling factor.
+
+    Sets the global speed_scale variable to the provided value, which should be in the range 0.1 to 2.0. This scaling factor is used to adjust robot movement speeds globally.
+
+    Args:
+        val (float): The new speed scaling factor (recommended range: 0.1 to 2.0).
+
+    Returns:
+        None
+    """
     global speed_scale
     speed_scale = val

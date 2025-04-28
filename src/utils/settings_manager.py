@@ -1,10 +1,8 @@
 """
 File: utils/settings_manager.py
 
-This module provides a SettingsManager class that handles the loading, accessing, and
-saving of application settings. Settings are stored in a YAML file, which persists across
-different application sessions. The module also includes default settings that are used if
-the configuration file is not found.
+This module provides the SettingsManager class for managing application settings in the Arctos GUI application.
+Settings are persisted in a YAML file and loaded automatically on startup. Default settings are used if the configuration file is missing or corrupted.
 """
 
 import os
@@ -16,6 +14,9 @@ CONFIG_PATH = os.path.join(BASE_DIR, 'config', 'user_config.yaml')
 
 # Default settings used when the config file does not exist or is corrupted
 DEFAULT_SETTINGS = {
+    # The default application settings used if the configuration file is missing or corrupted.
+    # Keys and values define UI theme, joint speeds, acceleration, directions, speed scaling,
+    # live updates, homing offsets, and gear ratios.
     "theme": "Light",  # Default UI theme
     "joint_speeds": {i: 500 for i in range(6)},
     'joint_acceleration': {i: 150 for i in range(6)},
@@ -28,14 +29,23 @@ DEFAULT_SETTINGS = {
 
 class SettingsManager:
     """
-    The SettingsManager class provides centralized loading, accessing, and updating
-    of application-wide settings. All settings are stored in a YAML file and
-    persist across different application sessions.
+    Provides centralized loading, accessing, updating, and saving of application settings.
+    Settings are stored in a YAML file and persist across different application sessions.
+    If the configuration file is missing or corrupted, default settings are used.
+
+    Attributes:
+        settings (dict): The current application settings.
     """
+
     def __init__(self):
         """
-        Initializes the SettingsManager by loading settings from the YAML file,
-        or creating the file with default settings if it doesn't exist.
+        Initialize the SettingsManager instance.
+
+        Loads settings from the YAML configuration file. If the configuration file does not exist,
+        default settings are used and saved to a new file.
+
+        Raises:
+            Exception: If the configuration file exists but cannot be loaded due to corruption or permission errors.
         """
         if not os.path.exists(CONFIG_PATH):
             # If the config file doesn't exist, use default settings and save them
@@ -50,27 +60,27 @@ class SettingsManager:
 
     def save(self):
         """
-        Saves the current settings to the YAML configuration file.
+        Save the current settings to the YAML configuration file.
+
+        Raises:
+            Exception: If writing to the configuration file fails due to I/O or permission errors.
         """
         with open(CONFIG_PATH, 'w') as f:
             yaml.dump(self.settings, f)
 
     def get(self, key, default=None):
         """
-        Retrieves a setting value by its key. If the key is not found in the
-        current settings, it returns a provided default value or a value from
-        the default settings.
+        Retrieve a setting value by key.
+
+        If the key is not found in the current settings, returns the provided default value,
+        or the value from DEFAULT_SETTINGS if the default is not specified.
 
         Args:
             key (str): The key of the setting to retrieve.
-            default (any, optional): An optional default value to return if the
-                                     key is not found in the current settings and
-                                     not present in the default settings.
-                                     Defaults to None.
+            default (Any, optional): The value to return if the key is not found. Defaults to None.
 
         Returns:
-            any: The value of the setting, or the provided default value, or
-                 the value from default settings if the key is not found.
+            Any: The value of the setting, or the provided default, or the value from DEFAULT_SETTINGS.
 
         Example:
             >>> settings = SettingsManager()
@@ -78,8 +88,6 @@ class SettingsManager:
             'Light'
             >>> settings.get("non_existent_key", "Fallback Value")
             'Fallback Value'
-            >>> settings.get("max_fps")
-            30
         """
         return self.settings.get(
             key,
@@ -90,15 +98,20 @@ class SettingsManager:
         """
         Update a setting value and save it.
 
-        :param key: The setting key to update
-        :param value: The new value to store
+        Args:
+            key (str): The setting key to update.
+            value (Any): The new value to store.
+
+        Returns:
+            None
         """
         self.settings[key] = value  # Update the setting in the current settings
         self.save()
 
     def all(self):
         """
-        Returns all current settings as a dictionary.
+        Return all current settings as a dictionary.
+
         This allows accessing all settings at once, which is useful for saving
         or displaying a complete configuration view.
 
@@ -109,11 +122,6 @@ class SettingsManager:
             >>> settings = SettingsManager()
             >>> all_settings = settings.all()
             >>> print(all_settings)
-            {
-                'theme': 'Light', 'language': 'English', 'ui_color_theme': 'Blue',
-                'max_fps': 30, 'auto_update_saved_poses': False, 'joint_directions': {0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1}
-            }
-
-        :return: dict of current settings
+            {'theme': 'Light', 'joint_speeds': {0: 500, ...}, ...}
         """
         return self.settings
