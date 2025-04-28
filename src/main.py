@@ -8,7 +8,8 @@ robot control, path planning, settings management, and web UI components.
 """
 
 from nicegui import ui
-from pages import home, control, settings, mks_config
+from pages import home, control, mks_config
+from pages.settings import set_page
 from components.menu import create_menu
 from core.ArctosController import ArctosController
 from core.PathPlanner import PathPlanner
@@ -61,7 +62,7 @@ def control_page():
 @ui.page('/settings')
 def settings_page():
     create_menu()
-    settings.create(settings_manager, arctos=Arctos)  # ✅ Pass settings
+    set_page.create(settings_manager, arctos=Arctos)
 
 @ui.page('/mks')
 def mks_page():
