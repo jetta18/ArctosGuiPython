@@ -38,12 +38,17 @@ def create(Arctos, robot, planner, settings_manager) -> None:
         ui.dark_mode().disable()
 
     # page header
-    ui.label("Control Page").classes('text-3xl font-bold text-center mb-4')
+    ui.label("Control Page").classes('text-3xl font-bold text-left mt-2 mb-2 px-2')
 
 
 
-    def apply_speed(val: float | None):
-        if val is None or not (0.1 <= val <= 2.0):
+    def apply_speed(val):
+        try:
+            val = float(val)
+        except (TypeError, ValueError):
+            ui.notify('Please enter a valid number for speed scale', color='negative')
+            return
+        if not (0.1 <= val <= 2.0):
             ui.notify('Please enter a value between 0.1 and 2.0', color='negative')
             return
         utils.set_speed_scale(val)
@@ -57,7 +62,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
     # Check if the user enabled live joint updates
     if settings_manager.get("enable_live_joint_updates", True):
         # --- Modern Joint Control Card: Live Joint-States ---
-        with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-blue-50 to-cyan-100 border border-blue-300 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
+        with ui.expansion('Joint Control', icon='tune', value=False).classes('w-[600px] max-w-full bg-gradient-to-br from-blue-50 to-cyan-100 border border-blue-300 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300 mb-3').props('expand-icon="expand_more"'):
             with ui.row().classes('items-center mb-2'):
                 ui.icon('sensors').classes('text-2xl text-blue-700 mr-2')
                 ui.label("Live Joint-States").classes('text-2xl font-bold text-blue-900 tracking-wide')
@@ -84,13 +89,14 @@ def create(Arctos, robot, planner, settings_manager) -> None:
     # Attach NiceGUI keyboard event
     ui.keyboard(lambda event: utils.on_key(event, robot, Arctos))
     # Layout with two columns: Control on the left | Visualization & Console on the right
-    with ui.row().classes('w-full gap-4'):
+    with ui.row().classes('w-full h-[calc(100vh-60px)] gap-2 items-stretch'):
 
         # --- LEFT SECTION: Control ---
-        with ui.column().classes('flex-[1]'):
-            # --- Modern Speed Scale Section ---
-            with ui.card().classes('w-full max-w-md bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-2xl shadow-lg p-4 mb-7 mx-auto'):
-                with ui.row().classes('items-center gap-3 mb-2'):
+        with ui.column().classes('flex-2 min-w-0 gap-2 items-stretch'):
+            expansion_common = 'w-[600px] max-w-full bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300'
+            # --- Modern Speed Scale Section (Styled Expansion) ---
+            with ui.expansion('Speed Scale', icon='speed', value=False).classes(expansion_common).props('expand-icon="expand_more" id=speed-scale-section'):
+                with ui.row().classes('items-center gap-2 mb-1'):
                     ui.icon('speed').classes('text-blue-600')
                     ui.label('Speed Scale').classes('text-lg font-semibold text-blue-900 tracking-wide')
                     ui.icon('help').tooltip(
@@ -122,7 +128,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                     speed_slider.set_value(e.args),
                     speed_display.set_text(safe_percent(e.args))
                 ])
-            # --- End Speed Scale Section ---
+            # --- End Speed Scale Section (Styled Expansion) ---
 
             # Home and Sleep Pose buttons
             with ui.row().classes('w-full justify-center mt-4 gap-4'):
@@ -135,32 +141,32 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                 .tooltip("Move all joints to 0° without using homing or encoders") \
                 .classes('bg-gray-700 text-white px-4 py-2 rounded-lg mt-2')
 
-            # --- Modern Joint Control Card ---
-            with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
+            # --- Modern Joint Control Card (Styled Expansion) ---
+            with ui.expansion('Joint Control', icon='360', value=False).classes('w-[600px] max-w-full bg-gradient-to-br from-blue-50 to-cyan-100 border border-blue-300 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300 mb-3').props('expand-icon="expand_more"'):
                 with ui.row().classes('items-center mb-2'):
-                    ui.icon('360').classes('text-2xl text-green-700 mr-2')
-                    ui.label('Joint Control').classes('text-2xl font-bold text-green-900 tracking-wide')
+                    ui.icon('360').classes('text-2xl text-blue-700 mr-2')
+                    ui.label('Joint Control').classes('text-2xl font-bold text-blue-900 tracking-wide')
                 ui.separator().classes('my-2')
                 ui.label("View and set the joint angles.").classes('text-gray-600 mb-4')
                 # Display current joint positions (Read-Only Labels)
                 with ui.grid(columns=3).classes('gap-4 w-full mb-2'):
                     joint_positions = [
-                        ui.label(f"Joint {i+1}: 0.0°").classes('text-lg w-full text-center bg-white border border-green-200 rounded-lg py-2 shadow-sm font-mono text-green-900') for i in range(6)
+                        ui.label(f"Joint {i+1}: 0.0°").classes('text-lg w-full text-center bg-white border border-blue-200 rounded-lg py-2 shadow-sm font-mono text-blue-900') for i in range(6)
                     ]
                 # Input fields for setting new joint angles
                 with ui.grid(columns=3).classes('gap-4 w-full mb-2'):
-                    new_joint_inputs = [ui.number(label=f"Joint {i+1} (°)").classes('w-full border-green-200 rounded-lg') for i in range(6)]
+                    new_joint_inputs = [ui.number(label=f"Joint {i+1} (°)").classes('w-full border-blue-200 rounded-lg') for i in range(6)]
                 # Button to Set Joint Angles
                 ui.button("Set Joint Angles", on_click=lambda: utils.set_joint_angles_from_gui(robot, new_joint_inputs)) \
                     .tooltip("Send entered joint angles to the robot using forward kinematics") \
-                    .classes('bg-green-600 text-white w-full mt-2 py-2 rounded-lg shadow hover:bg-green-800')
+                    .classes('bg-blue-600 text-white w-full mt-2 py-2 rounded-lg shadow hover:bg-blue-800')
+            # --- End Joint Control Card (Styled Expansion) ---
 
-            # End-Effector control section
-            # --- Modern End-Effector Control Card ---
-            with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-blue-50 to-purple-100 border border-blue-200 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
+            # --- Modern End-Effector Control Expansion ---
+            with ui.expansion('End-Effector Control', icon='open_with', value=False).classes('w-[600px] max-w-full bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300 mb-3').props('expand-icon="expand_more"'):
                 with ui.row().classes('items-center mb-2'):
-                    ui.icon('open_with').classes('text-2xl text-blue-700 mr-2')
-                    ui.label('End-Effector Control').classes('text-2xl font-bold text-blue-900 tracking-wide')
+                    ui.icon('open_with').classes('text-2xl text-purple-700 mr-2')
+                    ui.label('End-Effector Control').classes('text-2xl font-bold text-purple-900 tracking-wide')
                 ui.separator().classes('my-2')
                 # --- Live Readout Row ---
                 with ui.row().classes('gap-2 mb-4 flex-wrap items-center justify-center'):
@@ -252,56 +258,57 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                 last_action_label.set_text("")
             # --- End Modern End-Effector Control Card ---
 
-            # --- Modern Gripper Control Card ---
-            with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-yellow-50 to-orange-100 border border-yellow-200 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
-                with ui.row().classes('items-center mb-2'):
+            # --- Modern Gripper Control Expansion ---
+            with ui.expansion('Gripper Control', icon='precision_manufacturing', value=False).classes('w-[600px] max-w-full bg-gradient-to-br from-yellow-50 to-orange-100 border border-yellow-200 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300').props('expand-icon="expand_more"'):
+                with ui.row().classes('items-center mb-1'):
                     ui.icon('precision_manufacturing').classes('text-2xl text-yellow-700 mr-2')
-                    ui.label('Gripper Control').classes('text-2xl font-bold text-yellow-900 tracking-wide')
-                ui.separator().classes('my-2')
-                ui.label("Control the gripper's movement.").classes('text-gray-600 mb-4')
-                with ui.row().classes('justify-center gap-6'):
+                    ui.label('Gripper Control').classes('text-xl font-bold text-yellow-900 tracking-wide')
+                ui.separator().classes('my-1')
+                ui.label("Control the gripper's movement.").classes('text-gray-600 mb-2')
+                with ui.row().classes('justify-center gap-4'):
                     ui.button("Open Gripper", on_click=lambda: utils.open_gripper(Arctos)) \
                         .tooltip("Send command to open the robot gripper") \
-                        .classes('bg-yellow-500 text-white px-6 py-2 rounded-lg shadow hover:bg-yellow-600')
+                        .classes('bg-yellow-500 text-white px-4 py-2 rounded-lg shadow hover:bg-yellow-600')
                     ui.button("Close Gripper", on_click=lambda: utils.close_gripper(Arctos)) \
                         .tooltip("Send command to close the robot gripper") \
-                        .classes('bg-orange-500 text-white px-6 py-2 rounded-lg shadow hover:bg-orange-600')
+                        .classes('bg-orange-500 text-white px-4 py-2 rounded-lg shadow hover:bg-orange-600')
 
-            # --- Modern Path Planning Card ---
-            with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
-                with ui.row().classes('items-center mb-2'):
+            # --- Modern Path Planning Expansion ---
+            with ui.expansion('Path Planning', icon='map', value=False).classes('w-[600px] max-w-full bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300 relative').props('expand-icon="expand_more"'):
+                with ui.row().classes('items-center mb-1'):
                     ui.icon('map').classes('text-2xl text-green-700 mr-2')
-                    ui.label('Path Planning').classes('text-2xl font-bold text-green-900 tracking-wide')
-                ui.separator().classes('my-2')
-                ui.label("Manage and execute path planning tasks.").classes("text-gray-600 mb-4")
-                # --- Scrollable pose table ---
-                with ui.element("div").classes("w-full max-h-[40vh] overflow-y-auto mb-3"):
-                    pose_container = ui.column().classes("w-full")
-                    utils.update_pose_table(planner, robot, pose_container)
-                # --- Action buttons ---
-                with ui.row().classes("w-full justify-center gap-4 mt-2"):
-                    ui.button(
-                        "Save Pose",
-                        on_click=lambda: (
-                            utils.save_pose(planner, robot),
-                            utils.update_pose_table(planner, robot, pose_container),
-                        ),
-                    ).tooltip("Store the robot's current pose for later use") \
-                     .classes("bg-blue-700 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-900")
-                    ui.button(
-                        "Load Program",
-                        on_click=lambda: utils.load_program(planner, pose_container, robot),
-                    ).tooltip("Load a previously saved sequence of poses") \
-                     .classes("bg-green-700 text-white px-4 py-2 rounded-lg shadow hover:bg-green-900")
-                    ui.button(
-                        "Save Program", on_click=lambda: utils.save_program(planner)
-                    ).tooltip("Save all recorded poses into a named program file") \
-                     .classes("bg-indigo-700 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-900")
-                    ui.button(
-                        "Execute Program",
-                        on_click=lambda: utils.execute_path(planner, robot, Arctos, settings_manager),
-                    ).tooltip("Run the full program on the robot in real-time") \
-                     .classes("bg-red-700 text-white px-4 py-2 rounded-lg shadow hover:bg-red-900")
+                    ui.label('Path Planning').classes('text-xl font-bold text-green-900 tracking-wide')
+                ui.separator().classes('my-1')
+                ui.label("Manage and execute path planning tasks.").classes("text-gray-600 mb-2")
+                # --- Tabbed Interface ---
+                with ui.tabs().classes('mb-2') as tabs:
+                    tab_poses = ui.tab('Saved Poses', icon='table_rows')
+                    tab_actions = ui.tab('Program Actions', icon='play_circle')
+                with ui.tab_panels(tabs, value=tab_poses):
+                    # ---- SAVED POSES TAB ----
+                    with ui.tab_panel(tab_poses):
+                        ui.button('➕ Add Current Pose', icon='add', on_click=lambda: (utils.save_pose(planner, robot), utils.update_pose_table(planner, robot, pose_container))) \
+                            .classes('w-full mb-2 bg-blue-600 text-white font-semibold py-2 rounded-xl shadow hover:bg-blue-800 transition-all duration-300') \
+                            .tooltip('Quickly save the current robot pose')
+                        ui.label('Saved Poses').classes('text-lg font-semibold text-blue-900 mb-2')
+                        with ui.element("div").classes("w-full max-h-[35vh] overflow-y-auto overflow-x-auto rounded-xl border border-blue-200 bg-white/70 shadow-inner px-2 box-border max-w-full"):
+                            pose_container = ui.column().classes("w-full min-w-[750px] table-fixed divide-y divide-blue-100 break-words box-border flex-nowrap gap-x-2")
+                            utils.update_pose_table(planner, robot, pose_container)
+                        ui.label('Tip: Click the trash icon to delete a pose.').classes('text-xs text-gray-400 mt-1')
+                    # ---- PROGRAM ACTIONS TAB ----
+                    with ui.tab_panel(tab_actions):
+                        ui.label('Program Actions').classes('text-lg font-semibold text-green-900 mb-2')
+                        with ui.row().classes('flex-wrap gap-3 mb-3'):
+                            ui.button('Save Pose', icon='add_location_alt', on_click=lambda: (utils.save_pose(planner, robot), utils.update_pose_table(planner, robot, pose_container))) \
+                                .classes('bg-blue-700 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-900').tooltip('Store the robot\'s current pose for later use')
+                            ui.button('Load Program', icon='folder_open', on_click=lambda: utils.load_program(planner, pose_container, robot)) \
+                                .classes('bg-green-700 text-white px-4 py-2 rounded-lg shadow hover:bg-green-900').tooltip('Load a previously saved sequence of poses')
+                            ui.button('Save Program', icon='save', on_click=lambda: utils.save_program(planner)) \
+                                .classes('bg-indigo-700 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-900').tooltip('Save all recorded poses into a named program file')
+                            ui.button('Execute Program', icon='play_arrow', on_click=lambda: utils.execute_path(planner, robot, Arctos, settings_manager)) \
+                                .classes('bg-red-700 text-white px-4 py-2 rounded-lg shadow hover:bg-red-900').tooltip('Run the full program on the robot in real-time')
+                        ui.label('Tip: Save your program before executing for best results.').classes('text-xs text-gray-400 mt-1')
+
 
             # --- Modern Home & Sleep Buttons ---
             with ui.row().classes('w-full justify-center gap-4 mb-4'):
@@ -313,21 +320,23 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                     .classes('bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700')
 
         # RIGHT SECTION: MeshCat & Console
-        with ui.column().classes('flex-[2] sticky top-0'):
+        with ui.column().classes('flex-1 min-w-0 gap-2 items-stretch h-full'):
             # --- Modern 3D Visualization & Keyboard Control Card ---
-            with ui.card().classes('w-full max-w-3xl bg-gradient-to-br from-gray-50 to-blue-100 border border-gray-300 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
-                with ui.row().classes('items-center mb-2'):
+            with ui.card().classes('w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-blue-100 border border-gray-300 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-shadow duration-300'):
+                with ui.row().classes('items-center mb-1'):
                     ui.icon('monitor').classes('text-2xl text-blue-700 mr-2')
-                    ui.label('3D Visualization').classes('text-2xl font-bold text-blue-900 tracking-wide')
-                ui.separator().classes('my-2')
-                ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 500px; border: none;"></iframe>''')\
-                    .classes('w-full rounded-lg border border-blue-200 shadow')
-
-                with ui.card().classes('w-full bg-white border border-blue-200 rounded-xl shadow p-4 mt-6'):
-                    with ui.row().classes('items-center mb-2'):
+                    ui.label('3D Visualization').classes('text-xl font-bold text-blue-900 tracking-wide')
+                ui.separator().classes('my-1')
+                # --- Main Flex Column: MeshCat iframe grows, Keyboard Control stays at bottom ---
+                with ui.column().classes('flex-1 w-full h-full'):
+                    ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 100%; min-height: 320px; border: none;"></iframe>''')\
+                        .classes('w-full h-full rounded-lg border border-blue-200 shadow')
+                # --- Keyboard Control Card at bottom ---
+                with ui.card().classes('w-full bg-white border border-blue-200 rounded-xl shadow p-3 mt-3'):
+                    with ui.row().classes('items-center mb-1'):
                         ui.icon('keyboard').classes('text-xl text-blue-600 mr-2')
-                        ui.label('Keyboard Control').classes('text-lg font-semibold text-blue-800')
-                    with ui.row().classes('w-full justify-center items-start gap-10'):
+                        ui.label('Keyboard Control').classes('text-base font-semibold text-blue-800')
+                    with ui.row().classes('w-full justify-center items-start gap-6'):
                         # Keyboard Control Switch
                         with ui.column().classes("items-center"):
                             # Visual indicator for keyboard control
