@@ -40,21 +40,7 @@ def create(Arctos, robot, planner, settings_manager) -> None:
     # page header
     ui.label("Control Page").classes('text-3xl font-bold text-center mb-4')
 
-    with ui.row().classes('gap-3 items-center'):
-        with ui.row().classes('items-center gap-1'):
-            ui.label('Speed Scale')
-            ui.icon('help').tooltip(
-                'Scales the overall robot movement speed.\n'
-                '1.0 = 100 %'
-            ).classes('text-blue-500 cursor-help')
 
-        speed_input = ui.number(
-            value=settings_manager.get('speed_scale', 1.0),
-            min=0.1, max=2.0, step=0.1,
-            format='%.1f'
-        ).classes('w-24')
-
-        ui.button('Apply', on_click=lambda: apply_speed(speed_input.value))
 
     def apply_speed(val: float | None):
         if val is None or not (0.1 <= val <= 2.0):
@@ -70,15 +56,18 @@ def create(Arctos, robot, planner, settings_manager) -> None:
     # Conditional UI Timers
     # Check if the user enabled live joint updates
     if settings_manager.get("enable_live_joint_updates", True):
-        # if live joint updates are enabled, show card with current joint positions.
-        with ui.card().classes('w-full bg-blue-50 border border-blue-300 rounded-2xl shadow-md p-4 mb-6'):
-            ui.label("Live Joint-States").classes('text-lg font-semibold text-blue-800 mb-2 text-center')
+        # --- Modern Joint Control Card: Live Joint-States ---
+        with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-blue-50 to-cyan-100 border border-blue-300 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
+            with ui.row().classes('items-center mb-2'):
+                ui.icon('sensors').classes('text-2xl text-blue-700 mr-2')
+                ui.label("Live Joint-States").classes('text-2xl font-bold text-blue-900 tracking-wide')
+            ui.separator().classes('my-2')
             # create a grid with 6 labels to display the current joint values
             with ui.grid(columns=6).classes('w-full'):
                 joint_positions_encoder = [
                     ui.label(f"J{i+1}: --.--°")
                     .classes(
-                        'text-sm text-center font-mono text-blue-900 bg-white rounded-lg px-2 py-1 border border-blue-200 shadow-sm'
+                        'text-base text-center font-mono text-blue-900 bg-white rounded-lg px-3 py-2 border border-blue-200 shadow-sm'
                     )
                     for i in range(6)
                 ]
@@ -99,7 +88,42 @@ def create(Arctos, robot, planner, settings_manager) -> None:
 
         # --- LEFT SECTION: Control ---
         with ui.column().classes('flex-[1]'):
-                        
+            # --- Modern Speed Scale Section ---
+            with ui.card().classes('w-full max-w-md bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-2xl shadow-lg p-4 mb-7 mx-auto'):
+                with ui.row().classes('items-center gap-3 mb-2'):
+                    ui.icon('speed').classes('text-blue-600')
+                    ui.label('Speed Scale').classes('text-lg font-semibold text-blue-900 tracking-wide')
+                    ui.icon('help').tooltip(
+                        'Scales the overall robot movement speed.\n1.0 = 100 %\nUse the slider or enter a value.'
+                    ).classes('text-blue-400 cursor-help')
+                speed_val = settings_manager.get('speed_scale', 1.0)
+                with ui.row().classes('items-center gap-3'):
+                    speed_slider = ui.slider(
+                        min=0.1, max=2.0, value=speed_val, step=0.01
+                    ).props('dense label-always color=primary').classes('w-52 hover:scale-105 transition-transform')
+                    speed_display = ui.label(f"{int(speed_val*100)} %") \
+                        .classes('font-mono text-lg text-blue-800 ml-2')
+                    speed_input = ui.number(
+                        value=speed_val, min=0.1, max=2.0, step=0.01, format='%.2f'
+                    ).classes('w-16 ml-2 border-blue-300 rounded')
+                    ui.button('Apply', on_click=lambda: apply_speed(speed_slider.value)) \
+                        .props('color=primary dense').classes('ml-3 px-4 py-1 rounded-lg text-white font-semibold shadow hover:bg-blue-700 transition-colors')
+                def safe_percent(val):
+                    try:
+                        num = float(val)
+                        return f"{int(round(num * 100))} %"
+                    except Exception:
+                        return "-- %"
+                speed_slider.on('update:model-value', lambda e: [
+                    speed_input.set_value(e.args),
+                    speed_display.set_text(safe_percent(e.args))
+                ])
+                speed_input.on('update:model-value', lambda e: [
+                    speed_slider.set_value(e.args),
+                    speed_display.set_text(safe_percent(e.args))
+                ])
+            # --- End Speed Scale Section ---
+
             # Home and Sleep Pose buttons
             with ui.row().classes('w-full justify-center mt-4 gap-4'):
                 ui.button("Start Movement", on_click=lambda: utils.run_move_can(robot, Arctos, settings_manager)) \
@@ -111,104 +135,150 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                 .tooltip("Move all joints to 0° without using homing or encoders") \
                 .classes('bg-gray-700 text-white px-4 py-2 rounded-lg mt-2')
 
-            # Expandable Joint Control Section
-            # Expandable section for joint control
-            with ui.expansion("Joint Control", icon="360", value=False).classes('w-full border-2 border-gray-400'):
-                # Description label
-                ui.label("View and set the joint angles.").classes('text-gray-600 mb-2')
-
+            # --- Modern Joint Control Card ---
+            with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
+                with ui.row().classes('items-center mb-2'):
+                    ui.icon('360').classes('text-2xl text-green-700 mr-2')
+                    ui.label('Joint Control').classes('text-2xl font-bold text-green-900 tracking-wide')
+                ui.separator().classes('my-2')
+                ui.label("View and set the joint angles.").classes('text-gray-600 mb-4')
                 # Display current joint positions (Read-Only Labels)
-                # Create a grid with 6 labels for the joint positions
-                with ui.grid(columns=3).classes('gap-4 w-full'):
+                with ui.grid(columns=3).classes('gap-4 w-full mb-2'):
                     joint_positions = [
-                        ui.label(f"Joint {i+1}: 0.0°").classes('text-lg w-full text-center') for i in range(6)
+                        ui.label(f"Joint {i+1}: 0.0°").classes('text-lg w-full text-center bg-white border border-green-200 rounded-lg py-2 shadow-sm font-mono text-green-900') for i in range(6)
                     ]
-
                 # Input fields for setting new joint angles
-                with ui.grid(columns=3).classes('gap-4 w-full'):
-                    new_joint_inputs = [ui.number(label=f"Joint {i+1} (°)").classes('w-full') for i in range(6)]
-
+                with ui.grid(columns=3).classes('gap-4 w-full mb-2'):
+                    new_joint_inputs = [ui.number(label=f"Joint {i+1} (°)").classes('w-full border-green-200 rounded-lg') for i in range(6)]
                 # Button to Set Joint Angles
                 ui.button("Set Joint Angles", on_click=lambda: utils.set_joint_angles_from_gui(robot, new_joint_inputs)) \
                     .tooltip("Send entered joint angles to the robot using forward kinematics") \
-                    .classes('bg-green-500 text-white w-full mt-2 py-2 rounded-lg')
+                    .classes('bg-green-600 text-white w-full mt-2 py-2 rounded-lg shadow hover:bg-green-800')
 
             # End-Effector control section
-            with ui.expansion("End-Effector", icon="open_with", value=False).classes('w-full border-2 border-gray-400'):
-                # End-Effector Position section
-                # --- End-Effector Position Section ---
-                with ui.expansion("End-Effector Position", icon="location_on", value=False).classes('w-full border-2 border-gray-400'):
-                    ui.label("View and set the end-effector position.").classes('text-gray-600 mb-2')
+            # --- Modern End-Effector Control Card ---
+            with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-blue-50 to-purple-100 border border-blue-200 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
+                with ui.row().classes('items-center mb-2'):
+                    ui.icon('open_with').classes('text-2xl text-blue-700 mr-2')
+                    ui.label('End-Effector Control').classes('text-2xl font-bold text-blue-900 tracking-wide')
+                ui.separator().classes('my-2')
+                # --- Live Readout Row ---
+                with ui.row().classes('gap-2 mb-4 flex-wrap items-center justify-center'):
+                    ee_position_labels = {}
+                    for axis in ["X", "Y", "Z"]:
+                        ee_position_labels[axis] = ui.label(f"{axis}: 0.00 m").classes('px-2 py-1 rounded bg-blue-100 text-blue-900 font-mono')
+                    ui.label('|').classes('mx-2 text-gray-400')
+                    ee_orientation_labels = {}
+                    for axis in ["Roll", "Pitch", "Yaw"]:
+                        ee_orientation_labels[axis] = ui.label(f"{axis}: 0.00°").classes('px-2 py-1 rounded bg-purple-100 text-purple-900 font-mono')
+                # --- Segmented Mode Selector ---
+                mode = ui.toggle(["Position Only", "Position + Orientation", "Orientation Only"], value="Position + Orientation") \
+                    .classes('w-full my-4')
+                # --- Inputs Area ---
+                ee_position_inputs = {axis: None for axis in ["X", "Y", "Z"]}
+                ee_orientation_inputs = {axis: None for axis in ["Roll", "Pitch", "Yaw"]}
+                input_container = ui.element('div').classes('w-full')
+                def update_inputs():
+                    # Clear and re-create input fields based on mode
+                    nonlocal ee_position_inputs, ee_orientation_inputs
+                    input_container.clear()
+                    for axis in ["X", "Y", "Z"]:
+                        ee_position_inputs[axis] = None
+                    for axis in ["Roll", "Pitch", "Yaw"]:
+                        ee_orientation_inputs[axis] = None
+                    if mode.value in ("Position Only", "Position + Orientation"):
+                        with input_container:
+                            with ui.row().classes('gap-4 w-full mb-2'):
+                                for axis in ["X", "Y", "Z"]:
+                                    ee_position_inputs[axis] = ui.number(label=f"{axis} (m)", format="%.3f").props('dense') \
+                                        .tooltip(f"Target {axis} coordinate in meters.") \
+                                        .classes('w-32 rounded border-blue-200')
+                    if mode.value in ("Position + Orientation", "Orientation Only"):
+                        with input_container:
+                            with ui.row().classes('gap-4 w-full mb-2'):
+                                for axis in ["Roll", "Pitch", "Yaw"]:
+                                    ee_orientation_inputs[axis] = ui.number(label=f"{axis} (°)", format="%.1f").props('dense') \
+                                        .tooltip(f"Target {axis} angle in degrees.") \
+                                        .classes('w-32 rounded border-purple-200')
+                # Initial input render
+                update_inputs()
+                # Re-render on mode change
+                mode.on('update:model-value', lambda e: update_inputs())
+                # Place the container in the UI
+                input_container.move()                # --- Action Buttons ---
+                last_action_label = ui.label("").classes('block mt-2 text-sm text-gray-600')
+                def set_pose():
+                    try:
+                        utils.set_ee_pose_from_input(robot, ee_position_inputs, ee_orientation_inputs, True)
+                        last_action_label.set_text("✅ End-Effector moved to position and orientation.")
+                        last_action_label.classes('text-green-700')
+                    except Exception as e:
+                        last_action_label.set_text(f"❌ {str(e)}")
+                        last_action_label.classes('text-red-700')
+                def set_position():
+                    try:
+                        utils.set_ee_position_from_input(robot, ee_position_inputs)
+                        last_action_label.set_text("✅ End-Effector moved to position.")
+                        last_action_label.classes('text-green-700')
+                    except Exception as e:
+                        last_action_label.set_text(f"❌ {str(e)}")
+                        last_action_label.classes('text-red-700')
+                def set_orientation():
+                    try:
+                        utils.set_ee_orientation_from_input(robot, ee_orientation_inputs)
+                        last_action_label.set_text("✅ End-Effector orientation updated.")
+                        last_action_label.classes('text-green-700')
+                    except Exception as e:
+                        last_action_label.set_text(f"❌ {str(e)}")
+                        last_action_label.classes('text-red-700')
+                with ui.row().classes('gap-4 w-full mt-4 justify-center'):
+                    btn_pos = ui.button("📍 Set Position", on_click=set_position) \
+                        .tooltip("Move to XYZ position only (keeps orientation).") \
+                        .classes('bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-800')
+                    btn_pose = ui.button("🚀 Set Position + Orientation", on_click=set_pose) \
+                        .tooltip("Move to XYZ + RPY using inverse kinematics.") \
+                        .classes('bg-teal-600 text-white px-4 py-2 rounded-lg shadow hover:bg-teal-800')
+                    btn_ori = ui.button("🎯 Set Orientation Only", on_click=set_orientation) \
+                        .tooltip("Update only orientation (RPY) at current position.") \
+                        .classes('bg-purple-700 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-900')
+                    # Show/hide buttons based on mode
+                    def update_button_visibility():
+                        btn_pos.set_visibility(mode.value == "Position Only")
+                        btn_pose.set_visibility(mode.value == "Position + Orientation")
+                        btn_ori.set_visibility(mode.value == "Orientation Only")
+                    update_button_visibility()
+                    mode.on('update:model-value', lambda e: update_button_visibility())
+                # --- Last Action Status ---
+                last_action_label.set_text("")
+            # --- End Modern End-Effector Control Card ---
 
-                    # Read-only labels showing current XYZ position
-                    with ui.grid(columns=3).classes('gap-4 w-full'):
-                        ee_position_labels = {
-                            axis: ui.label(f"{axis}: 0.00 m").classes('text-lg w-full text-center')
-                            for axis in ["X", "Y", "Z"]
-                        }
-
-                    # Input fields for XYZ
-                    with ui.grid(columns=3).classes('gap-4 w-full'):
-                        ee_position_inputs = {
-                            axis: ui.number(label=f"{axis} (m)").classes('w-full')
-                            for axis in ["X", "Y", "Z"]
-                        }
-
-                # End-Effector Orientation (RPY) Section
-                with ui.expansion('End-Effector Orientation (RPY)', icon='rotate_right', value=False).classes('w-full border-2 border-gray-400'):
-                    ui.label("Set and monitor the end-effector orientation").classes('text-lg font-semibold mb-2')
-
-                    # Read-only labels showing current RPY
-                    with ui.grid(columns=3).classes('gap-4 w-full'):
-                        ee_orientation_labels = {
-                            axis: ui.label(f"{axis}: 0.00°").classes('text-lg w-full text-center')
-                            for axis in ["Roll", "Pitch", "Yaw"]
-                        }
-
-                    # Input fields for RPY
-                    with ui.grid(columns=3).classes('gap-4 w-full'):
-                        ee_orientation_inputs = {
-                            axis: ui.number(label=f"{axis} (°)").classes('w-full')
-                            for axis in ["Roll", "Pitch", "Yaw"]
-                        }
-
-                # --- Orientation Switch and Combined Button ---
-                with ui.row().classes('justify-center mt-2'):
-                    use_orientation_switch = ui.switch("Include Orientation (RPY)", value=False)
-
-                ui.button("🚀 Set End-Effector Pose", on_click=lambda:
-                    utils.set_ee_pose_from_input(
-                        robot,
-                        ee_position_inputs,
-                        ee_orientation_inputs,
-                        use_orientation_switch.value
-                    )
-                ).tooltip("Uses inverse kinematics to move the end-effector to the specified position and orientation") \
-                .classes('bg-teal-600 text-white w-full mt-2 py-2 rounded-lg')
-
-            # Gripper Control Section
-            with ui.expansion("Gripper Control", icon="precision_manufacturing", value=False).classes('w-full border-2 border-gray-400'):
-                ui.label("Control the gripper's movement.").classes('text-gray-600 mb-2')
-                # open and close gripper buttons
-                with ui.row().classes('justify-center gap-4'):
+            # --- Modern Gripper Control Card ---
+            with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-yellow-50 to-orange-100 border border-yellow-200 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
+                with ui.row().classes('items-center mb-2'):
+                    ui.icon('precision_manufacturing').classes('text-2xl text-yellow-700 mr-2')
+                    ui.label('Gripper Control').classes('text-2xl font-bold text-yellow-900 tracking-wide')
+                ui.separator().classes('my-2')
+                ui.label("Control the gripper's movement.").classes('text-gray-600 mb-4')
+                with ui.row().classes('justify-center gap-6'):
                     ui.button("Open Gripper", on_click=lambda: utils.open_gripper(Arctos)) \
                         .tooltip("Send command to open the robot gripper") \
-                        .classes('bg-yellow-500 text-white px-4 py-2 rounded-lg')
-
+                        .classes('bg-yellow-500 text-white px-6 py-2 rounded-lg shadow hover:bg-yellow-600')
                     ui.button("Close Gripper", on_click=lambda: utils.close_gripper(Arctos)) \
                         .tooltip("Send command to close the robot gripper") \
-                        .classes('bg-orange-500 text-white px-4 py-2 rounded-lg')
+                        .classes('bg-orange-500 text-white px-6 py-2 rounded-lg shadow hover:bg-orange-600')
 
-            # ───── Path Planning Expansion ─────
-            with ui.expansion("Path Planning", icon="map", value=False).classes("w-full border-2 border-gray-400"):
-                ui.label("Manage and execute path planning tasks.").classes("text-gray-600 text-center mb-2")
-
-                # --- Scrollable pose table -----------------------------------
-                with ui.element("div").classes("w-full max-h-[40vh] overflow-y-auto"):
+            # --- Modern Path Planning Card ---
+            with ui.card().classes('w-full max-w-2xl bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
+                with ui.row().classes('items-center mb-2'):
+                    ui.icon('map').classes('text-2xl text-green-700 mr-2')
+                    ui.label('Path Planning').classes('text-2xl font-bold text-green-900 tracking-wide')
+                ui.separator().classes('my-2')
+                ui.label("Manage and execute path planning tasks.").classes("text-gray-600 mb-4")
+                # --- Scrollable pose table ---
+                with ui.element("div").classes("w-full max-h-[40vh] overflow-y-auto mb-3"):
                     pose_container = ui.column().classes("w-full")
                     utils.update_pose_table(planner, robot, pose_container)
-
-                # --- Action buttons ------------------------------------------
+                # --- Action buttons ---
                 with ui.row().classes("w-full justify-center gap-4 mt-2"):
                     ui.button(
                         "Save Pose",
@@ -217,96 +287,98 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                             utils.update_pose_table(planner, robot, pose_container),
                         ),
                     ).tooltip("Store the robot's current pose for later use") \
-                     .classes("bg-blue-700 text-white px-4 py-2 rounded-lg")
-
+                     .classes("bg-blue-700 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-900")
                     ui.button(
                         "Load Program",
                         on_click=lambda: utils.load_program(planner, pose_container, robot),
                     ).tooltip("Load a previously saved sequence of poses") \
-                     .classes("bg-green-700 text-white px-4 py-2 rounded-lg")
-
+                     .classes("bg-green-700 text-white px-4 py-2 rounded-lg shadow hover:bg-green-900")
                     ui.button(
                         "Save Program", on_click=lambda: utils.save_program(planner)
                     ).tooltip("Save all recorded poses into a named program file") \
-                     .classes("bg-indigo-700 text-white px-4 py-2 rounded-lg")
-
+                     .classes("bg-indigo-700 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-900")
                     ui.button(
                         "Execute Program",
                         on_click=lambda: utils.execute_path(planner, robot, Arctos, settings_manager),
                     ).tooltip("Run the full program on the robot in real-time") \
-                     .classes("bg-red-700 text-white px-4 py-2 rounded-lg")
+                     .classes("bg-red-700 text-white px-4 py-2 rounded-lg shadow hover:bg-red-900")
 
-
-            ui.button("🏠 Move to Home Pose", on_click=lambda: homing.move_to_zero_pose(Arctos)) \
-                .tooltip("Send robot to predefined 'home' configuration") \
-                .classes('bg-purple-500 text-white px-4 py-2 rounded-lg')
-
-            # Sleep button
-            ui.button("💤 Move to Sleep Pose", on_click=lambda: homing.move_to_sleep_pose(Arctos)) \
-                .tooltip("Send robot to safe resting position (sleep pose)") \
-                .classes('bg-gray-500 text-white px-4 py-2 rounded-lg')
+            # --- Modern Home & Sleep Buttons ---
+            with ui.row().classes('w-full justify-center gap-4 mb-4'):
+                ui.button("🏠 Move to Home Pose", on_click=lambda: homing.move_to_zero_pose(Arctos)) \
+                    .tooltip("Send robot to predefined 'home' configuration") \
+                    .classes('bg-purple-500 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-700')
+                ui.button("💤 Move to Sleep Pose", on_click=lambda: homing.move_to_sleep_pose(Arctos)) \
+                    .tooltip("Send robot to safe resting position (sleep pose)") \
+                    .classes('bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700')
 
         # RIGHT SECTION: MeshCat & Console
         with ui.column().classes('flex-[2] sticky top-0'):
-            # MeshCat Visualization
-            with ui.card().classes('w-full p-4 bg-gray-100 border border-gray-300 rounded-lg flex-grow'):
-                ui.label("🖥️ 3D Visualization").classes('text-xl font-bold mb-2')
+            # --- Modern 3D Visualization & Keyboard Control Card ---
+            with ui.card().classes('w-full max-w-3xl bg-gradient-to-br from-gray-50 to-blue-100 border border-gray-300 rounded-2xl shadow-lg p-6 mx-auto mb-8'):
+                with ui.row().classes('items-center mb-2'):
+                    ui.icon('monitor').classes('text-2xl text-blue-700 mr-2')
+                    ui.label('3D Visualization').classes('text-2xl font-bold text-blue-900 tracking-wide')
+                ui.separator().classes('my-2')
                 ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 500px; border: none;"></iframe>''')\
-                    .classes('w-full')
+                    .classes('w-full rounded-lg border border-blue-200 shadow')
 
-                with ui.row().classes('w-full justify-center items-start mt-4 gap-12'):
-                    # Keyboard Control Switch
-                    with ui.column().classes("items-center"):
-
-                        # Visual indicator for keyboard control
-                        keyboard_status_label = ui.label("").classes("text-xs font-semibold mb-1")
-                        def update_status_label():
-                            if keyboard_ctrl.active:
-                                keyboard_status_label.set_text("[ACTIVE]")
-                                keyboard_status_label.classes("text-green-600 font-bold")
-                            else:
-                                keyboard_status_label.set_text("[INACTIVE]")
-                                keyboard_status_label.classes("text-gray-400 font-bold")
-                        update_status_label()
-                        with ui.row().classes('items-center gap-1'):
-                            ui.label("🎮 Keyboard Control").classes("text-sm font-medium text-gray-700 mb-1")
-                            with ui.icon("info").classes("text-blue-500 cursor-pointer"):
-                                with ui.tooltip().classes("text-body2 text-left"):
-                                    ui.html(
-                                        """
-                                        <strong>Keyboard Control:</strong><br>
-                                        Enable or disable keyboard-based robot movement.<br><br>
-                                        <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
-                                            <li><b>W/S</b>: Move along Y-axis</li>
-                                            <li><b>A/D</b>: Move along X-axis</li>
-                                            <li><b>Q/E</b>: Move along Z-axis</li>
-                                        </ul>
-                                        Movement is velocity-based while keys are held.<br>
-                                        Use the <b>step size</b> slider to adjust increments.<br>
-                                        """
-                                    )
-                        keyboard_control_switch = ui.switch("Keyboard Control", value=keyboard_ctrl.active)
-                        def on_switch(val):
-                            # Use the controller's toggle logic
-                            if val != keyboard_ctrl.active:
-                                keyboard_ctrl.toggle()
+                with ui.card().classes('w-full bg-white border border-blue-200 rounded-xl shadow p-4 mt-6'):
+                    with ui.row().classes('items-center mb-2'):
+                        ui.icon('keyboard').classes('text-xl text-blue-600 mr-2')
+                        ui.label('Keyboard Control').classes('text-lg font-semibold text-blue-800')
+                    with ui.row().classes('w-full justify-center items-start gap-10'):
+                        # Keyboard Control Switch
+                        with ui.column().classes("items-center"):
+                            # Visual indicator for keyboard control
+                            keyboard_status_label = ui.label("").classes("text-xs font-semibold mb-1")
+                            def update_status_label():
+                                if keyboard_ctrl.active:
+                                    keyboard_status_label.set_text("[ACTIVE]")
+                                    keyboard_status_label.classes("text-green-600 font-bold")
+                                else:
+                                    keyboard_status_label.set_text("[INACTIVE]")
+                                    keyboard_status_label.classes("text-gray-400 font-bold")
                             update_status_label()
-                        keyboard_control_switch.on('update:model-value', on_switch)
+                            with ui.row().classes('items-center gap-1'):
+                                ui.label("🎮 Keyboard Control").classes("text-sm font-medium text-gray-700 mb-1")
+                                with ui.icon("info").classes("text-blue-500 cursor-pointer"):
+                                    with ui.tooltip().classes("text-body2 text-left"):
+                                        ui.html(
+                                            """
+                                            <strong>Keyboard Control:</strong><br>
+                                            Enable or disable keyboard-based robot movement.<br><br>
+                                            <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                                                <li><b>W/S</b>: Move along Y-axis</li>
+                                                <li><b>A/D</b>: Move along X-axis</li>
+                                                <li><b>Q/E</b>: Move along Z-axis</li>
+                                            </ul>
+                                            Movement is velocity-based while keys are held.<br>
+                                            Use the <b>step size</b> slider to adjust increments.<br>
+                                            """
+                                        )
+                            keyboard_control_switch = ui.switch("Keyboard Control", value=keyboard_ctrl.active)
+                            def on_switch(val):
+                                # Use the controller's toggle logic
+                                if val != keyboard_ctrl.active:
+                                    keyboard_ctrl.toggle()
+                                update_status_label()
+                            keyboard_control_switch.on('update:model-value', on_switch)
 
-                    # 🪜 Step Size Slider with Label + Tooltip
-                    with ui.column().classes("items-center"):
-                        with ui.row().classes("items-center gap-1"):
-                            ui.label("Step Size (m)").classes("text-sm font-medium text-gray-700")
-                            ui.icon("info").tooltip("Determines how far the robot moves per key press (W/A/S/D/Q/E).")
+                        # 🪜 Step Size Slider with Label + Tooltip
+                        with ui.column().classes("items-center"):
+                            with ui.row().classes("items-center gap-1"):
+                                ui.label("Step Size (m)").classes("text-sm font-medium text-gray-700")
+                                ui.icon("info").tooltip("Determines how far the robot moves per key press (W/A/S/D/Q/E).")
 
-                        step_size_slider = ui.slider(
-                            min=0.0005,
-                            max=0.02,
-                            value=0.002,
-                            step=0.0005
-                        ).props('label-always').classes('w-64')
-                        # Attach slider to controller
-                        keyboard_ctrl.step_size_input = step_size_slider
+                            step_size_slider = ui.slider(
+                                min=0.0005,
+                                max=0.02,
+                                value=0.002,
+                                step=0.0005
+                            ).props('label-always').classes('w-64')
+                            # Attach slider to controller
+                            keyboard_ctrl.step_size_input = step_size_slider
 
 
     # UI timers
