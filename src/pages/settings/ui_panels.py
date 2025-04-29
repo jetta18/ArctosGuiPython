@@ -21,7 +21,21 @@ def general_tab(settings_manager, settings):
         None
     """
     with ui.card().classes("p-4 mb-4"):
-        ui.label("Appearance").classes("text-xl font-semibold mb-2")
+        with ui.row().classes("items-center mb-2"):
+            ui.label("Appearance").classes("text-xl font-semibold")
+            with ui.icon("info").classes("text-blue-500 cursor-pointer ml-1"):
+                with ui.tooltip().classes("text-body2 text-left"):
+                    ui.html(
+                        """
+                        <strong>Theme:</strong><br>
+                        Switch between <b>Light</b> and <b>Dark</b> UI appearance.<br>
+                        <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                            <li><b>Light:</b> Bright, daylight style for well-lit environments.</li>
+                            <li><b>Dark:</b> Dimmed interface for low-light or night use.</li>
+                        </ul>
+                        <em>This setting affects the entire application interface.</em>
+                        """
+                    )
         ui.toggle(["Light", "Dark"],
                   value=settings.get("theme", "Light"),
                   on_change=lambda e: (
@@ -29,9 +43,23 @@ def general_tab(settings_manager, settings):
                       ui.dark_mode().enable() if e.value == "Dark" else ui.dark_mode().disable(),
                       ui.notify(f"Theme set to {e.value}")
                   )
-                  ).tooltip("Choose between light and dark UI themes.")
+                  )
     with ui.card().classes("p-4"):
-        ui.label("Live Joint Updates").classes("text-xl font-semibold mb-2")
+        with ui.row().classes("items-center mb-2"):
+            ui.label("Live Joint Updates").classes("text-xl font-semibold")
+            with ui.icon("info").classes("text-blue-500 cursor-pointer ml-1"):
+                with ui.tooltip().classes("text-body2 text-left"):
+                    ui.html(
+                        """
+                        <strong>Live Joint Updates:</strong><br>
+                        Enable or disable <b>real-time display</b> of joint encoder readings.<br>
+                        <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                            <li>When enabled, the UI shows the actual joint angles as measured by the robot's encoders.</li>
+                            <li>When disabled, only commanded or simulated values are shown.</li>
+                        </ul>
+                        <em>Recommended for monitoring the physical robot's state during operation.</em>
+                        """
+                    )
         live_switch: Switch = ui.switch(
             "Enable live joint angle updates",
             value=settings.get("enable_live_joint_updates", True)
@@ -40,7 +68,31 @@ def general_tab(settings_manager, settings):
             settings_manager.set("enable_live_joint_updates", e.value),
             ui.notify("Live updates enabled" if e.value else "Live updates disabled")
         ))
-        live_switch.tooltip("Toggle real-time display of joint encoder readings.")
+
+    with ui.card().classes("p-4 mt-4"):
+        with ui.row().classes("items-center mb-2"):
+            ui.label("Keyboard Control Target").classes("text-xl font-semibold")
+            with ui.icon("info").classes("text-blue-500 cursor-pointer ml-1"):
+                with ui.tooltip().classes("text-body2 text-left"):
+                    ui.html(
+                        """
+                        <strong>Keyboard Control Target:</strong><br>
+                        <b>Send keyboard control commands to:</b>
+                        <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                            <li><b>Enabled:</b> Keyboard controls move the <b>physical robot hardware</b> in real time.</li>
+                            <li><b>Disabled:</b> Keyboard controls only affect the 3D simulation/visualization.</li>
+                        </ul>
+                        <em>Use caution: Enabling this will cause real robot movement in response to keyboard input.</em>
+                        """
+                    )
+        send_to_robot_switch: Switch = ui.switch(
+            "Send keyboard control to physical robot",
+            value=settings.get("keyboard_send_to_robot", False)
+        )
+        send_to_robot_switch.on_value_change(lambda e: (
+            settings_manager.set("keyboard_send_to_robot", e.value),
+            ui.notify("Keyboard control will {}move the physical robot".format('' if e.value else 'not '))
+        ))
 
 def joints_tab(settings_manager, arctos, settings, open_ratio_wizard):
     """

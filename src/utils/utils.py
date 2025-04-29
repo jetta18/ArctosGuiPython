@@ -691,6 +691,30 @@ class KeyboardRobotController:
         try:
             q_solution = self.robot.inverse_kinematics_pink(target_pos, target_rpy)
             self.robot.instant_display_state(q_solution)
+            # Check if we should send to hardware
+            send_to_robot = False
+            # Try to get from robot or Arctos if possible
+            settings_manager = getattr(self.robot, 'settings_manager', None)
+            if settings_manager is None:
+                settings_manager = getattr(self.Arctos, 'settings_manager', None)
+            if settings_manager is not None:
+                send_to_robot = settings_manager.get("keyboard_send_to_robot", False)
+            if send_to_robot:
+                # Use default or settings for speed/acceleration
+                speeds = 500
+                acceleration = 150
+                if settings_manager:
+                    speeds = settings_manager.get("joint_speeds", {i: 500 for i in range(6)})
+                    acceleration = settings_manager.get("joint_acceleration", {i: 150 for i in range(6)})
+                    # Convert dicts to lists if needed
+                    if isinstance(speeds, dict):
+                        speeds = [speeds.get(i, 500) for i in range(6)]
+                    if isinstance(acceleration, dict):
+                        acceleration = [acceleration.get(i, 150) for i in range(6)]
+                try:
+                    self.Arctos.move_to_angles(q_solution, speeds=speeds, acceleration=acceleration)
+                except Exception as e:
+                    self._notify(f"❌ Failed to move physical robot: {e}", color="red")
             if not self._last_ik_success:
                 self._notify("✅ IK solution found.", color="green")
             self._last_ik_success = True
