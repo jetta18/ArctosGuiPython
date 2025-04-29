@@ -436,3 +436,61 @@ class ArctosController:
             directions = {i: 1 for i in range(6)}
         self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(ratios)]
         logger.info(f"Gear ratios updated: {self.gear_ratios}")
+
+    def emergency_stop(self) -> None:
+        """
+        Immediately stops all motors by sending the emergency stop command to each servo.
+
+        This method should be called in case of emergency to halt all robot motion.
+        Logs the result of each stop attempt.
+        """
+        if not hasattr(self, 'servos') or self.servos is None:
+            logger.error("No servos initialized for emergency stop!")
+            return
+        for i, servo in enumerate(self.servos):
+            try:
+                result = servo.emergency_stop_motor()
+                logger.info(f"Emergency stop sent to servo {i}: {result}")
+            except Exception as e:
+                logger.error(f"Failed to send emergency stop to servo {i}: {e}")
+
+    def safe_emergency_stop(self) -> None:
+        """
+        Performs a safe emergency stop:
+        - If any motor is above 1000 RPM, decelerates all motors to zero using maximum acceleration.
+        - Otherwise, performs a normal emergency stop.
+        Logs actions and errors.
+        """
+        from services.mks_servo_can.can_motor import MAX_ACCELERATION
+        from services.mks_servo_can.mks_enums import Direction
+        high_rpm_detected = False
+        rpm_list = []
+        if not hasattr(self, 'servos') or self.servos is None:
+            logger.error("No servos initialized for safe emergency stop!")
+            return
+        # Read all motor speeds
+        for i, servo in enumerate(self.servos):
+            try:
+                rpm = servo.read_motor_speed()
+                rpm_list.append(rpm)
+                if rpm is not None and abs(rpm) > 1000:
+                    high_rpm_detected = True
+            except Exception as e:
+                logger.error(f"Failed to read RPM from servo {i}: {e}")
+                rpm_list.append(None)
+        if high_rpm_detected:
+            logger.warning("High RPM detected. Decelerating motors safely.")
+            for i, (servo, rpm) in enumerate(zip(self.servos, rpm_list)):
+                try:
+                    if rpm is None:
+                        logger.warning(f"Servo {i}: RPM unknown, skipping deceleration.")
+                        continue
+                    direction = Direction.CCW if rpm > 0 else Direction.CW
+                    # Command motor to zero speed with max acceleration
+                    result = servo.run_motor_in_speed_mode(direction, 0, MAX_ACCELERATION)
+                    logger.info(f"Servo {i}: Decelerate to 0 RPM with MAX_ACCELERATION. Result: {result}")
+                except Exception as e:
+                    logger.error(f"Servo {i}: Failed to decelerate safely: {e}")
+        else:
+            logger.info("All motors below 1000 RPM. Performing normal emergency stop.")
+            self.emergency_stop()

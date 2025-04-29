@@ -4,7 +4,7 @@ from .joint_control import joint_control
 from .end_effector_control import end_effector_control
 from .gripper_control import gripper_control
 from .path_planning import path_planning
-from .buttons import home_button, sleep_button, reset_to_zero_button, start_movement_button
+from .buttons import home_button, sleep_button, reset_to_zero_button, start_movement_button, emergency_stop_button
 from .visualization_keyboard import visualization_keyboard
 from .live_joint_states import live_joint_states
 from utils import utils
@@ -57,11 +57,14 @@ def create(Arctos, robot, planner, settings_manager):
             ee_position_labels, ee_orientation_labels = end_effector_control(robot)
             gripper_control(Arctos)
             path_planning(planner, robot, Arctos, settings_manager)
-            with ui.row().classes('w-full justify-center gap-4 mb-4'):
-                home_button(Arctos)
-                sleep_button(Arctos)
-                reset_to_zero_button(robot)
-                start_movement_button(robot, Arctos, settings_manager)
+            with ui.column().classes('w-full justify-center gap-4 mb-4'):
+                with ui.row().classes('w-full justify-center gap-4 mb-4'):
+                    home_button(Arctos)
+                    sleep_button(Arctos)
+                    reset_to_zero_button(robot)
+                with ui.row().classes('w-full justify-center gap-4 mb-4'):
+                    start_movement_button(robot, Arctos, settings_manager)
+                    emergency_stop_button(Arctos)
         with ui.column().classes('flex-1 min-w-0 gap-2 items-stretch h-full'):
             # Setup keyboard controller
             def notify_fn(msg, color=None):

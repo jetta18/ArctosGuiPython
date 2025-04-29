@@ -55,3 +55,19 @@ def start_movement_button(robot, Arctos, settings_manager):
     return ui.button("Start Movement", on_click=lambda: utils.run_move_can(robot, Arctos, settings_manager)) \
         .tooltip("Execute the currently set joint angles on the physical robot") \
         .classes('bg-red-500 text-white px-4 py-2 rounded-lg')
+
+def emergency_stop_button(Arctos):
+    """Create a prominently styled EMERGENCY STOP button for the GUI.
+
+    Args:
+        Arctos: The main robot control interface or object.
+
+    Returns:
+        None. The function builds the UI directly using NiceGUI components.
+    """
+    return ui.button(
+        "\U0001F6D1 EMERGENCY STOP",
+        on_click=lambda: Arctos.safe_emergency_stop()
+    ).tooltip(
+        "Emergency stop: If any motor is above 1000 RPM, decelerate rapidly; otherwise, stop instantly. Use ONLY in case of emergency!"
+    ).classes('bg-gray-700 text-white px-4 py-2 rounded-lg')

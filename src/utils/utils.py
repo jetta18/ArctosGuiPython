@@ -612,7 +612,10 @@ class KeyboardRobotController:
             'a': ('x', -1), 'd': ('x', 1),
             'w': ('y', -1), 's': ('y', 1),
             'q': ('z', 1),  'e': ('z', -1),
-            # For future orientation: e.g., 'j': ('roll', -1), ...
+            # Orientation controls:
+            'j': ('roll', -1), 'l': ('roll', 1),
+            'i': ('pitch', -1), 'k': ('pitch', 1),
+            'u': ('yaw', -1), 'o': ('yaw', 1),
         }
         # For velocity control
         self.update_period = 0.05  # seconds
@@ -664,21 +667,29 @@ class KeyboardRobotController:
         current_pos = self.robot.get_end_effector_position()
         current_rpy = self.robot.get_end_effector_orientation()
         step = self.step_size_input.value if self.step_size_input and self.step_size_input.value else 0.002
+        # Orientation step size in radians
+        orientation_step_deg = self.orientation_step_size_input.value if hasattr(self, 'orientation_step_size_input') and self.orientation_step_size_input and self.orientation_step_size_input.value else 5
+        orientation_step = np.radians(orientation_step_deg)
         delta = {'x': 0, 'y': 0, 'z': 0}
-        # For future: delta_rpy = {'roll':0, ...}
+        delta_rpy = {'roll': 0, 'pitch': 0, 'yaw': 0}
         for key in keys:
             if key in self.key_map:
                 axis, sign = self.key_map[key]
-                delta[axis] += sign * step
+                if axis in delta:
+                    delta[axis] += sign * step
+                elif axis in delta_rpy:
+                    delta_rpy[axis] += sign * orientation_step  # orientation uses separate step size
         # Apply deltas
         target_pos = current_pos.copy()
         target_pos[0] += delta['x']
         target_pos[1] += delta['y']
         target_pos[2] += delta['z']
-        # For future: target_rpy = ...
-        # Run IK in try/except, in background thread
+        target_rpy = current_rpy.copy()
+        target_rpy[0] += delta_rpy['roll']
+        target_rpy[1] += delta_rpy['pitch']
+        target_rpy[2] += delta_rpy['yaw']
         try:
-            q_solution = self.robot.inverse_kinematics_pink(target_pos, current_rpy)
+            q_solution = self.robot.inverse_kinematics_pink(target_pos, target_rpy)
             self.robot.instant_display_state(q_solution)
             if not self._last_ik_success:
                 self._notify("✅ IK solution found.", color="green")
