@@ -273,41 +273,83 @@ def create(Arctos, robot, planner, settings_manager) -> None:
                         .tooltip("Send command to close the robot gripper") \
                         .classes('bg-orange-500 text-white px-4 py-2 rounded-lg shadow hover:bg-orange-600')
 
-            # --- Modern Path Planning Expansion ---
-            with ui.expansion('Path Planning', icon='map', value=False).classes('w-[600px] max-w-full bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300 relative').props('expand-icon="expand_more"'):
+            # ---------------------- Path‑Planning Section (DROP‑IN) ----------------------
+            # Replace the old "Modern Path Planning Expansion" block in *control.py*
+            # with everything between the two comment lines below.
+            # ---------------------------------------------------------------------------
+
+            # --- Modern Path Planning Expansion ---------------------------------------
+            with ui.expansion('Path Planning', icon='map', value=False) \
+                    .classes(
+                        'w-full bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 '
+                        'rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300'):
+
+                # Header ---------------------------------------------------------------
                 with ui.row().classes('items-center mb-1'):
                     ui.icon('map').classes('text-2xl text-green-700 mr-2')
                     ui.label('Path Planning').classes('text-xl font-bold text-green-900 tracking-wide')
                 ui.separator().classes('my-1')
-                ui.label("Manage and execute path planning tasks.").classes("text-gray-600 mb-2")
-                # --- Tabbed Interface ---
+                ui.label('Manage and execute path‑planning tasks.')\
+                    .classes('text-gray-600 mb-2')
+
+                # Tabs -----------------------------------------------------------------
                 with ui.tabs().classes('mb-2') as tabs:
-                    tab_poses = ui.tab('Saved Poses', icon='table_rows')
+                    tab_poses   = ui.tab('Saved Poses',    icon='list_alt')
                     tab_actions = ui.tab('Program Actions', icon='play_circle')
+
                 with ui.tab_panels(tabs, value=tab_poses):
-                    # ---- SAVED POSES TAB ----
+
+                    # ── SAVED POSES TAB ───────────────────────────────────────────────
                     with ui.tab_panel(tab_poses):
-                        ui.button('➕ Add Current Pose', icon='add', on_click=lambda: (utils.save_pose(planner, robot), utils.update_pose_table(planner, robot, pose_container))) \
-                            .classes('w-full mb-2 bg-blue-600 text-white font-semibold py-2 rounded-xl shadow hover:bg-blue-800 transition-all duration-300') \
-                            .tooltip('Quickly save the current robot pose')
-                        ui.label('Saved Poses').classes('text-lg font-semibold text-blue-900 mb-2')
-                        with ui.element("div").classes("w-full max-h-[35vh] overflow-y-auto overflow-x-auto rounded-xl border border-blue-200 bg-white/70 shadow-inner px-2 box-border max-w-full"):
-                            pose_container = ui.column().classes("w-full min-w-[750px] table-fixed divide-y divide-blue-100 break-words box-border flex-nowrap gap-x-2")
+
+                        ui.button('➕  Add Current Pose',
+                                on_click=lambda: (
+                                    utils.save_pose(planner, robot),
+                                    utils.update_pose_table(planner, robot, pose_container)
+                                ))\
+                        .classes('w-full mb-2 bg-blue-600 text-white font-semibold py-2 rounded-xl '
+                                'shadow hover:bg-blue-800 transition-colors')\
+                        .tooltip('Quickly save the current robot pose')
+
+                        # Scroll wrapper keeps the table inside card boundaries --------
+                        with ui.element('div')\
+                                .classes('w-full max-h-[35vh] overflow-y-auto overflow-x-auto '
+                                        'rounded-xl border border-blue-200 bg-white shadow-inner'):
+                            pose_container = ui.column().classes('w-full gap-y-2')
                             utils.update_pose_table(planner, robot, pose_container)
-                        ui.label('Tip: Click the trash icon to delete a pose.').classes('text-xs text-gray-400 mt-1')
-                    # ---- PROGRAM ACTIONS TAB ----
+
+                        ui.label('Tip: Click the red × next to a pose to delete it.')\
+                        .classes('text-xs text-gray-400 mt-1')
+
+                    # ── PROGRAM ACTIONS TAB ───────────────────────────────────────────
                     with ui.tab_panel(tab_actions):
+
                         ui.label('Program Actions').classes('text-lg font-semibold text-green-900 mb-2')
+
                         with ui.row().classes('flex-wrap gap-3 mb-3'):
-                            ui.button('Save Pose', icon='add_location_alt', on_click=lambda: (utils.save_pose(planner, robot), utils.update_pose_table(planner, robot, pose_container))) \
-                                .classes('bg-blue-700 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-900').tooltip('Store the robot\'s current pose for later use')
-                            ui.button('Load Program', icon='folder_open', on_click=lambda: utils.load_program(planner, pose_container, robot)) \
-                                .classes('bg-green-700 text-white px-4 py-2 rounded-lg shadow hover:bg-green-900').tooltip('Load a previously saved sequence of poses')
-                            ui.button('Save Program', icon='save', on_click=lambda: utils.save_program(planner)) \
-                                .classes('bg-indigo-700 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-900').tooltip('Save all recorded poses into a named program file')
-                            ui.button('Execute Program', icon='play_arrow', on_click=lambda: utils.execute_path(planner, robot, Arctos, settings_manager)) \
-                                .classes('bg-red-700 text-white px-4 py-2 rounded-lg shadow hover:bg-red-900').tooltip('Run the full program on the robot in real-time')
-                        ui.label('Tip: Save your program before executing for best results.').classes('text-xs text-gray-400 mt-1')
+                            ui.button('Save Pose', icon='add_location_alt',
+                                    on_click=lambda: (
+                                        utils.save_pose(planner, robot),
+                                        utils.update_pose_table(planner, robot, pose_container)
+                                    ))\
+                            .classes('bg-blue-700 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-900')
+
+                            ui.button('Load Program', icon='folder_open',
+                                    on_click=lambda: utils.load_program(planner, pose_container, robot))\
+                            .classes('bg-green-700 text-white px-4 py-2 rounded-lg shadow hover:bg-green-900')
+
+                            ui.button('Save Program', icon='save',
+                                    on_click=lambda: utils.save_program(planner))\
+                            .classes('bg-indigo-700 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-900')
+
+                            ui.button('Execute Program', icon='play_arrow',
+                                    on_click=lambda: utils.execute_path(planner, robot, Arctos, settings_manager))\
+                            .classes('bg-red-700 text-white px-4 py-2 rounded-lg shadow hover:bg-red-900')
+
+                        ui.label('Tip: Save your program before executing for best results.')\
+                        .classes('text-xs text-gray-400 mt-1')
+            # ---------------------------------------------------------------------------
+            # ------------------- End of Path‑Planning Section --------------------------
 
 
             # --- Modern Home & Sleep Buttons ---

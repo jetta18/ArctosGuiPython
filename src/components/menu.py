@@ -2,43 +2,45 @@ from nicegui import ui, app
 import os
 
 def create_menu():
-    """Creates the navigation menu for the application.
-    
-    This function builds a responsive navigation header with a dropdown menu, allowing
-    users to navigate between different sections of the application. The menu
-    includes options for the home page, robot control, settings, MKS configuration,
-    and an exit option to shut down the application.
-    """
-
+    """Creates a modern, intuitive navigation bar for the application."""
+    import os
     current_dir = os.path.dirname(os.path.abspath(__file__))
     assets_path = os.path.abspath(os.path.join(current_dir, '..', '..', 'assets'))
     app.add_static_files('/assets', assets_path)
 
-    # Create a header container for the navigation menu
-    with ui.header().classes('bg-gray-800 text-white p-2'):
-        with ui.row():
-            # Add a label for the application name, styled as a header
-            ui.image('/assets/icon.png').classes('w-8 h-8')
-
-            ui.label("Arctos Robot Control").classes('text-2xl font-bold ml-4')
-
-        # Create a menu button (hamburger icon) that triggers the dropdown menu
-        with ui.button(icon='menu').classes('ml-auto'):
-
-            # Define the dropdown menu
-            with ui.menu():
-
-                # Menu items with navigation links
-                # Navigate to the home page
-                ui.menu_item('🏠 Home', lambda: ui.navigate.to('/'))
-                # Navigate to the control page
-                ui.menu_item('🦾 Control', lambda: ui.navigate.to('/control'))
-                # Navigate to the settings page
-                ui.menu_item('⚙️ Settings', lambda: ui.navigate.to('/settings'))
-                # Navigate to the mks config page
-                ui.menu_item('🔧 MKS Configuration', lambda: ui.navigate.to('/mks'))
-
-                # Add a separator for visual clarity
-                ui.separator()
-                # Add an exit option that shuts down the application
-                ui.menu_item('❌ Stop Application', on_click=app.shutdown)
+    # Modern horizontal navigation bar
+    with ui.header().classes('bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 shadow-lg px-6 py-2'):
+        with ui.row().classes('items-center w-full justify-between'):
+            # Left: Logo and App Title
+            with ui.row().classes('items-center gap-3'):
+                ui.image('/assets/icon.png').classes('w-10 h-10 rounded shadow-lg')
+                ui.label("Arctos Robot Control").classes('text-2xl font-extrabold tracking-wide text-white drop-shadow')
+            # Center: Navigation Buttons
+            with ui.row().classes('gap-2 ml-8'):
+                ui.button('🏠 Home', on_click=lambda: ui.navigate.to('/')).props('flat').classes('nav-btn')
+                ui.button('🦾 Control', on_click=lambda: ui.navigate.to('/control')).props('flat').classes('nav-btn')
+                ui.button('⚙️ Settings', on_click=lambda: ui.navigate.to('/settings')).props('flat').classes('nav-btn')
+                ui.button('🔧 MKS Config', on_click=lambda: ui.navigate.to('/mks')).props('flat').classes('nav-btn')
+            # Right: Profile/Settings and Shutdown
+            with ui.row().classes('gap-3 ml-auto items-center'):
+                ui.button('❌ Stop Application', on_click=app.shutdown).props('flat').classes('bg-red-600 text-white font-bold rounded px-4 py-2 hover:bg-red-800 shadow-lg transition-all')
+    # Add some custom CSS for nav-btn hover/active
+    ui.add_head_html('''
+    <style>
+    .nav-btn {
+        background: transparent;
+        color: #fff;
+        font-weight: 500;
+        border-radius: 0.6rem;
+        padding: 0.5rem 1.2rem;
+        transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        box-shadow: none;
+        outline: none;
+    }
+    .nav-btn:hover, .nav-btn:focus {
+        background: rgba(255,255,255,0.10);
+        color: #38bdf8;
+        box-shadow: 0 2px 8px rgba(56,189,248,0.08);
+    }
+    </style>
+    ''')

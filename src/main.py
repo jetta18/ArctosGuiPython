@@ -10,12 +10,14 @@ robot control, path planning, settings management, and web UI components.
 from nicegui import ui
 from pages import home, control, mks_config
 from pages.settings import set_page
+from pages.control import ctrl_page
 from components.menu import create_menu
 from core.ArctosController import ArctosController
 from core.PathPlanner import PathPlanner
 from core.ArctosPinocchio import ArctosPinocchioRobot  # Import for robot kinematics
 from utils.settings_manager import SettingsManager  # Import to manage settings
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -57,7 +59,7 @@ def control_page():
     This page allows to control the robot.
     """
     create_menu()
-    control.create(Arctos, robot, planner, settings_manager)  # Pass core components and settings to the control page
+    ctrl_page.create(Arctos, robot, planner, settings_manager)
 
 @ui.page('/settings')
 def settings_page():
