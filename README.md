@@ -46,8 +46,10 @@ cd ArctosGuiPython
 
 From the project root, run:
 ```bash
-# Build and start the GUI and visualization server
+# Build the GUI and visualization server
 # (make sure you have Docker and Docker Compose installed)
+docker compose -f docker/docker-compose.yml build
+# Run the GUI and visualization server
 docker compose -f docker/docker-compose.yml up
 ```
 - This will build the Docker image and start the GUI on [http://localhost:8080](http://localhost:8080).

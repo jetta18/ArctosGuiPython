@@ -10,10 +10,6 @@ def joint_control(robot):
         list: List of NiceGUI label objects for each joint.
     """
     with ui.expansion('Joint Control', icon='360', value=False).classes('w-full bg-gradient-to-br from-blue-50 to-cyan-100 border border-blue-300 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300 mb-3').props('expand-icon="expand_more"'):
-        with ui.row().classes('items-center mb-2'):
-            ui.icon('360').classes('text-2xl text-blue-700 mr-2')
-            ui.label('Joint Control').classes('text-2xl font-bold text-blue-900 tracking-wide')
-        ui.separator().classes('my-2')
         ui.label("View and set the joint angles.").classes('text-gray-600 mb-4')
         with ui.grid(columns=3).classes('gap-4 w-full mb-2'):
             joint_positions = [

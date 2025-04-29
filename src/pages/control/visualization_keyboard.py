@@ -28,7 +28,6 @@ def visualization_keyboard(robot, Arctos, keyboard_ctrl, step_size_slider, updat
         with ui.row().classes('items-center mb-1'):
             ui.icon('monitor').classes('text-2xl text-blue-700 mr-2')
             ui.label('3D Visualization').classes('text-xl font-bold text-blue-900 tracking-wide')
-        ui.separator().classes('my-1')
         with ui.column().classes('flex-1 w-full h-full'):
             ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 100%; min-height: 320px; border: none;"></iframe>''')\
                 .classes('w-full h-full rounded-lg border border-blue-200 shadow')
@@ -38,10 +37,9 @@ def visualization_keyboard(robot, Arctos, keyboard_ctrl, step_size_slider, updat
                 ui.label('Keyboard Control').classes('text-base font-semibold text-blue-800')
             with ui.row().classes('w-full justify-center items-start gap-6'):
                 with ui.column().classes("items-center"):
-                    keyboard_status_label = ui.label("").classes("text-xs font-semibold mb-1")
-                    update_status_label()
-                    with ui.row().classes('items-center gap-1'):
-                        ui.label("\U0001F3AE Keyboard Control").classes("text-sm font-medium text-gray-700 mb-1")
+                    # Removed keyboard_status_label and update_status_label logic
+                    with ui.row().classes('items-center gap-2'):
+                        keyboard_control_switch = ui.switch("Keyboard Control", value=keyboard_ctrl.active)
                         with ui.icon("info").classes("text-blue-500 cursor-pointer"):
                             with ui.tooltip().classes("text-body2 text-left"):
                                 ui.html(
@@ -57,15 +55,33 @@ def visualization_keyboard(robot, Arctos, keyboard_ctrl, step_size_slider, updat
                                     Use the <b>step size</b> slider to adjust increments.<br>
                                     """
                                 )
-                    keyboard_control_switch = ui.switch("Keyboard Control", value=keyboard_ctrl.active)
-                    keyboard_control_switch.on('update:model-value', on_switch)
+                        def on_switch(val):
+                            # Use the controller's toggle logic
+                            if val != keyboard_ctrl.active:
+                                keyboard_ctrl.toggle()
+                            # No status label update needed
+                        keyboard_control_switch.on('update:model-value', on_switch)
                 with ui.column().classes("items-center"):
-                    with ui.row().classes("items-center gap-1"):
+                    with ui.row().classes("items-center gap-2"):
                         ui.label("Step Size (m)").classes("text-sm font-medium text-gray-700")
-                        ui.icon("info").tooltip("Determines how far the robot moves per key press (W/A/S/D/Q/E).")
+                        with ui.icon("info").classes("text-blue-500 cursor-pointer"):
+                            with ui.tooltip().classes("text-body2 text-left"):
+                                ui.html(
+                                    """
+                                    <strong>Step Size:</strong><br>
+                                    Determines how far the robot moves per key press (<b>W/A/S/D/Q/E</b>).<br><br>
+                                    <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                                        <li>Smaller value: finer, more precise motion</li>
+                                        <li>Larger value: faster, coarser steps</li>
+                                    </ul>
+                                    Adjust as needed for your task.
+                                    """
+                                )
                     step_size_slider = ui.slider(
                         min=0.0005,
                         max=0.02,
                         value=0.002,
                         step=0.0005
                     ).props('label-always').classes('w-64')
+                    # Attach slider to controller
+                    keyboard_ctrl.step_size_input = step_size_slider

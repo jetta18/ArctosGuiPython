@@ -13,10 +13,6 @@ def path_planning(planner, robot, Arctos, settings_manager):
         None. The function builds the UI directly using NiceGUI components.
     """
     with ui.expansion('Path Planning', icon='map', value=False).classes('w-full bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300 mb-3').props('expand-icon="expand_more"'):
-        with ui.row().classes('items-center mb-1'):
-            ui.icon('map').classes('text-2xl text-green-700 mr-2')
-            ui.label('Path Planning').classes('text-xl font-bold text-green-900 tracking-wide')
-        ui.separator().classes('my-1')
         ui.label('Manage and execute path‑planning tasks.')\
             .classes('text-gray-600 mb-2')
         with ui.tabs().classes('mb-2') as tabs:
