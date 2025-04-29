@@ -1,8 +1,27 @@
 from nicegui import ui, app
 import os
 
+"""
+menu.py
+
+Provides the main navigation bar for the Arctos Robot Control application using NiceGUI.
+This module defines a modern, intuitive, and visually appealing navigation header with logo,
+page links, and a shutdown button. It is intended to be included at the top of every page.
+"""
+
 def create_menu():
-    """Creates a modern, intuitive navigation bar for the application."""
+    """Create a modern, intuitive navigation bar for the application.
+
+    The navigation bar includes the application logo, title, navigation buttons for main sections,
+    and a prominent shutdown button. The UI is styled for a modern look and responsive layout.
+
+    Returns:
+        None. The function builds the UI directly using NiceGUI components and injects CSS.
+
+    Side Effects:
+        - Registers static asset files for the logo and images.
+        - Injects custom CSS for navigation button styles.
+    """
     import os
     current_dir = os.path.dirname(os.path.abspath(__file__))
     assets_path = os.path.abspath(os.path.join(current_dir, '..', '..', 'assets'))
