@@ -24,7 +24,7 @@ def create():
                 ('text-blue-400', 'bolt', 'Real-Time Control', 'Instant feedback and live robot response', None),
                 ('text-green-400', 'shield-check', 'Safety First', 'Built-in safety checks and emergency stop', None),
                 ('text-yellow-400', 'cogs', 'Modular Config', 'Flexible settings for every use case', None),
-                ('text-purple-400', 'book-open', 'Documentation', None, 'https://github.com/jetta18/ArctosGuiPython'),
+                ('text-purple-400', 'book-open', 'Documentation', None, 'https://arctosrobotics.com/'),
             ]:
                 with ui.card().classes('w-full min-h-[160px] bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-lg flex flex-col items-center p-5 transition-transform hover:scale-105 hover:shadow-2xl duration-200'):
                     ui.icon(icon).classes(f'{color} text-3xl mb-2')
@@ -58,4 +58,6 @@ def create():
         with ui.row().classes('mt-8 mb-6 text-base text-gray-400 items-center justify-center gap-2'):
             ui.label('© 2025 jetta18 |')
             ui.link('GitHub', 'https://github.com/jetta18/ArctosGuiPython', new_tab=True).classes('underline hover:text-white')
+            ui.icon('discord').classes('text-indigo-400 text-xl mx-1')
+            ui.link('Discord', 'https://discord.com/invite/VY4c9QE5En', new_tab=True).classes('underline text-indigo-400 hover:text-indigo-200')
             ui.label('| v0.1 Beta')
