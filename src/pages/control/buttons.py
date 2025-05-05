@@ -2,7 +2,7 @@ from nicegui import ui
 from core import homing
 import utils.utils as utils
 
-def home_button(Arctos):
+def home_button(Arctos, settings_manager):
     """Create a button to home the robot.
 
     Args:
@@ -11,7 +11,7 @@ def home_button(Arctos):
     Returns:
         None. The function builds the UI directly using NiceGUI components.
     """
-    return ui.button("\U0001F3E0 Move to Home Pose", on_click=lambda: homing.move_to_zero_pose(Arctos)) \
+    return ui.button("\U0001F3E0 Move to Home Pose", on_click=lambda: homing.move_to_zero_pose(Arctos, settings_manager)) \
         .tooltip("Send robot to predefined 'home' configuration") \
         .classes('bg-purple-500 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-700')
 

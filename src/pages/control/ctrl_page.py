@@ -59,7 +59,7 @@ def create(Arctos, robot, planner, settings_manager):
             path_planning(planner, robot, Arctos, settings_manager)
             with ui.column().classes('w-full justify-center gap-4 mb-4'):
                 with ui.row().classes('w-full justify-center gap-4 mb-4'):
-                    home_button(Arctos)
+                    home_button(Arctos, settings_manager)
                     sleep_button(Arctos)
                     reset_to_zero_button(robot)
                 with ui.row().classes('w-full justify-center gap-4 mb-4'):
