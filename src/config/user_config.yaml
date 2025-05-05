@@ -7,6 +7,10 @@ gear_ratios:
 - 48
 - 33.0
 - 33.0
+homing_offsets:
+  0: -103445
+  1: -333983
+  5: -78401
 joint_accelerations:
   0: 190
   1: 190
@@ -30,6 +34,6 @@ joint_speeds:
   5: 500
 language: English
 max_fps: 30
-speed_scale: 1.0
+speed_scale: 0.5
 theme: Light
 ui_color_theme: Blue
