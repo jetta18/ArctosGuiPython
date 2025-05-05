@@ -226,15 +226,53 @@ def homing_tab(settings_manager, arctos, settings):
         None
     """
     with ui.element('div').classes("w-full grid grid-cols-1 md:grid-cols-2 gap-4 items-start"):
-        # Offsets Table
-        with ui.card().classes("p-4 overflow-x-auto"):
-            ui.label("Homing Offsets").classes("text-xl font-semibold mb-2")
-            offsets = settings_manager.get("homing_offsets", {i: 0 for i in range(6)})
-            rows = [{"Axis": f"J{axis}", "Offset": offsets.get(axis - 1, 0)} for axis in HOMING_SEQUENCE]
-            ui.table(
-                columns=[{"name": "Axis", "label": "Axis"}, {"name": "Offset", "label": "Offset"}],
-                rows=rows
-            ).classes("min-w-full").tooltip("Current zero offsets for each joint.")
+        # Modern Offsets Table
+        with ui.card().classes("p-4"):
+            # Title row: black, bold, info icon with HTML tooltip
+            with ui.row().classes("items-center mb-4"):
+                ui.label("Homing Offsets").classes("text-2xl font-bold text-black dark:text-white mr-2")
+                with ui.icon("info").classes("text-blue-500 cursor-pointer text-base"):
+                    with ui.tooltip().classes("text-body2 text-left"):
+                        ui.html(
+                            """
+                            <strong>Homing Offsets:</strong> <br>
+                            These offsets define the encoder value for each joint when homed and then moved to zero position.<br>
+                            <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                              <li>Adjust these if your robot's zero position needs fine-tuning.</li>
+                              <li>Click a value to edit and press Enter or click away to save.</li>
+                            </ul>
+                            <em>Changes are saved immediately.</em>
+                            """
+                        )
+            HOMING_SEQUENCE = [0, 1, 2, 3, 4, 5]
+            offsets = settings_manager.get("homing_offsets", {i: 0 for i in HOMING_SEQUENCE})
+            def make_offset_handler(axis):
+                def handler(e):
+                    offsets[axis] = e.value
+                    settings_manager.set("homing_offsets", offsets)
+                    ui.notify(f"Set offset for J{axis+1} to {e.value}")
+                return handler
+            with ui.element('table').classes("w-full border-separate border-spacing-y-2"):
+                with ui.element('thead').classes("bg-blue-100 dark:bg-gray-800"):
+                    with ui.element('tr'):
+                        with ui.element('th').classes("px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider"):
+                            ui.label("Axis").classes("text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider")
+                        with ui.element('th').classes("px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider"):
+                            ui.label("Offset").classes("text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider")
+                with ui.element('tbody'):
+                    for idx, axis in enumerate(HOMING_SEQUENCE):
+                        row_classes = "hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors "
+                        row_classes += "bg-white dark:bg-gray-900" if idx % 2 == 0 else "bg-gray-50 dark:bg-gray-800"
+                        with ui.element('tr').classes(row_classes):
+                            with ui.element('td').classes("px-6 py-4 whitespace-nowrap text-base text-gray-800 dark:text-gray-100 font-mono"):
+                                ui.label(f"J{axis+1}").classes("text-base text-gray-800 dark:text-gray-100 font-mono")
+                            with ui.element('td').classes("px-6 py-4 whitespace-nowrap text-base text-blue-700 dark:text-blue-300 font-semibold font-mono"):
+                                ui.number(
+                                    value=offsets.get(axis, 0),
+                                    min=-10000000, max=10000000, step=100,
+                                    on_change=make_offset_handler(axis)
+                                ).props("dense")
+            ui.label("Current zero offsets for each joint.").classes("text-xs text-gray-500 mt-2 dark:text-gray-400")
         # Calibration Wizard
         with ui.card().classes("p-4") as wizard_card:
             with ui.row().classes("items-center mb-2 gap-1"):
