@@ -32,6 +32,7 @@ joint_speeds:
   3: 500
   4: 510
   5: 500
+keyboard_send_to_robot: false
 language: English
 max_fps: 30
 speed_scale: 0.5
