@@ -70,7 +70,7 @@ def create(Arctos, robot, planner, settings_manager):
             def notify_fn(msg, color=None):
                 ui.notify(msg, color=color)
             step_size_slider = None
-            keyboard_ctrl = utils.setup_keyboard_controller(robot, Arctos, None, notify_fn)
+            keyboard_ctrl = utils.setup_keyboard_controller(robot, Arctos, None, notify_fn, settings_manager)
             ui.keyboard(lambda event: utils.on_key(event, robot, Arctos))
             def update_status_label():
                 pass  # This should be implemented as needed

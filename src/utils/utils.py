@@ -6,6 +6,8 @@ controlling the robot's gripper, and updating UI elements.
 import time
 import numpy as np
 from nicegui import ui
+import threading
+import time
 import logging
 from threading import Thread
 
@@ -589,14 +591,12 @@ def reset_to_zero_position(robot):
 # ----------------------------------
 # ENHANCED KEYBOARD CONTROL CLASS - START
 # ----------------------------------
-import threading
-import time
 
 class KeyboardRobotController:
     """
     Enhanced, thread-safe, extensible keyboard control for robot with velocity-based movement and background IK.
     """
-    def __init__(self, robot, Arctos, step_size_input=None, notify_fn=None):
+    def __init__(self, robot, Arctos, step_size_input=None, notify_fn=None, settings_manager=None):
         self.robot = robot
         self.Arctos = Arctos
         self.step_size_input = step_size_input
@@ -617,6 +617,7 @@ class KeyboardRobotController:
             'i': ('pitch', -1), 'k': ('pitch', 1),
             'u': ('yaw', -1), 'o': ('yaw', 1),
         }
+        self.settings_manager = settings_manager
         # For velocity control
         self.update_period = 0.05  # seconds
         self.velocity_mode = True  # smooth repeat while key held
@@ -689,52 +690,64 @@ class KeyboardRobotController:
         target_rpy[1] += delta_rpy['pitch']
         target_rpy[2] += delta_rpy['yaw']
         try:
+            # 1) Solve IK for the desired pose and update the 3‑D preview
             q_solution = self.robot.inverse_kinematics_pink(target_pos, target_rpy)
             self.robot.instant_display_state(q_solution)
-            # Check if we should send to hardware
+
+            # 2) Determine whether the command should be forwarded to the hardware
             send_to_robot = False
-            # Try to get from robot or Arctos if possible
-            settings_manager = getattr(self.robot, 'settings_manager', None)
-            if settings_manager is None:
-                settings_manager = getattr(self.Arctos, 'settings_manager', None)
-            if settings_manager is not None:
-                send_to_robot = settings_manager.get("keyboard_send_to_robot", False)
+            if self.settings_manager is not None:
+                send_to_robot = self.settings_manager.get("keyboard_send_to_robot", False)
+
             if send_to_robot:
-                # Use default or settings for speed/acceleration
-                speeds = 500
-                acceleration = 150
-                if settings_manager:
-                    speeds = settings_manager.get("joint_speeds", {i: 500 for i in range(6)})
-                    acceleration = settings_manager.get("joint_acceleration", {i: 150 for i in range(6)})
-                    # Convert dicts to lists if needed
-                    if isinstance(speeds, dict):
-                        speeds = [speeds.get(i, 500) for i in range(6)]
-                    if isinstance(acceleration, dict):
-                        acceleration = [acceleration.get(i, 150) for i in range(6)]
+                # helper: turn scalar / list / dict into a 6‑element list
+                def _as_list(value, default):
+                    if isinstance(value, dict):
+                        return [value.get(i, default) for i in range(6)]
+                    if isinstance(value, (list, tuple)):
+                        return list(value)[:6] + [default] * (6 - len(value))
+                    return [value] * 6
+
+                speeds_cfg  = self.settings_manager.get("joint_speeds",        500)
+                accels_cfg  = self.settings_manager.get("joint_accelerations", 150)
+
+                speeds       = _as_list(speeds_cfg, 500)
+                accelerations = _as_list(accels_cfg, 150)
+
                 try:
-                    self.Arctos.move_to_angles(q_solution, speeds=speeds, acceleration=acceleration)
+                    self.Arctos.move_to_angles(
+                        q_solution,
+                        speeds=speeds,
+                        acceleration=accelerations
+                    )
                 except Exception as e:
                     self._notify(f"❌ Failed to move physical robot: {e}", color="red")
+
+            # one‑shot success message after the previous IK failure
             if not self._last_ik_success:
                 self._notify("✅ IK solution found.", color="green")
             self._last_ik_success = True
-        except ValueError as e:
+
+        except ValueError as e:          # typical IK error
             if self._last_ik_success:
                 self._notify(f"❌ IK error: {e}", color="red")
             self._last_ik_success = False
-        except Exception as e:
+
+        except Exception as e:           # any other unexpected error
             if self._last_ik_success:
                 self._notify(f"❌ Unexpected error: {e}", color="red")
             self._last_ik_success = False
+
         return True
+
 
 # Singleton for UI integration
 keyboard_controller_instance = None
 
-def setup_keyboard_controller(robot, Arctos, step_size_input=None, notify_fn=None):
+def setup_keyboard_controller(robot, Arctos, step_size_input=None, notify_fn=None, settings_manager=None):
     global keyboard_controller_instance
     if keyboard_controller_instance is None:
-        keyboard_controller_instance = KeyboardRobotController(robot, Arctos, step_size_input, notify_fn)
+        keyboard_controller_instance = KeyboardRobotController(robot, Arctos, step_size_input, notify_fn, settings_manager)
     return keyboard_controller_instance
 
 # NiceGUI event handler
