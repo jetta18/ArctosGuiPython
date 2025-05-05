@@ -1,18 +1,18 @@
 auto_update_saved_poses: false
-enable_live_joint_updates: false
+enable_live_joint_updates: true
 gear_ratios:
 - 13.5
 - 150
 - 150
 - 48
 - 33.0
-- 33.0
+- 10.0
 homing_offsets:
   0: -103445.0
   1: -333983
   5: -78401
 joint_accelerations:
-  0: 190
+  0: 200
   1: 190
   2: 190
   3: 190
@@ -26,7 +26,7 @@ joint_directions:
   4: -1
   5: 1
 joint_speeds:
-  0: 540
+  0: 50
   1: 500
   2: 500
   3: 500
@@ -35,6 +35,6 @@ joint_speeds:
 keyboard_send_to_robot: false
 language: English
 max_fps: 30
-speed_scale: 0.5
+speed_scale: 1.0
 theme: Light
 ui_color_theme: Blue

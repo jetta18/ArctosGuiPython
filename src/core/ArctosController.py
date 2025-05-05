@@ -103,8 +103,12 @@ class ArctosController:
                 self.servos = []
         else:
             self.servos = []
+            
+        # Create a persistent thread pool for motor commands
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=6)
+        self.pending_futures = []
 
-    def angle_to_encoder(self, angle_rad: float, axis_index: int) -> int:  # Correct the return type here
+    def angle_to_encoder(self, angle_rad: float, axis_index: int) -> int:  
         """
         Converts a joint angle from radians to an encoder value for a given axis.
 
@@ -189,6 +193,8 @@ class ArctosController:
         *,
         speeds: int | list[int] = 500,
         acceleration: int | list[int] = 150,
+        wait_for_completion: bool = False,
+        force_stop: bool = False,
     ) -> None:
         """
         Move all robot joints to the specified target angles with optional per-joint speeds and accelerations.
@@ -204,6 +210,12 @@ class ArctosController:
                 Either a single global acceleration value (applied to all joints),
                 or a list of six individual acceleration values (one per joint).
                 Each value is clamped to the firmware-supported range [0, 255]. Defaults to 150.
+            wait_for_completion (bool, optional):
+                If True, wait for all motor commands to complete before returning.
+                If False, send commands asynchronously and return immediately. Defaults to False.
+            force_stop (bool, optional):
+                If True, force motors to stop before sending new commands.
+                If False, send new commands without stopping first. Defaults to False.
 
         Raises:
             ValueError: If `angles_rad` does not contain exactly 6 values.
@@ -231,21 +243,47 @@ class ArctosController:
                 raise ValueError("'acceleration' list must contain 6 elements")
             acc_list = [max(0, min(int(a), 255)) for a in acceleration]
 
+        # --- Cancel any pending futures to prevent queuing commands ------------
+        if hasattr(self, 'pending_futures'):
+            for future in self.pending_futures:
+                if not future.done():
+                    future.cancel()
+            self.pending_futures = []
+
         # --- Move Helper -------------------------------------------------------
         def _move_servo(i: int, angle_rad: float) -> None:
             encoder_val = self.angle_to_encoder(angle_rad, i)
             logger.debug(
                 f"Axis {i}: {math.degrees(angle_rad):.2f}° -> enc {encoder_val} @ {speed_list[i]} RPM / accel {acc_list[i]}"
             )
+
+            # Only stop the motor if explicitly requested
+            if force_stop:
+                try:
+                    if self.servos[i].is_motor_running():
+                        self.servos[i].stop_motor_absolute_motion_by_axis(acc_list[i])
+                        time.sleep(0.01)  # Small delay to ensure the stop command is processed
+                except Exception as e:
+                    logger.debug(f"Error stopping motor {i}: {e}")
+            
+            # Send the new motion command
             self.servos[i].run_motor_absolute_motion_by_axis(
                 speed_list[i], acc_list[i], encoder_val
             )
 
         # --- Execute in parallel -----------------------------------------------
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            pool.map(_move_servo, range(6), angles_rad)
-
-
+        # Submit new tasks to the persistent thread pool
+        futures = [
+            self.thread_pool.submit(_move_servo, i, angle) 
+            for i, angle in enumerate(angles_rad)
+        ]
+        
+        # Add new futures to the pending list
+        self.pending_futures = futures
+        
+        # Wait for completion if requested
+        if wait_for_completion:
+            concurrent.futures.wait(futures)
 
     def get_joint_angles(self) -> List[float]:
         """
@@ -301,7 +339,7 @@ class ArctosController:
         Returns:
             can.Bus: The initialized CAN bus object.
         Raises:
-            RuntimeError: If the CAN interface is not active or if there is an error initializing the CAN bus.
+            RuntimeError: If the CAN interface is not available or if there is an error initializing the CAN bus.
         """
         if not self.is_can_interface_up():
             logger.error(f"CAN interface {self.can_interface} is not active. Please run 'setup_canable.sh' first.")
@@ -346,7 +384,7 @@ class ArctosController:
             return False
 
 
-    def send_can_message_gripper(self, bus: can.Bus, arbitration_id: int, data: List[int]) -> None:  # Add type hint for 'bus'
+    def send_can_message_gripper(self, bus: can.Bus, arbitration_id: int, data: List[int]) -> None:  
         """
         Sends a CAN message to control the gripper.
 
@@ -494,3 +532,9 @@ class ArctosController:
         else:
             logger.info("All motors below 1000 RPM. Performing normal emergency stop.")
             self.emergency_stop()
+
+    def __del__(self):
+        """Clean up resources when the object is destroyed."""
+        if hasattr(self, "thread_pool"):
+            self.thread_pool.shutdown(wait=True)
+        # Other cleanup code...
