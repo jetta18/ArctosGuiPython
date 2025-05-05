@@ -690,55 +690,53 @@ class KeyboardRobotController:
         target_rpy[1] += delta_rpy['pitch']
         target_rpy[2] += delta_rpy['yaw']
         try:
-            # 1) Solve IK for the desired pose and update the 3‑D preview
+            # 1) Inverse kinematics and live preview ---------------------------
             q_solution = self.robot.inverse_kinematics_pink(target_pos, target_rpy)
             self.robot.instant_display_state(q_solution)
+            angles = q_solution[:6]
 
-            # 2) Determine whether the command should be forwarded to the hardware
-            send_to_robot = False
-            if self.settings_manager is not None:
-                send_to_robot = self.settings_manager.get("keyboard_send_to_robot", False)
+            # 2) Check whether to forward the command to the hardware ----------
+            send_to_robot = bool(
+                self.settings_manager
+                and self.settings_manager.get("keyboard_send_to_robot", False)
+            )
 
             if send_to_robot:
-                # helper: turn scalar / list / dict into a 6‑element list
+
+                # helper: convert scalar / list / dict -> 6‑element list
                 def _as_list(value, default):
                     if isinstance(value, dict):
                         return [value.get(i, default) for i in range(6)]
-                    if isinstance(value, (list, tuple)):
+                    if isinstance(value, (list, tuple, np.ndarray)):
                         return list(value)[:6] + [default] * (6 - len(value))
                     return [value] * 6
 
                 speeds_cfg  = self.settings_manager.get("joint_speeds",        500)
                 accels_cfg  = self.settings_manager.get("joint_accelerations", 150)
 
-                speeds       = _as_list(speeds_cfg, 500)
+                speeds        = _as_list(speeds_cfg, 500)
                 accelerations = _as_list(accels_cfg, 150)
 
                 try:
                     self.Arctos.move_to_angles(
-                        q_solution,
+                        angles,
                         speeds=speeds,
-                        acceleration=accelerations
+                        acceleration=accelerations,
                     )
-                except Exception as e:
-                    self._notify(f"❌ Failed to move physical robot: {e}", color="red")
+                except Exception:
+                    # silently ignore hardware errors for now
+                    pass
 
-            # one‑shot success message after the previous IK failure
-            if not self._last_ik_success:
-                self._notify("✅ IK solution found.", color="green")
             self._last_ik_success = True
 
-        except ValueError as e:          # typical IK error
-            if self._last_ik_success:
-                self._notify(f"❌ IK error: {e}", color="red")
-            self._last_ik_success = False
+        except ValueError:
+            self._last_ik_success = False    # IK failed
 
-        except Exception as e:           # any other unexpected error
-            if self._last_ik_success:
-                self._notify(f"❌ Unexpected error: {e}", color="red")
-            self._last_ik_success = False
+        except Exception:
+            self._last_ik_success = False    # any other unexpected error
 
         return True
+
 
 
 # Singleton for UI integration
