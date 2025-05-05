@@ -1,5 +1,5 @@
 auto_update_saved_poses: false
-enable_live_joint_updates: true
+enable_live_joint_updates: false
 gear_ratios:
 - 13.5
 - 150
