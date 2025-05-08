@@ -247,48 +247,39 @@ class ArctosController:
 
 
 
+    def _read_encoder_with_fallback(self, i: int, servo) -> int:
+        """Reads encoder value for a single axis with fallback to 0 on failure."""
+        try:
+            encoder_value = servo.read_encoder_value_addition()  # type: ignore
+            if encoder_value is None:
+                logger.warning(f"Failed to read encoder value for Axis {i}, setting to 0.")
+                return 0
+            return encoder_value
+        except Exception as e:
+            logger.warning(f"Error reading encoder for Axis {i}: {e}")
+            return 0
+
     def get_joint_angles(self) -> List[float]:
         """
         Retrieves the current joint angles of the robot.
 
-        This method reads the current joint angles from the encoder values of each servo motor.
-        It utilizes parallel execution with `ThreadPoolExecutor` to send all CAN requests
-        concurrently, thus reducing the overall execution time.
+        This method reads the current joint angles from the encoder values of each servo motor
+        in a serial manner to reduce CAN bus contention and improve reliability.
 
-        The method handles potential errors during encoder reading by logging an error message
-        and setting the corresponding joint angle to a default value of 0.
-
-        Raises:
-            Exception: If there is an error during encoder reading for a joint.
+        If reading fails, the corresponding joint angle is set to 0 and a warning is logged.
 
         Returns:
             list[float]: A list containing the current joint angles in radians.
         """
-
-        def read_encoder(i, servo):
-            """Helper function to read encoder value with error handling."""
-            try:
-                encoder_value = servo.read_encoder_value_addition()  # type: ignore
-                if encoder_value is None:
-                    logger.error(f"Failed to read encoder value for Axis {i}, setting to 0.")
-                    return 0  # Set default value if no response
-                return encoder_value
-            except Exception as e:
-                logger.error(f"Error reading encoder for Axis {i}: {e}")
-                return 0  # Default value in case of an error
-
-        # Parallelisiere das Einlesen der Encoder-Werte
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = list(executor.map(read_encoder, range(len(self.servos)), self.servos))
-
-        # Konvertiere Encoder-Werte in Gelenkwinkel
         current_joint_angle = []
-        for i, encoder_value in enumerate(results):
+        for i, servo in enumerate(self.servos):
+            encoder_value = self._read_encoder_with_fallback(i, servo)
             angle_rad = self.encoder_to_angle(encoder_value, i)
             current_joint_angle.append(angle_rad)
-            logger.debug(f"Axis {i}: Encoder Value = {encoder_value}, Angle = {angle_rad:.6f} rad")
+            logger.debug(f"Axis {i}: Encoder = {encoder_value}, Angle = {angle_rad:.4f} rad")
 
         return current_joint_angle
+
 
     def initialize_can_bus(self):
         """
