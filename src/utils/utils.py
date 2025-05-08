@@ -3,6 +3,7 @@ This module provides a collection of utility functions used throughout the Arcto
 These functions handle tasks such as saving, loading, and executing robot poses and programs, 
 controlling the robot's gripper, and updating UI elements.
 """
+from socketserver import ForkingTCPServer
 import time
 import numpy as np
 from nicegui import ui
@@ -269,6 +270,7 @@ def run_move_can(robot, arctos, settings_manager) -> None:
 
         # Build the 6-element speed list, clamped to 0-3000
         raw = settings_manager.get("joint_speeds", {})
+        speed_scale = settings_manager.get("speed_scale", 1.0)
         speeds = [max(0, min(raw.get(i, 500)* speed_scale, 3000)) for i in range(6)]
         
         # --- Acceleration: per joint, clamped ---
@@ -276,9 +278,8 @@ def run_move_can(robot, arctos, settings_manager) -> None:
         accelerations = [max(0, min(int(raw_accels.get(i, 150)), 255)) for i in range(6)]
 
         # --- Move the robot ---
-        arctos.move_to_angles(q_rad, speeds=speeds, acceleration=accelerations)
-        arctos.wait_for_motors_to_stop()
-
+        arctos.move_to_angles(q_rad, speeds=speeds, acceleration=accelerations, force_stop=True)
+        
     Thread(target=task, daemon=True).start()
     ui.notify("Robot moving...", color="green")
 
@@ -702,30 +703,36 @@ class KeyboardRobotController:
             )
 
             if send_to_robot:
+                # Store the last command time to implement rate limiting
+                current_time = time.time()
+                if not hasattr(self, '_last_command_time') or (current_time - getattr(self, '_last_command_time', 0)) > 0.05:
+                    self._last_command_time = current_time
+                    
+                    # helper: convert scalar / list / dict -> 6‑element list
+                    def _as_list(value, default):
+                        if isinstance(value, dict):
+                            return [value.get(i, default) for i in range(6)]
+                        if isinstance(value, (list, tuple, np.ndarray)):
+                            return list(value)[:6] + [default] * (6 - len(value))
+                        return [value] * 6
 
-                # helper: convert scalar / list / dict -> 6‑element list
-                def _as_list(value, default):
-                    if isinstance(value, dict):
-                        return [value.get(i, default) for i in range(6)]
-                    if isinstance(value, (list, tuple, np.ndarray)):
-                        return list(value)[:6] + [default] * (6 - len(value))
-                    return [value] * 6
+                    speeds_cfg  = self.settings_manager.get("joint_speeds",        500)
+                    accels_cfg  = self.settings_manager.get("joint_accelerations", 150)
 
-                speeds_cfg  = self.settings_manager.get("joint_speeds",        500)
-                accels_cfg  = self.settings_manager.get("joint_accelerations", 150)
+                    speeds        = _as_list(speeds_cfg, 500)
+                    accelerations = _as_list(accels_cfg, 150)
 
-                speeds        = _as_list(speeds_cfg, 500)
-                accelerations = _as_list(accels_cfg, 150)
-
-                try:
-                    self.Arctos.move_to_angles(
-                        angles,
-                        speeds=speeds,
-                        acceleration=accelerations,
-                    )
-                except Exception:
-                    # silently ignore hardware errors for now
-                    pass
+                    try:
+                        # Use the asynchronous version of move_to_angles (wait_for_completion=False)
+                        self.Arctos.move_to_angles(
+                            angles,
+                            speeds=speeds,
+                            acceleration=accelerations,
+                            wait_for_completion=False,
+                        )
+                    except Exception:
+                        # silently ignore hardware errors for now
+                        pass
 
             self._last_ik_success = True
 
