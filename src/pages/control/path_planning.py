@@ -167,111 +167,34 @@ def update_pose_table(planner, robot, pose_container) -> None:
                     ui.label("Create a pose by clicking 'Save Pose'").classes('text-sm text-gray-400')
             return
 
-        # Create tabs for different pose data views
-        with ui.tabs().classes('w-full mb-2') as pose_tabs:
-            tab1 = ui.tab('All Data', icon='table_chart')
-            tab2 = ui.tab('Joint Angles', icon='rotate_90_degrees_ccw')
-            tab3 = ui.tab('Cartesian', icon='3d_rotation')
-        
-        with ui.tab_panels(pose_tabs, value=tab1).classes('w-full'):
-            # Tab 1: All Data - Modern compact table with integrated delete buttons
-            with ui.tab_panel(tab1):
-                with ui.element('table').classes('w-full rounded-xl overflow-hidden border bg-white'):
-                    with ui.element('thead').classes('bg-blue-50'):
-                        with ui.element('tr'):
-                            with ui.element('th').classes('py-2 text-center'):
-                                ui.label('#').classes('font-semibold')
-                            with ui.element('th').classes('py-2 text-center'):
-                                ui.label('Joints (°)').classes('font-semibold')
-                            with ui.element('th').classes('py-2 text-center'):
-                                ui.label('X, Y, Z (m)').classes('font-semibold')
-                            with ui.element('th').classes('py-2 text-center'):
-                                ui.label('Actions').classes('font-semibold')
-                    with ui.element('tbody'):
-                        for idx, pose in enumerate(planner.poses):
-                            try:
-                                joints = [f"{np.degrees(float(j)):.1f}°" for j in pose["joints"]]
-                                cartesian = [f"{float(c):.3f}" for c in pose["cartesian"]]
-                                with ui.element('tr').classes('hover:bg-blue-50 transition-colors'):
-                                    with ui.element('td').classes('text-center'):
-                                        ui.label(f"{idx+1}").classes('w-8 h-8 flex items-center justify-center rounded-full text-white bg-gradient-to-r from-blue-600 to-green-500')
-                                    with ui.element('td').classes('text-center font-mono text-sm'):
-                                        ui.label(f'{", ".join(joints)}')
-                                    with ui.element('td').classes('text-center font-mono text-sm'):
-                                        ui.label(f'({cartesian[0]}, {cartesian[1]}, {cartesian[2]})')
-                                    with ui.element('td').classes('text-center'):
-                                        ui.button(icon='delete', color='red', on_click=lambda i=idx: delete_pose(planner, i, robot, pose_container)).props('flat round').classes('text-red-500').tooltip(f"Delete Pose {idx+1}")
-                            except Exception as e:
-                                print(f"Error displaying pose {idx}: {e}")
-
-            
-            # Tab 2: Joint Angles - Focus only on joint data
-            with ui.tab_panel(tab2):
-                with ui.element('table').classes('w-full rounded-xl overflow-hidden border bg-white'):
-                    with ui.element('thead').classes('bg-blue-50'):
-                        with ui.element('tr'):
-                            with ui.element('th').classes('text-center w-16'):
-                                ui.label('#').classes('font-semibold')
-                            with ui.element('th').classes('text-center'):
-                                ui.label('J1 (°)').classes('font-semibold')
-                            with ui.element('th').classes('text-center'):
-                                ui.label('J2 (°)').classes('font-semibold')
-                            with ui.element('th').classes('text-center'):
-                                ui.label('J3 (°)').classes('font-semibold')
-                            with ui.element('th').classes('text-center'):
-                                ui.label('J4 (°)').classes('font-semibold')
-                            with ui.element('th').classes('text-center'):
-                                ui.label('J5 (°)').classes('font-semibold')
-                            with ui.element('th').classes('text-center'):
-                                ui.label('J6 (°)').classes('font-semibold')
-                            with ui.element('th').classes('text-center w-20'):
-                                ui.label('Delete').classes('font-semibold')
-                    with ui.element('tbody'):
-                        for idx, pose in enumerate(planner.poses):
-                            try:
-                                joints = [f"{np.degrees(float(j)):.2f}°" for j in pose["joints"]]
-                                with ui.element('tr').classes('hover:bg-blue-50 transition-colors'):
-                                    with ui.element('td').classes('text-center font-medium'):
-                                        ui.label(f'{idx+1}')
-                                    for i in range(6):
-                                        with ui.element('td').classes('text-center font-mono'):
-                                            ui.label(joints[i])
-                                    with ui.element('td').classes('text-center'):
-                                        ui.button(icon='delete', color='red', on_click=lambda i=idx: delete_pose(planner, i, robot, pose_container)).props('flat round').classes('text-red-500')
-                            except Exception as e:
-                                print(f"Error displaying pose {idx}: {e}")
-
-            
-            # Tab 3: Cartesian - Focus only on cartesian coordinates
-            with ui.tab_panel(tab3):
-                with ui.element('table').classes('w-full rounded-xl overflow-hidden border bg-white'):
-                    with ui.element('thead').classes('bg-blue-50'):
-                        with ui.element('tr'):
-                            with ui.element('th').classes('text-center w-16'):
-                                ui.label('#').classes('font-semibold')
-                            with ui.element('th').classes('text-center'):
-                                ui.label('X (m)').classes('font-semibold')
-                            with ui.element('th').classes('text-center'):
-                                ui.label('Y (m)').classes('font-semibold')
-                            with ui.element('th').classes('text-center'):
-                                ui.label('Z (m)').classes('font-semibold')
-                            with ui.element('th').classes('text-center w-20'):
-                                ui.label('Delete').classes('font-semibold')
-                    with ui.element('tbody'):
-                        for idx, pose in enumerate(planner.poses):
-                            try:
-                                cartesian = [f"{float(c):.4f}" for c in pose["cartesian"]]
-                                with ui.element('tr').classes('hover:bg-blue-50 transition-colors'):
-                                    with ui.element('td').classes('text-center font-medium'):
-                                        ui.label(f'{idx+1}')
-                                    for i in range(3):
-                                        with ui.element('td').classes('text-center font-mono'):
-                                            ui.label(cartesian[i])
-                                    with ui.element('td').classes('text-center'):
-                                        ui.button(icon='delete', color='red', on_click=lambda i=idx: delete_pose(planner, i, robot, pose_container)).props('flat round').classes('text-red-500')
-                            except Exception as e:
-                                print(f"Error displaying pose {idx}: {e}")
-
+        # Single, modern, minimalistic table for all pose data
+        with ui.element('table').classes('w-full rounded-xl overflow-hidden border bg-white shadow-sm'):
+            with ui.element('thead').classes('bg-blue-50'):
+                with ui.element('tr'):
+                    with ui.element('th').classes('py-2 text-center w-8'):
+                        ui.label('#').classes('font-semibold')
+                    with ui.element('th').classes('py-2 text-center'):
+                        ui.label('Joint Angles (°)').classes('font-semibold')
+                    with ui.element('th').classes('py-2 text-center'):
+                        ui.label('Cartesian (X, Y, Z) [m]').classes('font-semibold')
+                    with ui.element('th').classes('py-2 text-center w-16'):
+                        ui.label('Delete').classes('font-semibold')
+            with ui.element('tbody'):
+                for idx, pose in enumerate(planner.poses):
+                    try:
+                        joints = [f"{np.degrees(float(j)):.1f}°" for j in pose["joints"]]
+                        cartesian = [f"{float(c):.3f}" for c in pose["cartesian"]]
+                        with ui.element('tr').classes('hover:bg-blue-50 transition-colors group'):
+                            with ui.element('td').classes('text-center font-medium text-gray-700'):
+                                ui.label(f"{idx+1}").classes('w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-green-500 text-white group-hover:scale-105 transition-transform')
+                            with ui.element('td').classes('text-center font-mono text-sm text-blue-900'):
+                                ui.label(f'{", ".join(joints)}')
+                            with ui.element('td').classes('text-center font-mono text-sm text-green-900'):
+                                ui.label(f'({cartesian[0]}, {cartesian[1]}, {cartesian[2]})')
+                            with ui.element('td').classes('text-center'):
+                                ui.button(icon='delete', color='red', on_click=lambda i=idx: delete_pose(planner, i, robot, pose_container)).props('flat round').classes('text-red-500 hover:bg-red-50').tooltip(f"Delete Pose {idx+1}")
+                    except Exception as e:
+                        print(f"Error displaying pose {idx}: {e}")
 
 
 def delete_pose(planner, index, robot, pose_container) -> None:
@@ -290,12 +213,13 @@ def delete_pose(planner, index, robot, pose_container) -> None:
     Raises:
         Exception: For any errors during pose deletion or UI updates.
     """
-    planner.delete_pose(index, robot)  # Call delete function in PathPlanner
+    planner.delete_pose(index, robot)
     update_pose_table(planner, robot, pose_container)
 
 
-def path_planning(planner, robot, Arctos, settings_manager):
-    """Create the path planning expansion for the robot.
+def path_planning(planner, robot, Arctos, settings_manager) -> None:
+    """
+    Create the path planning expansion for the robot.
 
     Args:
         planner: The path planning module or object.
@@ -307,63 +231,47 @@ def path_planning(planner, robot, Arctos, settings_manager):
         None. The function builds the UI directly using NiceGUI components.
     """
     with ui.expansion('Path Planning', icon='route', value=False).classes('w-full bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 rounded-2xl shadow-lg p-4 hover:shadow-xl transition-all duration-300 mb-3').props('expand-icon="expand_more"'):
-        with ui.row().classes('w-full items-center justify-between mb-3'):
-            with ui.column().classes('gap-0'):
-                ui.label('Path Planning').classes('text-xl font-bold text-green-800')
-                ui.label('Manage and execute robot path sequences').classes('text-sm text-green-700 opacity-80')
-            ui.icon('precision_manufacturing').classes('text-green-700 text-3xl')
-        
-        with ui.card().classes('w-full bg-white/90 rounded-xl overflow-hidden p-0 shadow mb-2'):
-            with ui.tabs().classes('w-full').props('dense') as tabs:
-                tab_poses = ui.tab('Saved Poses', icon='list_alt')
-                tab_actions = ui.tab('Program Actions', icon='play_circle')
-            
-            with ui.tab_panels(tabs, value=tab_poses).classes('px-4 py-3'):
-                with ui.tab_panel(tab_poses).classes('p-0 min-h-[300px]'):
-                    # Responsive container for all pose table content
-                    pose_container = ui.column().classes('w-full gap-y-4')
+        # Pose Table
+        pose_container = ui.column().classes('w-full gap-y-4')
+        update_pose_table(planner, robot, pose_container)
+
+        # Visual Divider
+        ui.element('hr').classes('my-4 border-gray-200')
+
+        # Action Buttons Grid
+        with ui.grid().classes('w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'):
+            # Save Pose Button
+            with ui.card().classes('bg-white p-3 rounded-xl border border-blue-100 hover:bg-blue-50 transition-all'):
+                with ui.row().classes('items-center gap-3'):
+                    ui.icon('add_location_alt').classes('text-blue-600 text-2xl')
+                    ui.label('Save Pose').classes('font-medium text-blue-800')
+                ui.button('Save', icon='save', on_click=lambda: (
+                    save_pose(planner, robot),
                     update_pose_table(planner, robot, pose_container)
-                
-                with ui.tab_panel(tab_actions).classes('p-0'):
-                    # Action buttons with improved layout and visual style
-                    with ui.card().classes('w-full bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-xl border-0'):
-                        ui.label('Program Actions').classes('text-lg font-semibold text-green-900 mb-3')
-                        
-                        # Grid layout for action buttons
-                        with ui.grid(columns=2).classes('gap-3 w-full mb-3'):
-                            with ui.card().classes('bg-white/90 p-3 rounded-xl border border-blue-200 hover:shadow-md transition-all'):
-                                with ui.column().classes('items-center gap-2'):
-                                    ui.icon('add_location_alt', size='2em').classes('text-blue-600')
-                                    ui.label('Save Pose').classes('font-medium text-blue-800')
-                                    ui.label('Capture current robot position').classes('text-xs text-center text-gray-500')
-                                    ui.button('Save', icon='save', on_click=lambda: (
-                                        save_pose(planner, robot),
-                                        update_pose_table(planner, robot, pose_container)
-                                    )).classes('bg-blue-600 text-white px-4 py-1 rounded-lg text-sm w-full mt-1')
-                            
-                            with ui.card().classes('bg-white/90 p-3 rounded-xl border border-green-200 hover:shadow-md transition-all'):
-                                with ui.column().classes('items-center gap-2'):
-                                    ui.icon('folder_open', size='2em').classes('text-green-600')
-                                    ui.label('Load Program').classes('font-medium text-green-800')
-                                    ui.label('Retrieve saved pose sequences').classes('text-xs text-center text-gray-500')
-                                    ui.button('Load', icon='download', on_click=lambda: load_program(planner, pose_container, robot)).classes('bg-green-600 text-white px-4 py-1 rounded-lg text-sm w-full mt-1')
-                            
-                            with ui.card().classes('bg-white/90 p-3 rounded-xl border border-indigo-200 hover:shadow-md transition-all'):
-                                with ui.column().classes('items-center gap-2'):
-                                    ui.icon('save', size='2em').classes('text-indigo-600')
-                                    ui.label('Save Program').classes('font-medium text-indigo-800')
-                                    ui.label('Store current pose sequence').classes('text-xs text-center text-gray-500')
-                                    ui.button('Save', icon='upload', on_click=lambda: save_program(planner)).classes('bg-indigo-600 text-white px-4 py-1 rounded-lg text-sm w-full mt-1')
-                            
-                            with ui.card().classes('bg-white/90 p-3 rounded-xl border border-red-200 hover:shadow-md transition-all'):
-                                with ui.column().classes('items-center gap-2'):
-                                    ui.icon('play_arrow', size='2em').classes('text-red-600')
-                                    ui.label('Execute Program').classes('font-medium text-red-800')
-                                    ui.label('Run the loaded pose sequence').classes('text-xs text-center text-gray-500')
-                                    ui.button('Execute', icon='smart_toy', on_click=lambda: execute_path(planner, robot, Arctos, settings_manager)).classes('bg-red-600 text-white px-4 py-1 rounded-lg text-sm w-full mt-1')
-                        
-                        with ui.row().classes('justify-center mt-2'):
-                            with ui.card().classes('bg-blue-50 px-4 py-2 rounded-xl border border-blue-200'):
-                                with ui.row().classes('items-center gap-2'):
-                                    ui.icon('info', size='1.2em').classes('text-blue-500')
-                                    ui.label('Save your program before executing for best results').classes('text-sm text-blue-700')
+                )).classes('bg-blue-600 text-white px-4 py-1 rounded-lg text-sm')
+
+            # Load Program Button
+            with ui.card().classes('bg-white p-3 rounded-xl border border-green-100 hover:bg-green-50 transition-all'):
+                with ui.row().classes('items-center gap-3'):
+                    ui.icon('folder_open').classes('text-green-600 text-2xl')
+                    ui.label('Load Program').classes('font-medium text-green-800')
+                ui.button('Load', icon='download', on_click=lambda: load_program(planner, pose_container, robot)).classes('bg-green-600 text-white px-4 py-1 rounded-lg text-sm')
+
+            # Save Program Button
+            with ui.card().classes('bg-white p-3 rounded-xl border border-indigo-100 hover:bg-indigo-50 transition-all'):
+                with ui.row().classes('items-center gap-3'):
+                    ui.icon('save').classes('text-indigo-600 text-2xl')
+                    ui.label('Save Program').classes('font-medium text-indigo-800')
+                ui.button('Save', icon='upload', on_click=lambda: save_program(planner)).classes('bg-indigo-600 text-white px-4 py-1 rounded-lg text-sm')
+
+            # Execute Program Button
+            with ui.card().classes('bg-white p-3 rounded-xl border border-red-100 hover:bg-red-50 transition-all'):
+                with ui.row().classes('items-center gap-3'):
+                    ui.icon('play_arrow').classes('text-red-600 text-2xl')
+                    ui.label('Run Program').classes('font-medium text-red-800')
+                ui.button('Run', icon='smart_toy', on_click=lambda: execute_path(planner, robot, Arctos, settings_manager)).classes('bg-red-600 text-white px-4 py-1 rounded-lg text-sm')
+
+        # Info note
+        with ui.row().classes('bg-blue-50 p-3 rounded-xl border border-blue-100 items-center gap-2 mt-2'):
+            ui.icon('info').classes('text-blue-500')
+            ui.label('Save your program before executing for best results').classes('text-sm text-blue-700')
