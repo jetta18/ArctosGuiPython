@@ -51,7 +51,7 @@ def create(Arctos, robot, planner, settings_manager):
     joint_positions_encoder = live_joint_states(settings_manager)
 
     with ui.row().classes('w-full h-[calc(100vh-60px)] gap-2 items-stretch'):
-        with ui.column().classes('flex-2 min-w-0 gap-2 items-stretch'):
+        with ui.column().classes('flex-2 min-w-0 gap-2 items-stretch w-[550px]'):
             speed_scale(settings_manager, apply_speed)
             joint_positions = joint_control(robot)
             ee_position_labels, ee_orientation_labels = end_effector_control(robot)
