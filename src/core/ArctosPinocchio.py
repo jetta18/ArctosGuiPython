@@ -5,6 +5,8 @@ import numpy as np
 import threading
 import logging
 from pink.tasks import FrameTask
+from pink.limits.configuration_limit import ConfigurationLimit
+from pink.limits.velocity_limit import VelocityLimit
 from pink import solve_ik, Configuration
 from scipy.spatial.transform import Rotation as R
 import qpsolvers
@@ -303,26 +305,26 @@ class ArctosPinocchioRobot:
         return self.q[:6].copy()
 
     def inverse_kinematics_pink(self, target_xyz: np.ndarray, target_rpy: np.ndarray = None) -> np.ndarray:
-        """Computes the inverse kinematics for a target position or pose using the PINK library.
+        """
+        Computes the inverse kinematics for a target position or pose using the PINK library.
 
         This method calculates the joint configuration required for the robot to reach a specified target
         position or pose. It utilizes the PINK (Pinocchio Inverse Kinematics) library to solve the inverse
         kinematics problem. The method supports solving for position only or for both position and orientation,
         depending on whether `target_rpy` is provided.
 
-
-
         Args:
             target_xyz (np.ndarray): The target Cartesian position [x, y, z].
-            target_rpy (np.ndarray, optional): The target Roll-Pitch-Yaw orientation [roll, pitch, yaw]. If None, only position IK is performed. Defaults to None.
+            target_rpy (np.ndarray, optional): The target Roll-Pitch-Yaw orientation [roll, pitch, yaw].
+                                            If None, only position IK is performed.
 
         Returns:
-            np.ndarray: The joint configuration (joint angles) that achieve the target position or pose.
+            np.ndarray: The joint configuration (joint angles) that achieves the target position or pose.
 
         Raises:
             ValueError: If the IK solution violates joint limits.
+            RuntimeError: If the IK solver fails to converge.
         """
-
         # Compute target rotation
         if target_rpy is not None:
             target_rot = R.from_euler('xyz', target_rpy).as_matrix()
@@ -334,10 +336,10 @@ class ArctosPinocchioRobot:
 
         target_SE3 = pin.SE3(target_rot, target_xyz)
 
-        # Configuration
+        # Initial robot configuration
         configuration = Configuration(self.model, self.data, self.q.copy())
 
-        # Define IK task (without target in constructor!)
+        # Task setup
         task = FrameTask(
             frame=self.ee_frame_name,
             position_cost=2.0,
@@ -346,19 +348,43 @@ class ArctosPinocchioRobot:
         )
         task.set_target(target_SE3)
 
-        # Solver
-        solver = "quadprog" if "quadprog" in qpsolvers.available_solvers else qpsolvers.available_solvers[0]
+        # Preferred solver
+        preferred_solvers = ["proxqp", "osqp", "quadprog"]
+        solver = next((s for s in preferred_solvers if s in qpsolvers.available_solvers), None)
+        if solver is None:
+            raise RuntimeError("No suitable QP solver available.")
 
-        # solve_ik
+        # Define limits (position and velocity limits)
+        limits = [
+            ConfigurationLimit(self.model),
+            VelocityLimit(self.model)
+        ]
+
+        # IK parameters
         dt = 0.05
-        for _ in range(300):  # 3 iterations for more accuracy
-            velocity = solve_ik(configuration, tasks=[task], dt=dt, solver=solver)
+        tol = 1e-4
+        max_iter = 150
+
+        # Iterative solve
+        for i in range(max_iter):
+            velocity = solve_ik(
+                configuration,
+                tasks=[task],
+                dt=dt,
+                solver=solver,
+                limits=limits
+            )
             configuration.integrate_inplace(velocity, dt)
+            error_norm = np.linalg.norm(task.compute_error(configuration))
+            if error_norm < tol:
+                break
+        else:
+            raise RuntimeError(f"IK did not converge within {max_iter} iterations (final error: {error_norm:.3g})")
 
         q_solution = configuration.q.copy()
 
         if not self.check_joint_limits(q_solution):
-            raise ValueError("❌ IK-Lösung mit PINK verletzt Gelenkgrenzen!")
+            raise ValueError("❌ IK solution violates joint limits!")
 
         return q_solution
 
