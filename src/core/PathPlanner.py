@@ -4,8 +4,6 @@ from typing import List, Dict, Optional, Tuple
 import logging
 import os
 from robomeshcat import Object
-import meshcat.geometry as g
-import meshcat.transformations as tf
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
