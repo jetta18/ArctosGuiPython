@@ -16,100 +16,122 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 
 
-## 🛠️ Setup
+## 🛠️ Setup & Installation
 
 ### Prerequisites
-
-- Python 3.8 or higher
-- CAN interface for robot communication
-- Access to the Arctos Robot hardware
-
----
-
-## 🔧 Installation Options
-
-You can install and run the project in several ways, including with Docker for a quick and reproducible setup.
+- **Python 3.8+** (if not using Docker)
+- **CAN interface** for robot communication
+- **Arctos Robot hardware** (for full functionality)
+- **[Optional] Conda** (recommended for robotics users)
+- **[Optional] Docker & Docker Compose** (recommended for easiest setup)
 
 ---
 
-### 🐳 Option 0: Run with Docker (Recommended for Quick Start)
+## 🚦 Quick Start Table
 
-You can use Docker to run the GUI without installing Python or dependencies directly on your system.
+| Method                 | Recommended For         | Requirements                | Notes                                   |
+|------------------------|------------------------|-----------------------------|-----------------------------------------|
+| Docker (Quick Start)   | Most users             | Docker, Docker Compose      | Easiest, no Python setup needed         |
+| Conda Environment      | Robotics users         | Conda/Miniconda             | Handles most dependencies automatically |
+| Manual Python + venv   | Advanced users         | Python, pip, venv           | Manual dependency management            |
 
-#### 1. Clone the repository
-```bash
-git clone https://github.com/jetta18/ArctosGuiPython.git
-cd ArctosGuiPython
-```
+---
 
-#### 2. Build and run with Docker Compose
+## 🔧 Installation Methods
 
-From the project root, run:
-```bash
-# Build the GUI and visualization server
-# (make sure you have Docker and Docker Compose installed)
-docker compose -f docker/docker-compose.yml build
-# Run the GUI and visualization server
-docker compose -f docker/docker-compose.yml up
-```
-- This will build the Docker image and start the GUI on [http://localhost:8080](http://localhost:8080).
-- The MeshCat visualizer will be available on [http://localhost:7000/static/](http://localhost:7000/static/).
+### 🐳 1. Docker (Recommended for Most Users)
 
-#### 2. (Optional) Use a prebuilt Docker image (not available yet!!)
-If a prebuilt image is provided (e.g., on Docker Hub):
+**No need to install Python or dependencies manually.**
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/jetta18/ArctosGuiPython.git
+   cd ArctosGuiPython
+   ```
+2. **Build and run with Docker Compose:**
+   ```bash
+   # Build the GUI and visualization server
+   docker compose -f docker/docker-compose.yml build
+   # Run the GUI and visualization server
+   docker compose -f docker/docker-compose.yml up
+   ```
+   - The GUI will be available at [http://localhost:8080](http://localhost:8080)
+   - The MeshCat visualizer will be at [http://localhost:7000/static/](http://localhost:7000/static/)
+
+> **Tip:** Make sure Docker and Docker Compose are installed and running.
+
+**(Optional) Use a prebuilt Docker image**  
+*Not available yet. When available:*
 ```bash
 docker run --rm -p 8080:8080 -p 7000:7000 yourusername/arctos-gui:latest
 ```
-Replace `yourusername/arctos-gui:latest` with the actual image name if available.
+Replace `yourusername/arctos-gui:latest` with the actual image name.
 
 ---
 
-### 🅰️ Option 1: Standard Python Installation (with manual Pinocchio setup)
+### 🅱️ 2. Conda-based Installation (Recommended for Robotics)
 
-1. Clone the repository:
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/jetta18/ArctosGuiPython.git
    cd ArctosGuiPython
    ```
-
-2. (Optional) Create and activate a virtual environment:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Linux/macOS
-   ```
-
-3. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Install **Pinocchio manually** using the official instructions:  
-   👉 https://stack-of-tasks.github.io/pinocchio/download.html
-
----
-
-### 🅱️ Option 2: Conda-based Installation (Recommended for Robotics)
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/jetta18/ArctosGuiPython.git
-   cd ArctosGuiPython
-   ```
-
-2. Create the Conda environment (the `environment.yml` file is included in the repository):
+2. **Create the Conda environment:**
    ```bash
    conda env create -f environment.yml
    ```
-
-3. Activate the environment:
+3. **Activate the environment:**
    ```bash
    conda activate arctos-env
    ```
-
-4. Start the application:
+4. **Start the application:**
    ```bash
    python src/main.py
    ```
+
+> **Tip:** If you don’t have Conda, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+
+---
+
+### 🅰️ 3. Manual Python Installation (Advanced/Custom)
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/jetta18/ArctosGuiPython.git
+   cd ArctosGuiPython
+   ```
+2. **(Recommended) Create and activate a virtual environment:**
+   - Linux/macOS:
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     ```
+   - Windows:
+     ```powershell
+     python -m venv venv
+     .\venv\Scripts\activate
+     ```
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. **Install Pinocchio manually** ([instructions](https://stack-of-tasks.github.io/pinocchio/download.html))
+
+---
+
+### ⚡ Next Steps: CAN Interface Setup & Running
+
+- **Set up the CAN interface:**
+  ```bash
+  cd scripts
+  sudo ./setup_canable.sh
+  ```
+- **Run the application:**
+  ```bash
+  cd src
+  python main.py
+  ```
+- **Open your browser:** [http://localhost:8080](http://localhost:8080)
 
 ---
 
