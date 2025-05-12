@@ -4,140 +4,106 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 ## 🌟 Features
 
-- Modern Material Design UI 
-- Real-time joint and cartesian position updates
-- Interactive robot control:
-  - Joint control 
-  - Cartesian position input
+- **Modern UI**: Material Design interface with real-time updates
+- **Robot Control**:
+  - Joint and Cartesian position control
   - Path planning and program execution
   - Gripper control
   - Keyboard shortcuts for fine movement
-- MKS Servo configuration interface
+- **Configuration**:
+  - MKS Servo configuration
+  - Customizable settings
 
-
-
-## 🛠️ Setup & Installation
+## 🚀 Quick Start
 
 ### Prerequisites
+
 - **Python 3.8+**
 - **CAN interface** for robot communication
 - **Arctos Robot hardware** (for full functionality)
-- **[Optional] Conda** (recommended for robotics users)
+- **Recommended**: Conda/Miniconda for dependency management
 
----
+### Installation Methods
 
-## 🚦 Quick Start Table
+#### 🐍 Option 1: Conda (Recommended)
 
-| Method                 | Recommended For         | Requirements                | Notes                                   |
-|------------------------|------------------------|-----------------------------|-----------------------------------------|
-| Conda Environment      | Robotics users         | Conda/Miniconda             | Handles most dependencies automatically |
-| Manual Python + venv   | Advanced users         | Python, pip, venv           | Manual dependency management            |
-
----
-
-## 🔧 Installation Methods
-
-### 🐍 1. Conda-based Installation (Recommended for Robotics)
-
-1. **Clone the repository:**
+1. Clone the repository:
    ```bash
    git clone https://github.com/jetta18/ArctosGuiPython.git
    cd ArctosGuiPython
    ```
-2. **Create the Conda environment:**
+
+2. Create and activate the Conda environment:
    ```bash
    conda env create -f environment.yml
-   ```
-3. **Activate the environment:**
-   ```bash
    conda activate arctos-env
    ```
-4. **Start the application:**
-   ```bash
-   python src/main.py
-   ```
 
-> **Tip:** If you don’t have Conda, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+> 💡 Don't have Conda? Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
 
----
+#### 🛠️ Option 2: Manual Python Installation
 
-### 🛠️ 2. Manual Python Installation (Advanced)
-
-1. **Clone the repository:**
+1. Clone the repository:
    ```bash
    git clone https://github.com/jetta18/ArctosGuiPython.git
    cd ArctosGuiPython
    ```
-2. **(Recommended) Create and activate a virtual environment:**
-   - Linux/macOS:
-     ```bash
-     python3 -m venv venv
-     source venv/bin/activate
-     ```
-   - Windows:
-     ```powershell
-     python -m venv venv
-     .\venv\Scripts\activate
-     ```
-3. **Install dependencies:**
+
+2. Create and activate a virtual environment:
+   ```bash
+   # Linux/macOS
+   python3 -m venv venv
+   source venv/bin/activate
+   
+   # Windows
+   python -m venv venv
+   .\venv\Scripts\activate
+   ```
+
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-4. **Install Pinocchio manually** ([instructions](https://stack-of-tasks.github.io/pinocchio/download.html))
 
----
+4. Install Pinocchio manually:
+   [Pinocchio Installation Guide](https://stack-of-tasks.github.io/pinocchio/download.html)
 
-### ⚡ Next Steps: CAN Interface Setup & Running
+## 🔌 Hardware Setup
 
-- **Set up the CAN interface:**
-  ```bash
-  cd scripts
-  sudo ./setup_canable.sh
-  ```
-- **Run the application:**
-  ```bash
-  cd src
-  python main.py
-  ```
-- **Open your browser:** [http://localhost:8080](http://localhost:8080)
+### CAN Interface Configuration
 
----
+1. Navigate to the scripts directory:
+   ```bash
+   cd ~/ArctosGuiPython/scripts
+   ```
 
-### 🎛️ CAN Interface Setup
+2. Run the setup script (requires sudo):
+   ```bash
+   sudo ./setup_canable.sh
+   ```
 
-Set up the CAN interface using the provided script (Important to set this up!):
+## 🖥️ Running the Application
 
-```bash
-cd ~/ArctosGuiPython/scripts
-sudo ./setup_canable.sh
-```
-
----
-
-### 🚀 Running the Application
-
-1. Activate your environment (if using Conda or venv):
+1. Activate your environment:
    ```bash
    # For Conda
    conda activate arctos-env
-   # OR for venv
-   # On Windows:
-   .\venv\Scripts\activate
-   # On Linux/macOS:
-   source venv/bin/activate
+   
+   # For venv
+   # Linux/macOS: source venv/bin/activate
+   # Windows: .\venv\Scripts\activate
    ```
 
-2. Launch the GUI:
+2. Start the application:
    ```bash
    cd ~/ArctosGuiPython/src
    python main.py
    ```
 
-3. Open your browser and go to:
+3. Open your browser and navigate to:
    ```
    http://localhost:8080
    ```
-
 
 ## 📁 Project Structure
 
@@ -145,36 +111,36 @@ sudo ./setup_canable.sh
 ArctosGuiPython/
 ├── src/                    # Source code
 │   ├── core/              # Core robot functionality
-│   ├── config/            # User preferences (Custom settings fur GUI)
-│   ├── models/            # Meshes and urdf
+│   ├── config/            # User preferences and settings
+│   ├── models/            # 3D models and URDF files
 │   ├── services/          # Robot services and communication
 │   ├── components/        # UI components
-│   ├── pages/             # Web pages
-│   ├── programs/          # Stored programs from path planning
+│   ├── pages/             # Application pages
+│   ├── programs/          # Stored motion programs
 │   └── utils/             # Utility functions
 ├── assets/                # Static assets (images, etc.)
-├── scripts/               # Script for starting can interface (currently)
+├── scripts/               # System scripts
 ├── docs/                  # Documentation
 ├── tests/                 # Test files
 ├── requirements.txt       # Python dependencies
-├── README.md              # This file
-└── environment.yml        # Conda env file
+└── environment.yml        # Conda environment
 ```
-
 
 ## 📝 License
 
-This project is licensed under [Your License]. Note that the included MKS-Servo CAN library is licensed under the GNU General Public License v3.0.
+This project is licensed under [Your License].
 
-## 👥 Contributing
+**Note:** The included MKS-Servo CAN library is licensed under the GNU General Public License v3.0.
 
-- MKS-Servo CAN library
-- NiceGUI framework for the modern web interface
-- Pinocchio team for robotics calculations
-- MeshCat for 3D visualization
+## 👥 Credits
 
-## Useful Links
+- **MKS-Servo CAN library** - For servo control
+- **NiceGUI** - Modern web interface
+- **Pinocchio** - Robotics calculations
+- **MeshCat** - 3D visualization
+
+## 🔗 Useful Links
 
 - [Documentation](https://arctosrobotics.com/docs/)
-- [Manuals](https://arctosrobotics.com/#Assembly)
+- [Assembly Manuals](https://arctosrobotics.com/#Assembly)
 - [CAD Files](https://arctosrobotics.com/#Assembly)
