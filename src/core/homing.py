@@ -16,20 +16,39 @@ logger.setLevel(logging.INFO)
 # List of motor axes (1-based indexing corresponds to arctos.servos[axis-1])
 MOTOR_IDS = [1, 2, 3, 4, 5, 6]
 
-# Homing sequence: start at joint 6 and end at joint 1
-HOMING_SEQUENCE = list(reversed(MOTOR_IDS))
+# Base homing sequence for independent mode (all axes)
+BASE_HOMING_SEQUENCE = list(reversed(MOTOR_IDS))
+
+# Homing sequence that will be used (can be modified based on settings)
+HOMING_SEQUENCE = list(BASE_HOMING_SEQUENCE)  # Default to all axes
 
 # Predefined sleep positions for each axis (raw units)
 # TODO: Set appropriate sleep positions as needed
 SLEEP_POSITIONS: Dict[int, int] = {axis: 0 for axis in MOTOR_IDS}
 
 
+def update_homing_sequence(settings_manager: SettingsManager) -> None:
+    """
+    Update the HOMING_SEQUENCE based on the current settings.
+    If coupled_axis_mode is enabled, only axes 1-4 will be homed.
+    """
+    global HOMING_SEQUENCE
+    coupled_mode = settings_manager.get("coupled_axis_mode", False)
+    if coupled_mode:
+        HOMING_SEQUENCE = [axis for axis in BASE_HOMING_SEQUENCE if axis <= 4]
+        logger.info("Coupled B/C axis mode detected. Homing only axes 1-4.")
+    else:
+        HOMING_SEQUENCE = list(BASE_HOMING_SEQUENCE)
+
 def move_to_zero_pose(arctos: Any, settings_manager: SettingsManager) -> None:
     """
     Perform the homing routine for all axes in reverse order (joint 6 to 1):
-    1. Move to the home switch via built-in b_go_home().
-    2. Move to the configured zero position (offset) from settings.
-    3. Set the current axis position to zero in software.
+    1. Update the homing sequence based on current settings
+    2. Move to the home switch via built-in b_go_home().
+    3. Move to the configured zero position (offset) from settings.
+    4. Set the current axis position to zero in software.
+
+    Note: In coupled B/C axis mode, only axes 1-4 will be homed.
 
     Args:
         arctos: Robot controller instance providing servo control methods.
@@ -40,10 +59,23 @@ def move_to_zero_pose(arctos: Any, settings_manager: SettingsManager) -> None:
     """
     logger.info("Starting homing process for all axes (6->1) using settings offsets")
 
-    # Retrieve user-defined zero offsets, speeds, and accelerations
-    offsets: Dict[int, int] = settings_manager.get("homing_offsets", {})
-    speeds: Dict[int, int] = settings_manager.get("joint_speeds", {})
-    accelerations: Dict[int, int] = settings_manager.get("joint_acceleration", {})
+    # Update homing sequence based on current settings and get coupled mode status
+    update_homing_sequence(settings_manager)
+    coupled_mode = settings_manager.get("coupled_axis_mode", False)
+    
+    # Log warning if in coupled mode
+    if coupled_mode:
+        logger.warning("Coupled B/C axis mode is enabled. Axes 5 and 6 will not be homed automatically.")
+    
+    # Initialize homing offsets if not present
+    offsets = settings_manager.get("homing_offsets", {})
+    if not offsets:
+        offsets = {axis: 0 for axis in MOTOR_IDS}
+        settings_manager.set("homing_offsets", offsets)
+    
+    # Get speeds and accelerations
+    speeds = settings_manager.get("joint_speeds", {})
+    accelerations = settings_manager.get("joint_acceleration", {})
 
     for axis in HOMING_SEQUENCE:
         try:
