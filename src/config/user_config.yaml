@@ -1,4 +1,5 @@
 auto_update_saved_poses: false
+coupled_axis_mode: false
 enable_live_joint_updates: false
 gear_ratios:
 - 13.5

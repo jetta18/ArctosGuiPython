@@ -94,6 +94,31 @@ def general_tab(settings_manager, settings):
             ui.notify("Keyboard control will {}move the physical robot".format('' if e.value else 'not '))
         ))
 
+    with ui.card().classes("p-4 mt-4"):
+        with ui.row().classes("items-center mb-2 gap-1"):
+            ui.label("Axis Control Mode").classes("text-xl font-semibold")
+            with ui.icon("info").classes("text-blue-500 cursor-pointer ml-1"):
+                with ui.tooltip().classes("text-body2 text-left"):
+                    ui.html(
+                        """
+                        <strong>Axis Control Mode:</strong><br>
+                        <b>Choose how axes 4 and 5 are controlled:</b>
+                        <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                            <li><b>Independent:</b> Axes 4 and 5 move independently (default).</li>
+                            <li><b>Coupled B/C:</b> Axes 4 and 5 are coupled as B and C axes (legacy mode).</li>
+                        </ul>
+                        <em>Change this only if you have the older robot version with coupled axes.</em>
+                        """
+                    )
+        coupled_switch = ui.switch(
+            "Use coupled B/C axis mode (legacy)",
+            value=settings.get("coupled_axis_mode", False)
+        )
+        coupled_switch.on_value_change(lambda e: (
+            settings_manager.set("coupled_axis_mode", e.value),
+            ui.notify(f"Coupled B/C axis mode {'enabled' if e.value else 'disabled'}.")
+        ))
+
 def joints_tab(settings_manager, arctos, settings, open_ratio_wizard):
     """
     Build the Joints tab UI for settings (directions, speeds, accelerations, gear ratios).

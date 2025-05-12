@@ -80,9 +80,11 @@ class ArctosController:
         if settings_manager:
             base_ratios = settings_manager.get("gear_ratios", default_ratios)
             directions  = settings_manager.get("joint_directions", {i: 1 for i in range(6)})
+            self.settings_manager = settings_manager  # Store reference to settings manager
         else:
             base_ratios = default_ratios
             directions  = {i: 1 for i in range(6)}
+            self.settings_manager = None
 
         # Apply sign for inverted axes
         self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(base_ratios)]
@@ -199,9 +201,14 @@ class ArctosController:
         """
         Move all robot joints to the specified target angles with optional per-joint speeds and accelerations.
 
+        If coupled_axis_mode is enabled in settings, axes 4 and 5 will be treated as coupled B and C axes.
+        B = axis4 + axis5
+        C = axis4 - axis5
+
         Args:
             angles_rad (list[float]):
                 Target joint angles in radians. Must be a list of exactly six values.
+                When in coupled_axis_mode, angles_rad[4] and angles_rad[5] are treated as B and C axes.
             speeds (int | list[int], optional):
                 Either a single global speed in RPM (applied to all joints),
                 or a list of six individual speeds (one per joint).
@@ -234,6 +241,21 @@ class ArctosController:
             if len(speeds) != 6:
                 raise ValueError("'speeds' list must contain 6 elements")
             speed_list = [max(0, min(int(s), 3000)) for s in speeds]
+
+        # Check if we should use coupled axis mode
+        coupled_mode = False
+        if hasattr(self, 'settings_manager'):
+            coupled_mode = self.settings_manager.get("coupled_axis_mode", False)
+
+        # Handle coupled axis mode if enabled
+        if coupled_mode and len(angles_rad) >= 6:
+            # Calculate B and C axes from axes 4 and 5
+            b_axis = angles_rad[4] + angles_rad[5]
+            c_axis = angles_rad[4] - angles_rad[5]
+            # Create a copy of the angles list and update axes 4 and 5
+            angles_rad = list(angles_rad)
+            angles_rad[4] = b_axis
+            angles_rad[5] = c_axis
 
         # --- Normalize accelerations -------------------------------------------
         if isinstance(acceleration, int):

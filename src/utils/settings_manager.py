@@ -25,6 +25,7 @@ DEFAULT_SETTINGS = {
     "enable_live_joint_updates": False,  # Enable live encoder updates in U
     "homing_offsets": {i: 0 for i in range(6)},  # Homing offset for each joint
     "gear_ratios": [13.5, 150, 150, 48, 33.91, 33.91],
+    "coupled_axis_mode": False,  # Whether to use coupled B/C axis mode for axes 4 and 5
 }
 
 class SettingsManager:
