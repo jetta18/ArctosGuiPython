@@ -15,6 +15,13 @@ dist/
 .git
 .gitignore
 README.md
-scripts/
+# Keep scripts/ included for Docker build context
+# scripts/ is needed for setup_canable.sh
+
 tests/
+docs/
+.idea/
+.vscode/
+*.swp
+*.swo
 # assets/ was removed from ignore list to ensure it is included in the Docker image
