@@ -102,12 +102,12 @@ def general_tab(settings_manager, settings):
                     ui.html(
                         """
                         <strong>Axis Control Mode:</strong><br>
-                        <b>Choose how axes 4 and 5 are controlled:</b>
+                        <b>Choose how axes 5 (B) and 6 (C) are controlled:</b>
                         <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
-                            <li><b>Independent:</b> Axes 4 and 5 move independently (default).</li>
-                            <li><b>Coupled B/C:</b> Axes 4 and 5 are coupled as B and C axes (legacy mode).</li>
+                            <li><b>Independent:</b> Axes 5 and 6 move independently (default).</li>
+                            <li><b>Coupled B/C:</b> Axes 5 and 6 are coupled as B and C axes (legacy mode).</li>
                         </ul>
-                        <em>Change this only if you have the older robot version with coupled axes.</em>
+                        <em>Change this only if you have the standard robot version with coupled B/C axes.</em>
                         """
                     )
         coupled_switch = ui.switch(
