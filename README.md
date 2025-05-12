@@ -19,11 +19,10 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 ## 🛠️ Setup & Installation
 
 ### Prerequisites
-- **Python 3.8+** (if not using Docker)
+- **Python 3.8+**
 - **CAN interface** for robot communication
 - **Arctos Robot hardware** (for full functionality)
 - **[Optional] Conda** (recommended for robotics users)
-- **[Optional] Docker & Docker Compose** (recommended for easiest setup)
 
 ---
 
@@ -31,7 +30,6 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 | Method                 | Recommended For         | Requirements                | Notes                                   |
 |------------------------|------------------------|-----------------------------|-----------------------------------------|
-| Docker (Quick Start)   | Most users             | Docker, Docker Compose      | Easiest, no Python setup needed         |
 | Conda Environment      | Robotics users         | Conda/Miniconda             | Handles most dependencies automatically |
 | Manual Python + venv   | Advanced users         | Python, pip, venv           | Manual dependency management            |
 
@@ -39,37 +37,7 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 ## 🔧 Installation Methods
 
-### 🐳 1. Docker (Recommended for Most Users)
-
-**No need to install Python or dependencies manually.**
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/jetta18/ArctosGuiPython.git
-   cd ArctosGuiPython
-   ```
-2. **Build and run with Docker Compose:**
-   ```bash
-   # Build the GUI and visualization server
-   docker compose -f docker/docker-compose.yml build
-   # Run the GUI and visualization server
-   docker compose -f docker/docker-compose.yml up
-   ```
-   - The GUI will be available at [http://localhost:8080](http://localhost:8080)
-   - The MeshCat visualizer will be at [http://localhost:7000/static/](http://localhost:7000/static/)
-
-> **Tip:** Make sure Docker and Docker Compose are installed and running.
-
-**(Optional) Use a prebuilt Docker image**  
-*Not available yet. When available:*
-```bash
-docker run --rm -p 8080:8080 -p 7000:7000 yourusername/arctos-gui:latest
-```
-Replace `yourusername/arctos-gui:latest` with the actual image name.
-
----
-
-### 🅱️ 2. Conda-based Installation (Recommended for Robotics)
+### 🐍 1. Conda-based Installation (Recommended for Robotics)
 
 1. **Clone the repository:**
    ```bash
@@ -93,7 +61,7 @@ Replace `yourusername/arctos-gui:latest` with the actual image name.
 
 ---
 
-### 🅰️ 3. Manual Python Installation (Advanced/Custom)
+### 🛠️ 2. Manual Python Installation (Advanced)
 
 1. **Clone the repository:**
    ```bash
@@ -137,7 +105,7 @@ Replace `yourusername/arctos-gui:latest` with the actual image name.
 
 ### 🎛️ CAN Interface Setup
 
-Set up the CAN interface using the provided script(Important to set this up!):
+Set up the CAN interface using the provided script (Important to set this up!):
 
 ```bash
 cd ~/ArctosGuiPython/scripts
@@ -148,13 +116,24 @@ sudo ./setup_canable.sh
 
 ### 🚀 Running the Application
 
-1. Launch the GUI:
+1. Activate your environment (if using Conda or venv):
    ```bash
-   cd ~/ArctosGuiPython/src
-   python3 main.py
+   # For Conda
+   conda activate arctos-env
+   # OR for venv
+   # On Windows:
+   .\venv\Scripts\activate
+   # On Linux/macOS:
+   source venv/bin/activate
    ```
 
-2. Open your browser and go to:
+2. Launch the GUI:
+   ```bash
+   cd ~/ArctosGuiPython/src
+   python main.py
+   ```
+
+3. Open your browser and go to:
    ```
    http://localhost:8080
    ```
