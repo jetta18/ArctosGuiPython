@@ -1,67 +1,147 @@
 # Arctos Robot GUI Architecture
 
 ## Overview
+The Arctos Robot GUI is a modular, extensible, and robust web-based control interface for the Arctos robot arm. Built with [NiceGUI](https://nicegui.io/) and Python, it enables real-time control, monitoring, and configuration of the robot through an intuitive browser interface. The architecture follows best practices for separation of concerns, scalability, and maintainability.
 
-The Arctos Robot GUI is a modern web-based control interface built with NiceGUI and Python. It provides real-time control and monitoring of the Arctos robot arm through a user-friendly interface.
+---
 
 ## Project Structure
 
+```
+ArctosGuiPython/
+├── src/
+│   ├── core/         # Core robot logic: control, kinematics, planning
+│   ├── config/       # User and system configuration (YAML)
+│   ├── models/       # 3D models (STL), URDFs
+│   ├── services/     # Communication & hardware abstraction
+│   ├── components/   # Reusable UI widgets (e.g., menu)
+│   ├── pages/        # UI pages (home, control, settings, etc.)
+│   ├── programs/     # Stored robot programs/trajectories
+│   ├── utils/        # Utilities, settings manager
+│   └── main.py       # Application entry point
+├── docs/             # Documentation
+├── requirements.txt  # Python dependencies
+├── environment.yml   # Conda environment
+└── ...
+```
+
 ### Core (`src/core/`)
-- `ArctosController.py`: Main robot control interface
-- `ArctosPinocchio.py`: Kinematics and dynamics calculations
-- `PathPlanner.py`: Path planning and trajectory generation
-- `homing.py`: Robot homing and calibration procedures
+- **ArctosController.py**: High-level robot control, state machine, command dispatch
+- **ArctosPinocchio.py**: Kinematics/dynamics with Pinocchio, robot model abstraction
+- **PathPlanner.py**: Path and trajectory planning, interpolation
+- **homing.py**: Homing/calibration procedures
 
 ### Services (`src/services/`)
-- `mks_servo_can/`: CAN communication library for MKS servos
-  - Motor control and configuration
-  - Real-time feedback and monitoring
+- **mks_servo_can/**: CAN bus communication with MKS servos
+  - `can_motor.py`, `can_commands.py`, `can_set.py`: Motor control, configuration, feedback
+  - `mks_enums.py`, `mks_servo.py`: Device abstraction, enums
 
 ### UI Components (`src/components/`)
-- `menu.py`: Navigation menu component
-- Future components for reusable UI elements
+- **menu.py**: Navigation sidebar/menu
+- _Future_: Buttons, sliders, status panels, etc.
 
 ### Pages (`src/pages/`)
-- `home.py`: Landing page
-- `control.py`: Main robot control interface
-- `settings.py`: Application settings
-- `mks_config.py`: Motor configuration interface
+- **home.py**: Landing/dashboard
+- **control/**: Main robot control UI (split into submodules: joint, Cartesian, gripper, path planning, visualization, etc.)
+- **settings/**: Application and hardware settings (modularized)
+- **mks_config.py**: Servo/motor configuration UI
 
 ### Utils (`src/utils/`)
-- Helper functions and utilities
-- Keyboard control handlers
-- Common calculations and conversions
+- **settings_manager.py**: Persistent settings/configuration handler
+- **utils.py**: Math, conversions, keyboard handlers, helpers
+
+### Models (`src/models/`)
+- **meshes/**: STL files for 3D visualization
+- **urdf/**: Robot URDF(s) for kinematic model
+
+### Config (`src/config/`)
+- **mks_settings.yaml**: Motor/servo configuration
+- **user_config.yaml**: User preferences
+
+### Programs (`src/programs/`)
+- **Test.json**: Example stored motion program
+
+---
 
 ## Key Features
 
-1. **Robot Control**
-   - Joint position control
-   - Cartesian position control
-   - Path planning and execution
-   - Gripper control
+### 1. Robot Control
+- Joint and Cartesian position control (direct and via path planner)
+- Path planning and trajectory execution
+- Gripper/end-effector control
+- Homing and calibration routines
 
-2. **User Interface**
-   - Real-time position updates
-   - 3D visualization
-   - Interactive controls
-   - Status messages and console
+### 2. User Interface
+- Real-time joint and Cartesian state feedback
+- 3D visualization (MeshCat integration)
+- Interactive controls: sliders, buttons, keyboard shortcuts
+- Status console and notifications
+- Modular, extensible page/component structure
 
-3. **Safety Features**
-   - Joint limit checking
-   - Movement validation
-   - Emergency stop functionality
+### 3. Safety & Validation
+- Joint limit checking (software)
+- Movement validation (trajectory and command level)
+- Emergency stop (hardware and UI-triggered)
+- Error/status reporting throughout stack
 
-## Communication Flow
+---
 
-1. User Interface (NiceGUI) → Control Commands
-2. Path Planning → Trajectory Generation
-3. Kinematics Calculation → Joint Positions
-4. CAN Communication → Motor Control
-5. Motor Feedback → UI Updates
+## Communication & Data Flow
+
+```mermaid
+flowchart TD
+    UI[User Interface (NiceGUI)] -->|User commands| Ctrl[ArctosController]
+    Ctrl -->|Plan request| Planner[PathPlanner]
+    Planner -->|Trajectory| Ctrl
+    Ctrl -->|Kinematics| Kine[ArctosPinocchio]
+    Kine -->|Joint targets| Ctrl
+    Ctrl -->|Motor commands| CAN[mks_servo_can]
+    CAN -->|CAN bus| Motors[Servo Motors]
+    Motors -->|Feedback| CAN
+    CAN -->|Status/feedback| Ctrl
+    Ctrl -->|State updates| UI
+```
+
+- **UI**: Sends user commands (move, stop, plan, home, etc.)
+- **Controller**: Central logic, orchestrates planning, kinematics, and hardware
+- **PathPlanner**: Generates valid trajectories
+- **Kinematics**: Computes joint/Cartesian conversions
+- **CAN Service**: Hardware abstraction, real-time feedback
+- **UI**: Receives feedback, updates visualization and state
+
+---
+
+## Extensibility & Best Practices
+
+- **Modularization**: Each logical domain (control, planning, UI, hardware) is isolated for testability and extensibility.
+- **Configuration**: All user and hardware settings are YAML-based and managed via `settings_manager.py`.
+- **UI Components**: Designed for reuse and easy extension (add new controls/pages without core changes).
+- **Hardware Abstraction**: CAN communication is fully abstracted for portability to other motor drivers.
+- **Error Handling**: Logging and error reporting at all critical points.
+- **3D Visualization**: MeshCat and STL/URDF models are decoupled from control logic for flexibility.
+- **Safety**: Emergency stop, joint limits, and validation are enforced at both UI and controller levels.
+
+---
 
 ## Dependencies
 
-- NiceGUI: Web interface framework
-- Pinocchio: Robot kinematics
-- python-can: CAN bus communication
-- MeshCat: 3D visualization
+- **NiceGUI**: Modern Python web UI framework
+- **Pinocchio**: Fast kinematics/dynamics for robotics
+- **python-can**: CAN bus communication
+- **MeshCat**: 3D visualization
+- **PyYAML**: Configuration loading
+- **Logging**: Built-in for diagnostics
+
+---
+
+## Configuration & Customization
+- All settings (theme, CAN port, joint limits, etc.) are loaded from YAML and can be changed via the UI.
+- Adding new robot models: Place STL/URDF files in `src/models/` and update configuration accordingly.
+- Extending UI: Add new components/pages under `src/components/` and `src/pages/`.
+
+---
+
+## License & Credits
+- Main project: MIT License
+- MKS Servo CAN library: GPLv3
+- See README.md for credits and external resources.

@@ -25,7 +25,7 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 
 ### Installation Methods
 
-#### 🐍 Option 1: Conda (Recommended)
+#### 🐍 Option 1: Conda (Recommended for Windows)
 
 1. Clone the repository:
    ```bash
@@ -71,6 +71,8 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
 ## 🔌 Hardware Setup
 
 ### CAN Interface Configuration
+
+> **Note:** The following steps are only necessary for Linux systems. On Windows, CAN interface setup is not required. By default, COM5 is used as the CAN interface on Windows.
 
 1. Navigate to the scripts directory:
    ```bash
@@ -118,17 +120,17 @@ ArctosGuiPython/
 │   ├── pages/             # Application pages
 │   ├── programs/          # Stored motion programs
 │   └── utils/             # Utility functions
-├── assets/                # Static assets (images, etc.)
-├── scripts/               # System scripts
-├── docs/                  # Documentation
-├── tests/                 # Test files
+│   └── main.py            # Application entry point
+├── assets/                # Static assets (icon.png, etc.)
+├── scripts/               # System scripts (setup_canable.sh)
+├── docs/                  # Documentation (ARCHITECTURE.md, etc.)
 ├── requirements.txt       # Python dependencies
 └── environment.yml        # Conda environment
 ```
 
 ## 📝 License
 
-This project is licensed under [Your License].
+This project is licensed under [MIT License](LICENSE).
 
 **Note:** The included MKS-Servo CAN library is licensed under the GNU General Public License v3.0.
 
