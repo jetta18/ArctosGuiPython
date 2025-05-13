@@ -70,15 +70,11 @@ def create(Arctos, robot, planner, settings_manager):
             def notify_fn(msg, color=None):
                 ui.notify(msg, color=color)
             step_size_slider = None
-            keyboard_ctrl = utils.setup_keyboard_controller(robot, Arctos, None, notify_fn, settings_manager)
-            ui.keyboard(lambda event: utils.on_key(event, robot, Arctos))
             def update_status_label():
                 pass  # This should be implemented as needed
             def on_switch(val):
-                if val != keyboard_ctrl.active:
-                    keyboard_ctrl.toggle()
                 update_status_label()
-            visualization_keyboard(robot, Arctos, keyboard_ctrl, step_size_slider, update_status_label, on_switch)
+            visualization_keyboard(robot, Arctos, step_size_slider, update_status_label, on_switch, settings_manager)
     # Timers
     ui.timer(0.25, lambda: utils.update_joint_states(robot, joint_positions))
     ui.timer(0.25, lambda: utils.live_update_ee_postion(robot, ee_position_labels))
