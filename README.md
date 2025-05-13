@@ -39,7 +39,7 @@ Modern web-based control interface for the Arctos Robot, built with NiceGUI and 
    conda activate arctos-env
    ```
 
-> 💡 Don't have Conda? Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
+> 💡 Don't have Conda? Install Anaconda (https://www.anaconda.com/download)
 
 #### 🛠️ Option 2: Manual Python Installation
 
