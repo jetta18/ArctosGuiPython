@@ -90,16 +90,16 @@ ArctosGuiPython/
 
 ```mermaid
 flowchart TD
-    UI[User Interface (NiceGUI)] -->|User commands| Ctrl[ArctosController]
-    Ctrl -->|Plan request| Planner[PathPlanner]
+    UI[UserInterface] -->|UserCommands| Ctrl[ArctosController]
+    Ctrl -->|PlanRequest| Planner[PathPlanner]
     Planner -->|Trajectory| Ctrl
     Ctrl -->|Kinematics| Kine[ArctosPinocchio]
-    Kine -->|Joint targets| Ctrl
-    Ctrl -->|Motor commands| CAN[mks_servo_can]
-    CAN -->|CAN bus| Motors[Servo Motors]
+    Kine -->|JointTargets| Ctrl
+    Ctrl -->|MotorCommands| CAN[mks_servo_can]
+    CAN -->|CANBus| Motors[ServoMotors]
     Motors -->|Feedback| CAN
-    CAN -->|Status/feedback| Ctrl
-    Ctrl -->|State updates| UI
+    CAN -->|StatusFeedback| Ctrl
+    Ctrl -->|StateUpdates| UI
 ```
 
 - **UI**: Sends user commands (move, stop, plan, home, etc.)
