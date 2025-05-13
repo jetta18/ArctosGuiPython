@@ -13,7 +13,7 @@ def joint_control(robot):
         ui.label("View and set the joint angles.").classes('text-gray-600 mb-4')
         with ui.grid(columns=3).classes('gap-4 w-full mb-2'):
             joint_positions = [
-                ui.label(f"Joint {i+1}: 0.0°").classes('text-lg w-full text-center bg-white border border-blue-200 rounded-lg py-2 shadow-sm font-mono text-blue-900') for i in range(6)
+                ui.label(f"Joint {i+1}: 0.0°").classes('text-sm w-full text-center bg-white border border-blue-200 rounded-lg py-2 shadow-sm font-mono text-blue-900') for i in range(6)
             ]
         with ui.grid(columns=3).classes('gap-4 w-full mb-2'):
             new_joint_inputs = [ui.number(label=f"Joint {i+1} (°)").classes('w-full border-blue-200 rounded-lg') for i in range(6)]

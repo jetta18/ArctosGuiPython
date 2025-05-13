@@ -363,7 +363,7 @@ class ArctosPinocchioRobot:
         # IK parameters
         dt = 0.05
         tol = 1e-4
-        max_iter = 150
+        max_iter = 500
 
         # Iterative solve
         for i in range(max_iter):

@@ -60,7 +60,7 @@ def visualization_keyboard(robot, Arctos, step_size_slider=None, update_status_l
         elif e.action.keyup:
             pressed_keys.discard(key)
 
-    def process_pressed_keys():
+    def process_simulation_keys():
         if not keyboard_control_enabled['value']:
             return
         if not pressed_keys:
@@ -84,23 +84,55 @@ def visualization_keyboard(robot, Arctos, step_size_slider=None, update_status_l
         try:
             q_solution = robot.inverse_kinematics_pink(current_pos, current_rpy)
             robot.instant_display_state(q_solution)
-            if settings_manager and settings_manager.get("keyboard_send_to_robot", False):
-                speeds = settings_manager.get("joint_speeds", [500]*6)
-                accels = settings_manager.get("joint_accelerations", [150]*6)
-                if not isinstance(speeds, (list, tuple)):
-                    speeds = [speeds]*6
-                if not isinstance(accels, (list, tuple)):
-                    accels = [accels]*6
-                try:
-                    Arctos.move_to_angles(q_solution[:6], speeds=speeds, acceleration=accels, wait_for_completion=False)
-                except Exception as hw_ex:
-                    ui.notify(f"Send to robot failed: {hw_ex}", color="red")
+        except Exception as ex:
+            ui.notify(f"IK failed: {ex}", color="red")
+
+    def process_hardware_keys():
+        if not keyboard_control_enabled['value']:
+            return
+        if not pressed_keys:
+            return
+        if not (settings_manager and settings_manager.get("keyboard_send_to_robot", False)):
+            return
+        step = step_size_slider.value if step_size_slider else 0.002
+        orientation_step = np.radians(5)
+        try:
+            orientation_step = np.radians(orientation_step_size_slider.value)
+        except Exception:
+            pass
+        current_pos = robot.get_end_effector_position()
+        current_rpy = robot.get_end_effector_orientation()
+        for key in pressed_keys:
+            axis, sign = key_map[key]
+            if axis in ['x', 'y', 'z']:
+                idx = {'x': 0, 'y': 1, 'z': 2}[axis]
+                current_pos[idx] += sign * step
+            else:
+                idx = {'roll': 0, 'pitch': 1, 'yaw': 2}[axis]
+                current_rpy[idx] += sign * orientation_step
+        try:
+            q_solution = robot.inverse_kinematics_pink(current_pos, current_rpy)
+            speeds = settings_manager.get("joint_speeds", [500]*6)
+            accels = settings_manager.get("joint_accelerations", [150]*6)
+            if isinstance(speeds, dict):
+                speeds = list(speeds.values())
+            if not isinstance(speeds, (list, tuple)):
+                speeds = [speeds]*6
+            if isinstance(accels, dict):
+                accels = list(accels.values())
+            if not isinstance(accels, (list, tuple)):
+                accels = [accels]*6
+            try:
+                Arctos.move_to_angles(q_solution[:6], speeds=speeds, acceleration=accels, wait_for_completion=False)
+            except Exception as hw_ex:
+                ui.notify(f"Send to robot failed: {hw_ex}", color="red")
         except Exception as ex:
             ui.notify(f"IK failed: {ex}", color="red")
 
     # Add NiceGUI keyboard event tracking
     keyboard = ui.keyboard(on_key=handle_key)
-    ui.timer(0.1, process_pressed_keys)
+    ui.timer(0.1, process_simulation_keys)
+    ui.timer(0.1, process_hardware_keys)
 
     with ui.card().classes('w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-blue-100 border border-gray-300 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-shadow duration-300'):
         with ui.row().classes('items-center mb-1'):
