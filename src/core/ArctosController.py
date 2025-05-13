@@ -155,13 +155,13 @@ class ArctosController:
         Raises:
             Exception: If there is an error during the initialization of a servo motor.
         """
-        logger.debug("🔧 Initializing servos...")
+        logger.info("🔧 Initializing servos...")
         start_time = time.time()
 
         try:
             notifier = can.Notifier(self.bus, [])
         except Exception as e:
-            logger.debug(f"❌ Failed to create CAN notifier: {e}")
+            logger.error(f"❌ Failed to create CAN notifier: {e}")
             raise
 
         servos = []
@@ -183,10 +183,10 @@ class ArctosController:
                 time.sleep(0.1)
                 logger.debug(f"✅ Limit port enabled on Servo {index}")
             except Exception as e:
-                logger.debug(f"⚠️ Failed to enable limit port on Servo {index}: {e}")
+                logger.error(f"⚠️ Failed to enable limit port on Servo {index}: {e}")
 
         duration = time.time() - start_time
-        logger.debug(f"✅ All servos initialized in {duration:.2f} seconds.")
+        logger.info(f"✅ All servos initialized in {duration:.2f} seconds.")
         return servos
 
     def move_to_angles(
@@ -355,8 +355,10 @@ class ArctosController:
             RuntimeError: If the CAN interface is not available or if there is an error initializing the CAN bus.
         """
         if not self.is_can_interface_up():
-            logger.error(f"CAN interface {self.can_interface} is not active. Please run 'setup_canable.sh' first.")
-            raise RuntimeError("CAN interface is not available.")
+            if platform.system() == "Windows":
+                raise RuntimeError(f"CAN interface is not available on {self.can_interface}.")
+            else:
+                raise RuntimeError("CAN interface is not active. Please run 'setup_canable.sh' first.")
 
         try:
             if platform.system() == "Windows":
@@ -486,7 +488,7 @@ class ArctosController:
         if directions is None:
             directions = {i: 1 for i in range(6)}
         self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(ratios)]
-        logger.info(f"Gear ratios updated: {self.gear_ratios}")
+        logger.debug(f"Gear ratios updated: {self.gear_ratios}")
 
     def emergency_stop(self) -> None:
         """
@@ -501,7 +503,7 @@ class ArctosController:
         for i, servo in enumerate(self.servos):
             try:
                 result = servo.emergency_stop_motor()
-                logger.info(f"Emergency stop sent to servo {i}: {result}")
+                logger.debug(f"Emergency stop sent to servo {i}: {result}")
             except Exception as e:
                 logger.error(f"Failed to send emergency stop to servo {i}: {e}")
 
@@ -539,11 +541,11 @@ class ArctosController:
                     direction = Direction.CCW if rpm > 0 else Direction.CW
                     # Command motor to zero speed with max acceleration
                     result = servo.run_motor_in_speed_mode(direction, 0, MAX_ACCELERATION)
-                    logger.info(f"Servo {i}: Decelerate to 0 RPM with MAX_ACCELERATION. Result: {result}")
+                    logger.debug(f"Servo {i}: Decelerate to 0 RPM with MAX_ACCELERATION. Result: {result}")
                 except Exception as e:
                     logger.error(f"Servo {i}: Failed to decelerate safely: {e}")
         else:
-            logger.info("All motors below 1000 RPM. Performing normal emergency stop.")
+            logger.debug("All motors below 1000 RPM. Performing normal emergency stop.")
             self.emergency_stop()
 
     def __del__(self):
