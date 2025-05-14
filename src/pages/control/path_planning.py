@@ -230,7 +230,12 @@ def path_planning(planner, robot, Arctos, settings_manager) -> None:
     Returns:
         None. The function builds the UI directly using NiceGUI components.
     """
-    with ui.expansion('Path Planning', icon='route', value=False).classes('w-full bg-gradient-to-br from-green-50 to-blue-100 border border-green-200 rounded-2xl shadow-lg p-4 hover:shadow-xl transition-all duration-300 mb-3').props('expand-icon="expand_more"'):
+    expansion_common = (
+        "w-full bg-white/90 backdrop-blur-md border border-blue-200 "
+        "rounded-md shadow-xl p-0 transition-all duration-300 "
+        "hover:shadow-2xl"
+    )
+    with ui.expansion('Path Planning', icon='route', value=False).classes(expansion_common).props('expand-icon="expand_more"'):
         # Pose Table
         pose_container = ui.column().classes('w-full gap-y-4')
         update_pose_table(planner, robot, pose_container)

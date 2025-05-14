@@ -10,7 +10,12 @@ def gripper_control(Arctos):
     Returns:
         None. The function builds the UI directly using NiceGUI components.
     """
-    with ui.expansion('Gripper Control', icon='precision_manufacturing', value=False).classes('w-full bg-gradient-to-br from-yellow-50 to-orange-100 border border-yellow-200 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300 mb-3').props('expand-icon="expand_more"'):
+    expansion_common = (
+        "w-full bg-white/90 backdrop-blur-md border border-blue-200 "
+        "rounded-md shadow-xl p-0 transition-all duration-300 "
+        "hover:shadow-2xl"
+    )
+    with ui.expansion('Gripper Control', icon='precision_manufacturing', value=False).classes(expansion_common).props('expand-icon="expand_more"'):
         ui.label("Control the gripper's movement.").classes('text-gray-600 mb-2')
         with ui.row().classes('justify-center gap-4'):
             ui.button("Open Gripper", on_click=lambda: open_gripper(Arctos)) \

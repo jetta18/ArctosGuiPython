@@ -218,7 +218,7 @@ def set_ee_position_from_input(robot, ee_position_inputs):
         z = ee_position_inputs["Z"].value
 
         if None in [x, y, z]:  # Falls ein Feld leer ist
-            ui.notify("❌ Bitte alle Werte für X, Y, Z eingeben!", color='red')
+            ui.notify("❌ Please enter values for X, Y, and Z!", color='red')
             return
 
         # Berechnung der neuen Gelenkwinkel mit Inverser Kinematik
@@ -230,9 +230,9 @@ def set_ee_position_from_input(robot, ee_position_inputs):
         ui.notify(f"✅ Moved to position: X={x}, Y={y}, Z={z}")
 
     except ValueError as e:
-        ui.notify(f"❌ IK Fehler: {str(e)}", color='red')
+        ui.notify(f"❌ IK error: {str(e)}", color='red')
     except Exception as e:
-        ui.notify(f"❌ Fehler: {str(e)}", color='red')
+        ui.notify(f"❌ Error: {str(e)}", color='red')
 
 
 def set_ee_orientation_from_input(robot, ee_orientation_inputs):
@@ -271,9 +271,9 @@ def set_ee_orientation_from_input(robot, ee_orientation_inputs):
         ui.notify("✅ End-Effector Orientation Updated!")
 
     except ValueError as e:
-        ui.notify(f"❌ IK Fehler: {str(e)}", type="error")
+        ui.notify(f"❌ IK error: {str(e)}", color='red')
     except Exception as e:
-        ui.notify(f"❌ Error: {e}", type="error")
+        ui.notify(f"❌ Error: {e}", color='red')
 
 
 def set_ee_pose_from_input(robot, ee_position_inputs, ee_orientation_inputs, use_orientation: bool):

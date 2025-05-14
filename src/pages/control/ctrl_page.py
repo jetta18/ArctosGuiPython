@@ -32,7 +32,21 @@ def create(Arctos, robot, planner, settings_manager):
         ui.dark_mode().enable()
     else:
         ui.dark_mode().disable()
-    ui.label("Control Page").classes('text-3xl font-bold text-left mt-2 mb-2 px-2')
+    #ui.label("Control Page").classes('text-3xl font-bold text-left mt-2 mb-2 px-2')
+
+    # --- Control Buttons at Top ---
+    with ui.card().classes(
+        'w-full flex flex-col items-center bg-white/90 backdrop-blur-md border border-blue-200 rounded-md shadow-xl p-4 mb-1'
+    ).style(
+        'position:sticky;top:56px;z-index:50;opacity:0.5;transition:opacity 0.25s;backdrop-filter:blur(8px);'
+    ).on('mouseenter', lambda e: e.sender.style('position:sticky;top:56px;z-index:50;opacity:1.0;transition:opacity 0.25s;backdrop-filter:blur(8px);')) \
+     .on('mouseleave', lambda e: e.sender.style('position:sticky;top:56px;z-index:50;opacity:0.5;transition:opacity 0.25s;backdrop-filter:blur(8px);')):
+        with ui.row().classes('gap-4 mb-1'):
+            start_movement_button(robot, Arctos, settings_manager)
+            reset_to_zero_button(robot)
+            home_button(Arctos, settings_manager)
+            sleep_button(Arctos)
+            emergency_stop_button(Arctos)
 
     # Speed scale section
     def apply_speed(val):
@@ -57,14 +71,7 @@ def create(Arctos, robot, planner, settings_manager):
             ee_position_labels, ee_orientation_labels = end_effector_control(robot)
             gripper_control(Arctos)
             path_planning(planner, robot, Arctos, settings_manager)
-            with ui.column().classes('w-full justify-center gap-4 mb-4'):
-                with ui.row().classes('w-full justify-center gap-4 mb-4'):
-                    home_button(Arctos, settings_manager)
-                    sleep_button(Arctos)
-                    reset_to_zero_button(robot)
-                with ui.row().classes('w-full justify-center gap-4 mb-4'):
-                    start_movement_button(robot, Arctos, settings_manager)
-                    emergency_stop_button(Arctos)
+
         with ui.column().classes('flex-1 min-w-0 gap-2 items-stretch h-full'):
             # Setup keyboard controller
             def notify_fn(msg, color=None):

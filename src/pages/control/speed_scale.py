@@ -10,7 +10,11 @@ def speed_scale(settings_manager, apply_speed):
     Returns:
         None. The function builds the UI directly using NiceGUI components.
     """
-    expansion_common = 'w-full bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300'
+    expansion_common = (
+        "w-full bg-white/90 backdrop-blur-md border border-blue-200 "
+        "rounded-md shadow-xl p-0 transition-all duration-300 "
+        "hover:shadow-2xl"
+    )
     with ui.expansion('Speed Scale', icon='speed', value=False).classes(expansion_common).props('expand-icon="expand_more" id=speed-scale-section'):
         speed_val = settings_manager.get('speed_scale', 1.0)
         with ui.row().classes('items-center gap-3'):

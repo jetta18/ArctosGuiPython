@@ -1,6 +1,4 @@
 from nicegui import ui
-
-from nicegui import ui
 from utils import utils
 
 
@@ -15,16 +13,22 @@ def end_effector_control(robot):
         tuple: Tuple of (position_labels, orientation_labels) as NiceGUI label objects.
     """
     # --- Modern End-Effector Control Expansion ---
-    with ui.expansion('End-Effector Control', icon='open_with', value=False).classes('w-full bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-all duration-300 mb-3').props('expand-icon="expand_more"'):
+    expansion_common = (
+        "w-full bg-white/90 backdrop-blur-md border border-blue-200 "
+        "rounded-md shadow-xl p-0 transition-all duration-300 "
+        "hover:shadow-2xl"
+    )
+    with ui.expansion('End-Effector Control', icon='open_with', value=False).classes(expansion_common).props('expand-icon="expand_more"'):
         # --- Live Readout Row ---
-        with ui.row().classes('gap-2 mb-4 flex-wrap items-center justify-center'):
-            ee_position_labels = {}
-            for axis in ["X", "Y", "Z"]:
-                ee_position_labels[axis] = ui.label(f"{axis}: 0.00 m").classes('px-2 py-1 rounded bg-blue-100 text-blue-900 font-mono')
-            ui.label('|').classes('mx-2 text-gray-400')
-            ee_orientation_labels = {}
-            for axis in ["Roll", "Pitch", "Yaw"]:
-                ee_orientation_labels[axis] = ui.label(f"{axis}: 0.00°").classes('px-2 py-1 rounded bg-purple-100 text-purple-900 font-mono')
+        with ui.column().classes('w-full gap-y-2 items-center'):
+            with ui.row().classes('gap-2 mb-4 flex-wrap items-center justify-center'):
+                ee_position_labels = {}
+                for axis in ["X", "Y", "Z"]:
+                   ee_position_labels[axis] = ui.label(f"{axis}: 0.00 m").classes('px-2 py-1 rounded bg-blue-100 text-blue-900 font-mono')
+            with ui.row().classes('gap-2 mb-4 flex-wrap items-center justify-center'):
+                ee_orientation_labels = {}
+                for axis in ["Roll", "Pitch", "Yaw"]:
+                    ee_orientation_labels[axis] = ui.label(f"{axis}: 0.00°").classes('px-2 py-1 rounded bg-purple-100 text-purple-900 font-mono')
         # --- Segmented Mode Selector ---
         with ui.row().classes('justify-center'):
             mode = ui.toggle(["Position Only", "Position + Orientation", "Orientation Only"], value="Position + Orientation") \
@@ -43,14 +47,14 @@ def end_effector_control(robot):
                 ee_orientation_inputs[axis] = None
             if mode.value in ("Position Only", "Position + Orientation"):
                 with input_container:
-                    with ui.row().classes('gap-4 w-full mb-2'):
+                    with ui.row().classes('gap-4 w-full mb-2 justify-center'):
                         for axis in ["X", "Y", "Z"]:
                             ee_position_inputs[axis] = ui.number(label=f"{axis} (m)", format="%.3f").props('dense') \
                                 .tooltip(f"Target {axis} coordinate in meters.") \
                                 .classes('w-32 rounded border-blue-200')
             if mode.value in ("Position + Orientation", "Orientation Only"):
                 with input_container:
-                    with ui.row().classes('gap-4 w-full mb-2'):
+                    with ui.row().classes('gap-4 w-full mb-2 justify-center'):
                         for axis in ["Roll", "Pitch", "Yaw"]:
                             ee_orientation_inputs[axis] = ui.number(label=f"{axis} (°)", format="%.1f").props('dense') \
                                 .tooltip(f"Target {axis} angle in degrees.") \

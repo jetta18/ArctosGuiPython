@@ -52,7 +52,7 @@ def start_movement_button(robot, Arctos, settings_manager):
     Returns:
         None. The function builds the UI directly using NiceGUI components.
     """
-    return ui.button("Start Movement", on_click=lambda: utils.run_move_can(robot, Arctos, settings_manager)) \
+    return ui.button("Start Movement", icon="play", on_click=lambda: utils.run_move_can(robot, Arctos, settings_manager)) \
         .tooltip("Execute the currently set joint angles on the physical robot") \
         .classes('bg-red-500 text-white px-4 py-2 rounded-lg')
 

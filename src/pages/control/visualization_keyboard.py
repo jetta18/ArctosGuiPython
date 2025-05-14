@@ -134,14 +134,14 @@ def visualization_keyboard(robot, Arctos, step_size_slider=None, update_status_l
     ui.timer(0.1, process_simulation_keys)
     ui.timer(0.1, process_hardware_keys)
 
-    with ui.card().classes('w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-blue-100 border border-gray-300 rounded-2xl shadow-lg p-3 hover:shadow-xl transition-shadow duration-300'):
+    with ui.card().classes('w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-blue-100 border border-gray-300 rounded-md shadow-lg p-3 hover:shadow-xl transition-shadow duration-300'):
         with ui.row().classes('items-center mb-1'):
             ui.icon('monitor').classes('text-2xl text-blue-700 mr-2')
             ui.label('3D Visualization').classes('text-xl font-bold text-blue-900 tracking-wide')
         with ui.column().classes('flex-1 w-full h-full'):
             ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 100%; min-height: 320px; border: none;"></iframe>''')\
                 .classes('w-full h-full rounded-lg border border-blue-200 shadow')
-        with ui.card().classes('w-full bg-white border border-blue-200 rounded-xl shadow p-3 mt-3'):
+        with ui.card().classes('w-full bg-white border border-blue-200 rounded-md shadow p-3 mt-3'):
             # --- Switch and Sliders Aligned in a Single Row ---
             with ui.row().classes('w-full items-center justify-center gap-8 flex-wrap'):
                 # Switch + Info
