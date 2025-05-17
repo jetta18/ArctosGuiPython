@@ -9,7 +9,6 @@ servo_0:
   home_speed: 60
   microsteps: 16
   work_mode: SrvFoc
-
 servo_1:
   current: 1600
   direction: CW
@@ -21,43 +20,41 @@ servo_1:
   home_speed: 60
   microsteps: 16
   work_mode: SrvFoc
-
 servo_2:
-  current: 1600
+  current: 1800
   direction: CW
   enable_homing: Enable
   endstop_enabled: true
   endstop_level: Low
-  holding: FIFTHTY_PERCENT
+  holding: SEVENTY_PERCENT
   home_direction: CCW
   home_speed: 60
   microsteps: 16
   work_mode: SrvFoc
-
 servo_3:
-  current: 1600
-  direction: CW
+  current: 1500
+  direction: CCW
   enable_homing: Enable
   endstop_enabled: true
   endstop_level: Low
-  holding: FIFTHTY_PERCENT
+  holding: SEVENTY_PERCENT
   home_direction: CCW
   home_speed: 60
   microsteps: 16
+  shaft_protect: false
   work_mode: SrvFoc
-
 servo_4:
   current: 1600
   direction: CW
   enable_homing: Enable
   endstop_enabled: true
   endstop_level: Low
-  holding: FIFTHTY_PERCENT
+  holding: SEVENTY_PERCENT
   home_direction: CCW
   home_speed: 60
   microsteps: 16
+  shaft_protect: false
   work_mode: SrvFoc
-
 servo_5:
   current: 1600
   direction: CW
@@ -69,4 +66,3 @@ servo_5:
   home_speed: 60
   microsteps: 16
   work_mode: SrvFoc
-

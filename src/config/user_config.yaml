@@ -11,14 +11,17 @@ gear_ratios:
 homing_offsets:
   0: -103445.0
   1: -333983
+  2: -237969
+  3: 180477
+  4: 115507
   5: -78401
 joint_accelerations:
-  0: 200
-  1: 190
-  2: 190
-  3: 190
-  4: 190
-  5: 190
+  0: 240
+  1: 240
+  2: 240
+  3: 240
+  4: 240
+  5: 240
 joint_directions:
   0: 1
   1: -1
@@ -27,15 +30,15 @@ joint_directions:
   4: -1
   5: 1
 joint_speeds:
-  0: 50
-  1: 500
-  2: 500
-  3: 500
-  4: 510
-  5: 500
-keyboard_send_to_robot: false
+  0: 800
+  1: 800
+  2: 800
+  3: 800
+  4: 800
+  5: 800
+keyboard_send_to_robot: true
 language: English
 max_fps: 30
-speed_scale: 1.0
+speed_scale: 0.43
 theme: Light
 ui_color_theme: Blue

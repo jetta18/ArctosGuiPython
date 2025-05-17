@@ -45,7 +45,7 @@ def create(Arctos, robot, planner, settings_manager):
             start_movement_button(robot, Arctos, settings_manager)
             reset_to_zero_button(robot)
             home_button(Arctos, settings_manager)
-            sleep_button(Arctos)
+            sleep_button(Arctos, settings_manager)
             emergency_stop_button(Arctos)
 
     # Speed scale section

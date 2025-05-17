@@ -15,16 +15,17 @@ def home_button(Arctos, settings_manager):
         .tooltip("Send robot to predefined 'home' configuration") \
         .classes('bg-purple-500 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-700')
 
-def sleep_button(Arctos):
+def sleep_button(Arctos, settings_manager):
     """Create a button to put the robot into sleep mode.
 
     Args:
         Arctos: The main robot control interface or object.
+        settings_manager: The settings manager instance.
 
     Returns:
         None. The function builds the UI directly using NiceGUI components.
     """
-    return ui.button("\U0001F634 Move to Sleep Pose", on_click=lambda: homing.move_to_sleep_pose(Arctos)) \
+    return ui.button("\U0001F634 Move to Sleep Pose", on_click=lambda: homing.move_to_sleep_pose(Arctos, settings_manager)) \
         .tooltip("Send robot to safe resting position (sleep pose)") \
         .classes('bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700')
 

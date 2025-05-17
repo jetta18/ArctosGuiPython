@@ -6,6 +6,7 @@ Homing zero positions are entirely determined by offsets saved in settings (no h
 """
 import logging
 from typing import Any, Dict
+import time
 
 from utils.settings_manager import SettingsManager
 
@@ -80,34 +81,42 @@ def move_to_zero_pose(arctos: Any, settings_manager: SettingsManager) -> None:
     for axis in HOMING_SEQUENCE:
         try:
             servo = arctos.servos[axis - 1]
+            axis_id = axis - 1  # 0-based index for servos
 
-            # Determine zero position from stored offset (raw units)
-            user_offset = offsets.get(axis - 1, 0)
-            target_zero = user_offset
-
-            # Retrieve speed and acceleration settings (with defaults)
-            speed = speeds.get(axis - 1, 500)
-            accel = accelerations.get(axis - 1, 150)
+            # Get the user-specified offset (default to 0 if not set)
+            user_offset = offsets.get(axis_id, 0)
+            
+            # Get speed and acceleration with defaults
+            speed = speeds.get(axis_id, 500)
+            accel = accelerations.get(axis_id, 150)
 
             logger.info(
-                f"Homing axis {axis}: target_zero={target_zero}, speed={speed}, accel={accel}"
+                f"Homing axis {axis}: offset={user_offset}, speed={speed}, accel={accel}"
             )
 
-            # 1) Move to home switch (resets encoder to zero)
+            # 1) Home the motor (this resets the encoder to 0)
+            logger.debug(f"Axis {axis}: Moving to home switch...")
             servo.b_go_home()
             arctos.wait_for_motors_to_stop()
+            
+            # Small delay to ensure motor has stopped completely
+            time.sleep(0.1)
+            
+            # 2) Move to the user-specified offset position
+            if user_offset != 0:
+                logger.debug(f"Axis {axis}: Moving to offset position {user_offset}...")
+                # Use relative motion from the current position (which should be 0 after homing)
+                servo.run_motor_relative_motion_by_axis(speed, accel, int(user_offset))
+                arctos.wait_for_motors_to_stop()
+                time.sleep(0.1)  # Small delay
 
-            # 2) Move to desired zero position (offset)
-            raw_target = target_zero * 100  # convert to servo raw units
-            servo.run_motor_absolute_motion_by_axis(speed, accel, raw_target)
-            arctos.wait_for_motors_to_stop()
-
-            # 3) Align software reference to current hardware position
+            # 3) Set the current position as the zero reference
             servo.set_current_axis_to_zero()
-            logger.info(f"Axis {axis} homed successfully at offset {target_zero}")
+            logger.info(f"Axis {axis} homed successfully at offset {user_offset}")
 
         except Exception as e:
             logger.error(f"Error homing axis {axis}: {e}", exc_info=True)
+            raise  # Re-raise to stop the homing process if any axis fails
 
     logger.info("All axes have been homed using settings offsets.")
 
@@ -115,8 +124,8 @@ def move_to_zero_pose(arctos: Any, settings_manager: SettingsManager) -> None:
 def move_to_sleep_pose(arctos: Any, settings_manager: SettingsManager) -> None:
     """
     Move all axes to a safe sleep pose in reverse order (joint 6 to 1):
-    1. Optionally move to home switch via b_go_home().
-    2. Move to the predefined sleep position from SLEEP_POSITIONS.
+    - For axes 4-6: Move to home switch and then to zero position offset
+    - For axes 1-3: Just move to home switch
 
     Args:
         arctos: Robot controller instance.
@@ -130,32 +139,39 @@ def move_to_sleep_pose(arctos: Any, settings_manager: SettingsManager) -> None:
     # Retrieve settings for speeds and accelerations
     speeds: Dict[int, int] = settings_manager.get("joint_speeds", {})
     accelerations: Dict[int, int] = settings_manager.get("joint_acceleration", {})
+    offsets = settings_manager.get("homing_offsets", {})
 
     for axis in HOMING_SEQUENCE:
         try:
-            servo = arctos.servos[axis - 1]
+            axis_id = axis - 1  # 0-based index
+            servo = arctos.servos[axis_id]
 
-            # Retrieve sleep position (raw units)
-            sleep_pos = SLEEP_POSITIONS.get(axis, 0)
-            speed = speeds.get(axis - 1, 500)
-            accel = accelerations.get(axis - 1, 150)
+            # Get speed and acceleration with defaults
+            speed = speeds.get(axis_id, 500)
+            accel = accelerations.get(axis_id, 150)
 
-            logger.info(
-                f"Axis {axis}: moving to sleep_pos={sleep_pos}, speed={speed}, accel={accel}"
-            )
+            logger.info(f"Moving axis {axis} to sleep pose...")
 
-            # Move to home switch first to ensure consistent start (optional)
+            # 1) Move to home switch first (this resets the encoder to 0)
+            logger.debug(f"Axis {axis}: Moving to home switch...")
             servo.b_go_home()
             arctos.wait_for_motors_to_stop()
+            time.sleep(0.1)  # Small delay
 
-            # Move to sleep position
-            raw_target = sleep_pos * 100  # convert to servo raw units
-            servo.run_motor_absolute_motion_by_axis(speed, accel, raw_target)
-            arctos.wait_for_motors_to_stop()
+            # 2) For axes 4-6, move to zero position offset
+            if axis >= 4:  # Axes 4, 5, 6
+                user_offset = offsets.get(axis_id, 0)
+                if user_offset != 0:
+                    logger.debug(f"Axis {axis}: Moving to zero position offset {user_offset}...")
+                    # Use relative motion from home position (which should be 0 after homing)
+                    servo.run_motor_relative_motion_by_axis(speed, accel, int(user_offset))
+                    arctos.wait_for_motors_to_stop()
+                    time.sleep(0.1)  # Small delay
 
-            logger.info(f"Axis {axis} moved to sleep position {sleep_pos}")
+            logger.info(f"Axis {axis} moved to sleep position")
 
         except Exception as e:
             logger.error(f"Error moving axis {axis} to sleep pose: {e}", exc_info=True)
+            raise  # Re-raise to stop the process if any axis fails
 
     logger.info("All axes have reached sleep pose.")
