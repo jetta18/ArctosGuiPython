@@ -26,19 +26,19 @@ joint_directions:
   0: 1
   1: -1
   2: -1
-  3: 1
+  3: -1
   4: -1
-  5: 1
+  5: -1
 joint_speeds:
   0: 800
   1: 800
   2: 800
   3: 800
-  4: 800
+  4: 1000
   5: 800
 keyboard_send_to_robot: true
 language: English
 max_fps: 30
-speed_scale: 0.43
+speed_scale: 1.0
 theme: Light
 ui_color_theme: Blue

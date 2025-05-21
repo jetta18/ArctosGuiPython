@@ -336,50 +336,78 @@ class ArctosPinocchioRobot:
 
         target_SE3 = pin.SE3(target_rot, target_xyz)
 
+        from pink import solve_ik
+        from pink.tasks import FrameTask
+        from pink.limits import ConfigurationLimit, VelocityLimit
+
         # Initial robot configuration
         configuration = Configuration(self.model, self.data, self.q.copy())
 
-        # Task setup
+        # Create frame task
         task = FrameTask(
-            frame=self.ee_frame_name,
-            position_cost=2.0,
-            orientation_cost=0.5 if target_rpy is not None else 0.0,
-            lm_damping=1e-3
+            self.ee_frame_name,
+            position_cost=1.0,  # Position cost
+            orientation_cost=1.0 if target_rpy is not None else 0.0,  # Orientation cost if provided
         )
         task.set_target(target_SE3)
 
-        # Preferred solver
-        preferred_solvers = ["proxqp", "osqp", "quadprog"]
-        solver = next((s for s in preferred_solvers if s in qpsolvers.available_solvers), None)
-        if solver is None:
-            raise RuntimeError("No suitable QP solver available.")
-
-        # Define limits (position and velocity limits)
+        # Define limits
         limits = [
             ConfigurationLimit(self.model),
-            VelocityLimit(self.model)
+            VelocityLimit(self.model)  # Reasonable velocity limit
         ]
 
         # IK parameters
-        dt = 0.05
-        tol = 1e-4
-        max_iter = 500
+        dt = 0.05  # Fixed time step
+        damping = 1e-6  # Small damping for numerical stability
+        max_iter = 1000  # Maximum iterations
+        position_tol = 1e-3  # 1mm position tolerance
+        orientation_tol = 1e-2  # ~0.5° orientation tolerance
 
-        # Iterative solve
+
+        # Main IK loop
         for i in range(max_iter):
-            velocity = solve_ik(
-                configuration,
-                tasks=[task],
-                dt=dt,
-                solver=solver,
-                limits=limits
-            )
-            configuration.integrate_inplace(velocity, dt)
-            error_norm = np.linalg.norm(task.compute_error(configuration))
-            if error_norm < tol:
-                break
+            # Update task target if needed (in case it changes during the loop)
+            task.set_target(target_SE3)
+            
+            try:
+                # Solve IK
+                velocity = solve_ik(
+                    configuration,
+                    tasks=[task],
+                    dt=dt,
+                    solver="osqp",  # Preferred solver
+                    damping=damping,
+                    limits=limits,
+                    safety_break=True
+                )
+                
+                # Apply velocity
+                configuration.integrate_inplace(velocity, dt)
+                
+                # Check convergence
+                error = task.compute_error(configuration)
+                position_error = np.linalg.norm(error[:3])
+                converged = position_error < position_tol
+                
+                if target_rpy is not None:
+                    orientation_error = np.linalg.norm(error[3:])
+                    converged = converged and (orientation_error < orientation_tol)
+                
+                if converged:
+                    break
+                    
+            except Exception as e:
+                raise RuntimeError(f"IK solver error at iteration {i}: {str(e)}")
         else:
-            raise RuntimeError(f"IK did not converge within {max_iter} iterations (final error: {error_norm:.3g})")
+            error = task.compute_error(configuration)
+            position_error = np.linalg.norm(error[:3])
+            error_msg = f"IK did not converge after {max_iter} iterations. "
+            error_msg += f"Final position error: {position_error:.3g}m"
+            if target_rpy is not None:
+                orientation_error = np.linalg.norm(error[3:])
+                error_msg += f", orientation error: {orientation_error:.3g} rad"
+            raise RuntimeError(error_msg)
 
         q_solution = configuration.q.copy()
 

@@ -1,17 +1,22 @@
 from nicegui import ui
 from core import homing
 import utils.utils as utils
+from threading import Thread
 
 def home_button(Arctos, settings_manager):
     """Create a button to home the robot.
 
     Args:
         Arctos: The main robot control interface or object.
+        settings_manager: The settings manager instance.
 
     Returns:
         None. The function builds the UI directly using NiceGUI components.
     """
-    return ui.button("\U0001F3E0 Move to Home Pose", on_click=lambda: homing.move_to_zero_pose(Arctos, settings_manager)) \
+    def run_homing():
+        homing.move_to_zero_pose(Arctos, settings_manager)
+    return ui.button("\U0001F3E0 Move to Home Pose", 
+                   on_click=lambda: Thread(target=run_homing, daemon=True).start()) \
         .tooltip("Send robot to predefined 'home' configuration") \
         .classes('bg-purple-500 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-700')
 
@@ -25,7 +30,10 @@ def sleep_button(Arctos, settings_manager):
     Returns:
         None. The function builds the UI directly using NiceGUI components.
     """
-    return ui.button("\U0001F634 Move to Sleep Pose", on_click=lambda: homing.move_to_sleep_pose(Arctos, settings_manager)) \
+    def run_sleep_pose():
+        homing.move_to_sleep_pose(Arctos, settings_manager)
+    return ui.button("\U0001F634 Move to Sleep Pose",
+                   on_click=lambda: Thread(target=run_sleep_pose, daemon=True).start()) \
         .tooltip("Send robot to safe resting position (sleep pose)") \
         .classes('bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700')
 
