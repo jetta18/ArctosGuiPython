@@ -14,6 +14,7 @@ from pages.control import ctrl_page
 from components.menu import create_menu
 from core.ArctosController import ArctosController
 from core.PathPlanner import PathPlanner
+from core.CanBusManager import CanBusManager
 from core.ArctosPinocchio import ArctosPinocchioRobot  # Import for robot kinematics
 from utils.settings_manager import SettingsManager  # Import to manage settings
 import logging
@@ -27,7 +28,9 @@ settings_manager = SettingsManager()  # Initialize the settings manager
 logger.info("⚙️ Settings Manager initialized")
 
 try:
-    Arctos = ArctosController(settings_manager=settings_manager)  # Initialize the robot controller
+    can_bus_manager = CanBusManager()
+    logger.info("CAN Bus initialized")
+    Arctos = ArctosController(can_bus_manager=can_bus_manager, settings_manager=settings_manager)  # Initialize the robot controller
     logger.info("🤖 Arctos Controller initialized")
     robot = ArctosPinocchioRobot()  # Initialize the robot kinematics
     logger.info("🦾 Arctos Pinocchio Robot initialized")

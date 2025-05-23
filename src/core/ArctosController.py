@@ -15,7 +15,7 @@ from services.mks_servo_can import mks_servo
 from services.mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
 import concurrent.futures
 import platform
-
+from .CanBusManager import CanBusManager
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -46,7 +46,7 @@ class ArctosController:
             cls._instance = super(ArctosController, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, encoder_resolution: int = 16384, bitrate: int = 500000, settings_manager = None):
+    def __init__(self, can_bus_manager: CanBusManager = None, settings_manager = None):
         """
         Initializes the CAN interface, servo motors, and gear ratio settings.
 
@@ -55,8 +55,7 @@ class ArctosController:
         inversion of joint directions through a settings manager.
 
         Args:
-            encoder_resolution (int, optional): Encoder resolution per revolution. Defaults to 16384.
-            bitrate (int, optional): CAN bus bitrate. Defaults to 500000.
+            can_bus_manager (CanBusManager, optional): An instance of a CanBusManager. Defaults to None.
             settings_manager (Optional[Settings], optional): An instance of a settings manager
                 that can provide joint direction settings. Defaults to None.
 
@@ -65,33 +64,26 @@ class ArctosController:
         """
         if hasattr(self, "initialized"):  # Prevent re-initialization
             return
-        self.initialized = True  # Set initialization flag
-
-        if platform.system() == "Windows":
-            can_interface = "COM5"  # oder aus einer Config-Datei laden
-        else:
-            can_interface = "can0"
-
-        self.can_interface = can_interface
-        self.bitrate = bitrate
-        self.encoder_resolution = encoder_resolution
+        self.initialized = True  # Set initialization flag            
+        self.encoder_resolution = 16384
         default_ratios = [13.5, 150, 150, 48, 33.91, 33.91]
 
         if settings_manager:
             base_ratios = settings_manager.get("gear_ratios", default_ratios)
-            directions  = settings_manager.get("joint_directions", {i: 1 for i in range(6)})
+            directions = settings_manager.get("joint_directions", {i: 1 for i in range(6)})
             self.settings_manager = settings_manager  # Store reference to settings manager
         else:
             base_ratios = default_ratios
-            directions  = {i: 1 for i in range(6)}
+            directions = {i: 1 for i in range(6)}
             self.settings_manager = None
 
         # Apply sign for inverted axes
         self.gear_ratios = [gr * directions.get(i, 1) for i, gr in enumerate(base_ratios)]
 
-        # Robust CAN Bus initialization
+        # Initialize CAN bus manager
+        self.can_bus_manager = can_bus_manager
         try:
-            self.bus = self.initialize_can_bus()
+            self.bus = self.can_bus_manager.initialize()
         except Exception as e:
             logger.warning(f"CAN bus initialization failed: {e}")
             self.bus = None
@@ -341,64 +333,6 @@ class ArctosController:
         return current_joint_angle
 
 
-    def initialize_can_bus(self):
-        """
-        Initializes the CAN bus interface.
-
-        This method initializes the CAN bus interface, sets the bitrate, and ensures that the
-        CAN interface is active. If the CAN interface is not active, it logs an error and raises
-        a `RuntimeError`.
-
-        Returns:
-            can.Bus: The initialized CAN bus object.
-        Raises:
-            RuntimeError: If the CAN interface is not available or if there is an error initializing the CAN bus.
-        """
-        if not self.is_can_interface_up():
-            if platform.system() == "Windows":
-                raise RuntimeError(f"CAN interface is not available on {self.can_interface}.")
-            else:
-                raise RuntimeError("CAN interface is not active. Please run 'setup_canable.sh' first.")
-
-        try:
-            if platform.system() == "Windows":
-                bus = can.interface.Bus(bustype="slcan", channel=self.can_interface, bitrate=self.bitrate)
-            else:
-                bus = can.interface.Bus(bustype="socketcan", channel=self.can_interface)
-
-            logger.info(f"CAN bus successfully initialized on {self.can_interface} with bitrate {self.bitrate}.")
-            return bus
-        except Exception as e:
-            logger.error(f"Error initializing CAN bus: {e}")
-            raise RuntimeError("Error initializing CAN bus.")
-
-
-    def is_can_interface_up(self) -> bool:
-        """
-        Checks if the specified CAN interface is active.
-
-        This method checks the status of the CAN interface. On Windows, it checks if the COM port
-        is available in the list of serial ports. On Linux, it uses the `ip link show` command to
-        check if the interface is up.
-
-        Returns:
-            bool: True if the interface is active, False otherwise.
-        """
-      
-        if platform.system() == "Windows":
-            # On Windows, we assume the COM port is available if it appears in the port list
-            import serial.tools.list_ports
-            ports = [port.device for port in serial.tools.list_ports.comports()]
-            return self.can_interface in ports
-        else:
-            try:
-                result = subprocess.run(["ip", "link", "show", self.can_interface], capture_output=True, text=True)
-                return "UP" in result.stdout
-            except Exception as e:
-                logger.error(f"Error checking CAN interface: {e}")
-            return False
-
-
     def send_can_message_gripper(self, bus: can.Bus, arbitration_id: int, data: List[int]) -> None:  
         """
         Sends a CAN message to control the gripper.
@@ -552,4 +486,6 @@ class ArctosController:
         """Clean up resources when the object is destroyed."""
         if hasattr(self, "thread_pool"):
             self.thread_pool.shutdown(wait=True)
-        # Other cleanup code...
+        # Clean up CAN bus manager if it exists
+        if hasattr(self, "can_bus_manager"):
+            self.can_bus_manager.shutdown()
