@@ -9,7 +9,9 @@ from typing import Any, Dict
 from nicegui import ui
 from utils.settings_manager import SettingsManager
 from pages.settings.dialog_helpers import create_gear_ratio_wizard, create_reset_dialog
-from pages.settings.ui_panels import general_tab, joints_tab, homing_tab
+from pages.settings.tabs.general_tab import general_tab
+from pages.settings.tabs.joints_tab import joints_tab
+from pages.settings.tabs.homing_tab import homing_tab
 
 
 def create(settings_manager: SettingsManager, arctos: Any) -> None:
@@ -57,7 +59,7 @@ def create(settings_manager: SettingsManager, arctos: Any) -> None:
                 with ui.tab_panel(tab_joints):
                     joints_tab(settings_manager, arctos, settings, open_ratio_wizard)
                 with ui.tab_panel(tab_homing):
-                    homing_tab(settings_manager, arctos, settings)
+                    homing_tab(settings_manager, arctos)
 
     # Reset-All Button
     ui.button("Reset All", on_click=lambda: open_reset_dialog()) \
