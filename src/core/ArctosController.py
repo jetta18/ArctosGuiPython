@@ -8,13 +8,11 @@ one instance of ArctosController manages the servos at any given time.
 import math
 import can
 import time
-import subprocess
-from typing import List, Optional
+from typing import List
 import logging
 from services.mks_servo_can import mks_servo
-from services.mks_servo_can.mks_enums import Enable, Direction, EndStopLevel
+from services.mks_servo_can.mks_enums import Enable
 import concurrent.futures
-import platform
 from .CanBusManager import CanBusManager
 
 logger = logging.getLogger(__name__)
