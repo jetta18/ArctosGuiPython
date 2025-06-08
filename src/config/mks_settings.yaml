@@ -1,14 +1,15 @@
 servo_0:
-  current: 1600
+  current: 3600
   direction: CW
   enable_homing: Enable
   endstop_enabled: true
   endstop_level: Low
-  holding: FIFTHTY_PERCENT
+  holding: SIXTY_PERCENT
   home_direction: CCW
   home_speed: 60
   microsteps: 16
-  work_mode: SrvFoc
+  shaft_protect: true
+  work_mode: SrClose
 servo_1:
   current: 1600
   direction: CW

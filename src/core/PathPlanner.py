@@ -179,7 +179,7 @@ class PathPlanner:
             robot,
             arctos,
             speeds: list[int] | int = 500,
-            acceleration: int = 150,
+            acceleration: list[int] | int = 150,
     ) -> None:
         """
         Play the stored pose list on the physical robot.
@@ -206,6 +206,14 @@ class PathPlanner:
                 raise ValueError("speeds must have length 6")
             speed_list = [max(0, min(s, 3000)) for s in speeds]
 
+        # --- build 6‑element acceleration list ------------------------------
+        if isinstance(acceleration, int):
+            acceleration_list = [max(0, min(acceleration, 255))] * 6
+        else:
+            if len(acceleration) != 6:
+                raise ValueError("acceleration must have length 6")
+            acceleration_list = [max(0, min(a, 255)) for a in acceleration]
+
         for idx, pose in enumerate(self.poses):
             try:
                 q = np.asarray(pose["joints"])
@@ -224,9 +232,10 @@ class PathPlanner:
                 joint_positions_rad = robot.get_current_joint_angles()
                 if joint_positions_rad is None:
                     return
+                angles_rad = q.tolist()[:6]
 
                 # physical move
-                arctos.move_to_angles(q, speeds=speed_list, acceleration=acceleration)
+                arctos.move_to_angles(angles_rad, speeds=speed_list, acceleration=acceleration_list)
                 arctos.wait_for_motors_to_stop()
 
             except Exception as e:

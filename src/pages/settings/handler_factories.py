@@ -36,7 +36,11 @@ def make_joint_handler(settings_manager, k: str, idx: int, default: Dict[int, in
                 except Exception:
                     raw_val = 1
         else:
-            raw_val = int(e.value)
+            try:
+                raw_val = int(e.value) if e.value is not None else 0
+            except (ValueError, TypeError):
+                raw_val = 0
+                ui.notify(f"Invalid value for {title.lower()}, using 0", type='warning')
         settings_manager.set(k, {**settings_manager.get(k, default), idx: raw_val})
         ui.notify(f"{title.split()[1]} {idx + 1} set to {e.value}")
     return _handler

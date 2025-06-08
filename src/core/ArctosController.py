@@ -226,7 +226,8 @@ class ArctosController:
 
         # --- Normalize speeds --------------------------------------------------
         if isinstance(speeds, int):
-            speed_list: list[int] = [speeds] * 6
+            speed_scale = self.settings_manager.get("speed_scale", 1.0)
+            speed_list: list[int] = [speeds * speed_scale] * 6
         else:
             if len(speeds) != 6:
                 raise ValueError("'speeds' list must contain 6 elements")

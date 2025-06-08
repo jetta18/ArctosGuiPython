@@ -130,8 +130,10 @@ def execute_path(planner, robot, arctos, settings_manager) -> None:
     """
     speed_cfg = settings_manager.get("joint_speeds", {i: 500 for i in range(6)})
     speeds = [speed_cfg.get(i, 500) for i in range(6)]
+    acceleration_cfg = settings_manager.get("joint_accelerations", {i: 150 for i in range(6)})
+    acceleration = [acceleration_cfg.get(i, 150) for i in range(6)]
 
-    Thread(target=lambda: planner.execute_path(robot, arctos, speeds=speeds), daemon=True).start()
+    Thread(target=lambda: planner.execute_path(robot, arctos, speeds=speeds, acceleration=acceleration), daemon=True).start()
     ui.notify("Path executing …")
 
 
