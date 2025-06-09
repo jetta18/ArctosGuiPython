@@ -98,6 +98,9 @@ class ArctosPinocchioRobot:
             name="arctos"
         )
         self.scene.add_robot(self.robot)
+        # Set Meshcat background to light grey (RGBA: [0.3, 0.3, 0.3, 1] for a soft dark grey)
+        self.scene.vis["/Background"].set_property("top_color", [0.75, 0.75, 0.75, 1])
+        self.scene.vis["/Background"].set_property("bottom_color", [0.9, 0.9, 0.9, 1])
         self.meshcat_url = self.scene.vis.url().replace("tcp://", "http://")
 
         # Robot state

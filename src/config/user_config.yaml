@@ -1,6 +1,6 @@
 auto_update_saved_poses: false
 coupled_axis_mode: false
-enable_live_joint_updates: false
+enable_live_joint_updates: true
 gear_ratios:
 - 13.5
 - 150
@@ -16,12 +16,12 @@ homing_offsets:
   4: 121972
   5: -79420
 joint_accelerations:
-  0: 160
-  1: 220
-  2: 220
-  3: 220
-  4: 220
-  5: 220
+  0: 150
+  1: 230
+  2: 230
+  3: 200
+  4: 200
+  5: 200
 joint_directions:
   0: 1
   1: -1
@@ -30,10 +30,10 @@ joint_directions:
   4: -1
   5: -1
 joint_speeds:
-  0: 800
-  1: 2500
-  2: 1300
-  3: 1200
+  0: 500
+  1: 3000
+  2: 3000
+  3: 1500
   4: 1000
   5: 800
 keyboard_send_to_robot: false

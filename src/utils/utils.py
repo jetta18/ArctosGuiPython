@@ -151,9 +151,9 @@ def update_joint_states_encoder(robot, joint_positions_encoder):
         AttributeError: If robot.q_encoder is not available or not iterable.
         Exception: For any unexpected UI or robot errors.
     """
-    if robot:  # Stelle sicher, dass `robot` initialisiert ist
+    if robot:  # Ensure `robot` is initialized
         for i in range(6):
-            joint_positions_encoder[i].set_text(f"Joint {i+1}: {np.degrees(robot.q_encoder[i]):.2f}°")  # Umrechnung in Grad
+            joint_positions_encoder[i].set_text(f"{np.degrees(robot.q_encoder[i]):.2f}°")  # Convert to degrees
 
 def live_update_ee_postion(robot, ee_position_labels):
     """
