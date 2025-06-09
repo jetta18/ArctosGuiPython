@@ -74,18 +74,12 @@ def create(Arctos, robot, planner, settings_manager):
 
         with ui.column().classes('flex-1 min-w-0 gap-2 items-stretch h-full'):
             # Setup keyboard controller
-            def notify_fn(msg, color=None):
-                ui.notify(msg, color=color)
             step_size_slider = None
-            def update_status_label():
-                pass  # This should be implemented as needed
-            def on_switch(val):
-                update_status_label()
-            visualization_keyboard(robot, Arctos, step_size_slider, update_status_label, on_switch, settings_manager)
+            visualization_keyboard(robot, Arctos, step_size_slider, settings_manager)
     # Timers
     ui.timer(0.25, lambda: utils.update_joint_states(robot, joint_positions))
     ui.timer(0.25, lambda: utils.live_update_ee_postion(robot, ee_position_labels))
     ui.timer(0.25, lambda: utils.live_update_ee_orientation(robot, ee_orientation_labels))
     if settings_manager.get("enable_live_joint_updates", True):
-        ui.timer(0.3, lambda: utils.threaded_initialize_current_joint_states(robot, Arctos))
-        ui.timer(0.25, lambda: utils.update_joint_states_encoder(robot, joint_positions_encoder))
+        ui.timer(0.2, lambda: utils.threaded_initialize_current_joint_states(robot, Arctos, settings_manager))
+        ui.timer(0.2, lambda: utils.update_joint_states_encoder(robot, joint_positions_encoder))

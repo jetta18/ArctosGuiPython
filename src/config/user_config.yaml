@@ -1,12 +1,12 @@
 auto_update_saved_poses: false
 coupled_axis_mode: false
-enable_live_joint_updates: false
+enable_live_joint_updates: true
 gear_ratios:
 - 13.5
 - 150
 - 150
 - 48
-- 33.0
+- 27.3375
 - 10.0
 homing_offsets:
   0: -98018

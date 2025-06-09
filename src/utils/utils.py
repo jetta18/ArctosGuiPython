@@ -361,17 +361,20 @@ def reset_to_zero_position(robot):
         ui.notify("⚠️ Robot instance not found!", type="warning")
 
 
-def initialize_current_joint_states(robot, Arctos):
+def initialize_current_joint_states(robot, Arctos, settings_manager):
     """
     Read and initialize the robot's current joint states.
     This function reads the current joint angles from the robot's encoders and updates the 3D model correctly.
     """
     current_joint_states = Arctos.get_joint_angles()
-
+    coupled_mode = settings_manager.get("coupled_axis_mode", False)
     # Extract joint angles for calculation
-    a4 = (current_joint_states[4] + current_joint_states[5]) / 2  # Reverse B-axis formula
-    a5 = (current_joint_states[4] - current_joint_states[5]) / 2  # Reverse C-axis formula
-
+    if coupled_mode:
+        a4 = (current_joint_states[4] + current_joint_states[5]) / 2  # Reverse B-axis formula
+        a5 = (current_joint_states[4] - current_joint_states[5]) / 2  # Reverse C-axis formula
+    else:
+        a4 = current_joint_states[4]
+        a5 = current_joint_states[5]
     # Assign the corrected values to the robot state
     robot.q_encoder[:6] = [
         current_joint_states[0],  # A0
@@ -382,7 +385,7 @@ def initialize_current_joint_states(robot, Arctos):
         a5   # Corrected A5 based on C-axis calculations
     ]
 
-def threaded_initialize_current_joint_states(robot, Arctos):
+def threaded_initialize_current_joint_states(robot, Arctos, settings_manager):
     """
     Update the robot's joint states in a separate thread.
 
@@ -402,7 +405,7 @@ def threaded_initialize_current_joint_states(robot, Arctos):
     """
     def task():
         try:
-            initialize_current_joint_states(robot, Arctos)
+            initialize_current_joint_states(robot, Arctos, settings_manager)
         except Exception as e:
             print(f"Error updating joint states: {e}")
     Thread(target=task, daemon=True).start()

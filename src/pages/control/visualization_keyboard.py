@@ -9,7 +9,7 @@ from nicegui.events import KeyEventArguments
 import numpy as np
 
 
-def visualization_keyboard(robot, Arctos, step_size_slider=None, on_switch=None, settings_manager=None):
+def visualization_keyboard(robot, Arctos, step_size_slider=None, settings_manager=None):
     """
     Create the visualization keyboard UI section for controlling the 3D robot visualization.
 
