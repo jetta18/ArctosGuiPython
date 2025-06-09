@@ -8,7 +8,7 @@ robot control, path planning, settings management, and web UI components.
 """
 
 from nicegui import ui
-from pages import home, control, mks_config
+from pages import home, mks_config
 from pages.settings import set_page
 from pages.control import ctrl_page
 from components.menu import create_menu

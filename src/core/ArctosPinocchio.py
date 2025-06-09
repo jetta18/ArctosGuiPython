@@ -336,9 +336,8 @@ class ArctosPinocchioRobot:
 
         target_SE3 = pin.SE3(target_rot, target_xyz)
 
-        from pink import solve_ik
-        from pink.tasks import FrameTask
-        from pink.limits import ConfigurationLimit, VelocityLimit
+        # Assuming pink (solve_ik, Configuration), pink.tasks (FrameTask),
+        # and pink.limits (ConfigurationLimit, VelocityLimit) are imported at the module's top level.
 
         # Initial robot configuration
         configuration = Configuration(self.model, self.data, self.q.copy())
@@ -367,8 +366,7 @@ class ArctosPinocchioRobot:
 
         # Main IK loop
         for i in range(max_iter):
-            # Update task target if needed (in case it changes during the loop)
-            task.set_target(target_SE3)
+            # target_SE3 is set for the task once before this loop, as it's constant within the loop.
             
             try:
                 # Solve IK
