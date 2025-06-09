@@ -132,95 +132,97 @@ def visualization_keyboard(robot, Arctos, step_size_slider=None, settings_manage
     ui.timer(0.1, process_simulation_keys)
     ui.timer(0.1, process_hardware_keys)
 
-    with ui.card().classes('w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-blue-100 border border-gray-300 rounded-md shadow-lg p-3 hover:shadow-xl transition-shadow duration-300'):
-        with ui.row().classes('items-center mb-1'):
-            ui.icon('monitor').classes('text-2xl text-blue-700 mr-2')
-            ui.label('3D Visualization').classes('text-xl font-bold text-blue-900 tracking-wide')
-        with ui.column().classes('flex-1 w-full h-full'):
-            ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 100%; min-height: 320px; border: none;"></iframe>''')\
-                .classes('w-full h-full rounded-lg border border-blue-200 shadow')
-        with ui.card().classes('w-full bg-white border border-blue-200 rounded-md shadow p-3 mt-3'):
-            # --- Switch and Sliders Aligned in a Single Row ---
-            with ui.row().classes('w-full items-center justify-center gap-8 flex-wrap'):
-                # Switch + Info
-                with ui.column().classes('items-center min-w-[220px]'):
-                    with ui.row().classes('items-center gap-2 mb-1'):
-                        keyboard_control_switch = ui.switch(
-                            "Keyboard Control",
-                            value=keyboard_control_enabled['value'],
-                            on_change=lambda e: handle_keyboard_switch(e.value)
-                        )
-                        with ui.icon("info").classes("text-blue-500 cursor-pointer"):
-                            with ui.tooltip().classes("text-body2 text-left"):
-                                ui.html(
-                                    """
-                                    <strong>Keyboard Control:</strong><br>
-                                    Enable or disable keyboard-based robot movement.<br><br>
-                                    <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
-                                        <li><b>W/S</b>: Move along Y-axis</li>
-                                        <li><b>A/D</b>: Move along X-axis</li>
-                                        <li><b>Q/E</b>: Move along Z-axis</li>
-                                        <li><b>J/L</b>: Roll -/+</li>
-                                        <li><b>I/K</b>: Pitch -/+</li>
-                                        <li><b>U/O</b>: Yaw -/+</li>
-                                    </ul>
-                                    Each key press moves the robot stepwise.<br>
-                                    Use the <b>step size</b> slider to adjust increments.<br>
-                                    """
-                                )
-                # Step Size (Position) Slider + Info
-                with ui.column().classes('items-center min-w-[220px]'):
-                    with ui.row().classes("items-center gap-1 mb-1"):
-                        ui.label("Step Size (m)").classes("text-sm font-medium text-gray-700")
-                        with ui.icon("info").classes("text-blue-500 cursor-pointer"):
-                            with ui.tooltip().classes("text-body2 text-left"):
-                                ui.html(
-                                    """
-                                    <strong>Step Size:</strong><br>
-                                    Determines how far the robot moves per key press (<b>W/A/S/D/Q/E</b>).<br><br>
-                                    <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
-                                        <li>Smaller value: finer, more precise motion</li>
-                                        <li>Larger value: faster, coarser steps</li>
-                                    </ul>
-                                    Adjust as needed for your task.
-                                    """
-                                )
-                    step_size_slider = ui.slider(
-                        min=0.0005,
-                        max=0.02,
-                        value=0.002,
-                        step=0.0005
-                    ).props('label-always').classes('w-56')
-                # Orientation Step Size Slider + Info
-                with ui.column().classes('items-center min-w-[220px]'):
-                    with ui.row().classes("items-center gap-1 mb-1"):
-                        ui.label("Orientation Step (deg)").classes("text-sm font-medium text-gray-700")
-                        with ui.icon("info").classes("text-blue-500 cursor-pointer"):
-                            with ui.tooltip().classes("text-body2 text-left"):
-                                ui.html(
-                                    """
-                                    <strong>Orientation Step Size:</strong><br>
-                                    Determines how much the robot rotates per key press (<b>J/L, I/K, U/O</b>).<br><br>
-                                    <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
-                                        <li>Smaller value: finer angle changes</li>
-                                        <li>Larger value: faster, coarser angle steps</li>
-                                    </ul>
-                                    Adjust as needed for your task.
-                                    """
-                                )
-                    orientation_step_size_slider = ui.slider(
-                        min=1,
-                        max=30,
-                        value=5,
-                        step=1
-                    ).props('label-always').classes('w-56')
 
-            def handle_keyboard_switch(val: bool):
-                keyboard_control_enabled['value'] = val
-                if val:
-                    ui.notify('Keyboard control activated', type='positive', close_button=True, timeout=1500)
-                else:
-                    ui.notify('Keyboard control deactivated', type='negative', close_button=True, timeout=1500)
-                if on_switch:
-                    on_switch(val)
+
+    expansion_common = (
+        "w-full bg-white/90 backdrop-blur-md border border-blue-200 "
+        "rounded-md shadow-xl p-0 transition-all duration-300 "
+        "hover:shadow-2xl"
+    )
+
+    with ui.expansion('Keyboard Control', icon='keyboard', value=False).classes(expansion_common).props('expand-icon="expand_more"'):
+        # --- Switch and Sliders Aligned in a Single Row ---
+        
+        # Switch + Info
+        with ui.column().classes('items-center min-w-[220px]'):
+            with ui.row().classes('items-center gap-2 mb-1'):
+                keyboard_control_switch = ui.switch(
+                    "Keyboard Control",
+                    value=keyboard_control_enabled['value'],
+                    on_change=lambda e: handle_keyboard_switch(e.value)
+                )
+                with ui.icon("info").classes("text-blue-500 cursor-pointer"):
+                    with ui.tooltip().classes("text-body2 text-left"):
+                        ui.html(
+                            """
+                            <strong>Keyboard Control:</strong><br>
+                            Enable or disable keyboard-based robot movement.<br><br>
+                            <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                                <li><b>W/S</b>: Move along Y-axis</li>
+                                <li><b>A/D</b>: Move along X-axis</li>
+                                <li><b>Q/E</b>: Move along Z-axis</li>
+                                <li><b>J/L</b>: Roll -/+</li>
+                                <li><b>I/K</b>: Pitch -/+</li>
+                                <li><b>U/O</b>: Yaw -/+</li>
+                            </ul>
+                            Each key press moves the robot stepwise.<br>
+                            Use the <b>step size</b> slider to adjust increments.<br>
+                            """
+                        )
+        with ui.row().classes('w-full items-center justify-center gap-8 flex-wrap'):
+            # Step Size (Position) Slider + Info
+            with ui.column().classes('items-center min-w-[220px]'):
+                with ui.row().classes("items-center gap-1 mb-1"):
+                    ui.label("Step Size (m)").classes("text-sm font-medium text-gray-700")
+                    with ui.icon("info").classes("text-blue-500 cursor-pointer"):
+                        with ui.tooltip().classes("text-body2 text-left"):
+                            ui.html(
+                                """
+                                <strong>Step Size:</strong><br>
+                                Determines how far the robot moves per key press (<b>W/A/S/D/Q/E</b>).<br><br>
+                                <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                                    <li>Smaller value: finer, more precise motion</li>
+                                    <li>Larger value: faster, coarser steps</li>
+                                </ul>
+                                Adjust as needed for your task.
+                                """
+                            )
+                step_size_slider = ui.slider(
+                    min=0.0005,
+                    max=0.02,
+                    value=0.002,
+                    step=0.0005
+                ).props('label-always').classes('w-56')
+            # Orientation Step Size Slider + Info
+            with ui.column().classes('items-center min-w-[220px]'):
+                with ui.row().classes("items-center gap-1 mb-1"):
+                    ui.label("Orientation Step (deg)").classes("text-sm font-medium text-gray-700")
+                    with ui.icon("info").classes("text-blue-500 cursor-pointer"):
+                        with ui.tooltip().classes("text-body2 text-left"):
+                            ui.html(
+                                """
+                                <strong>Orientation Step Size:</strong><br>
+                                Determines how much the robot rotates per key press (<b>J/L, I/K, U/O</b>).<br><br>
+                                <ul style='margin:0 0 0 1em; padding:0; list-style: disc;'>
+                                    <li>Smaller value: finer angle changes</li>
+                                    <li>Larger value: faster, coarser angle steps</li>
+                                </ul>
+                                Adjust as needed for your task.
+                                """
+                            )
+                orientation_step_size_slider = ui.slider(
+                    min=1,
+                    max=30,
+                    value=5,
+                    step=1
+                ).props('label-always').classes('w-56')
+
+        def handle_keyboard_switch(val: bool):
+            keyboard_control_enabled['value'] = val
+            if val:
+                ui.notify('Keyboard control activated', type='positive', close_button=True, timeout=1500)
+            else:
+                ui.notify('Keyboard control deactivated', type='negative', close_button=True, timeout=1500)
+            if on_switch:
+                on_switch(val)
 

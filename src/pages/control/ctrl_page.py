@@ -1,4 +1,6 @@
 from nicegui import ui
+import numpy as np
+from nicegui.events import KeyEventArguments
 from .speed_scale import speed_scale
 from .joint_control import joint_control
 from .end_effector_control import end_effector_control
@@ -24,31 +26,13 @@ def create(Arctos, robot, planner, settings_manager):
     Raises:
         None.
     """
-    """
-    Assemble the complete control page by composing modular sections.
-    """
     # Theme
     if settings_manager.get("theme") == "Dark":
         ui.dark_mode().enable()
     else:
         ui.dark_mode().disable()
-    #ui.label("Control Page").classes('text-3xl font-bold text-left mt-2 mb-2 px-2')
 
-    # --- Control Buttons at Top ---
-    with ui.card().classes(
-        'w-full flex flex-col items-center bg-white/90 backdrop-blur-md border border-blue-200 rounded-md shadow-xl p-4 mb-1'
-    ).style(
-        'position:sticky;top:56px;z-index:50;opacity:0.5;transition:opacity 0.25s;backdrop-filter:blur(8px);'
-    ).on('mouseenter', lambda e: e.sender.style('position:sticky;top:56px;z-index:50;opacity:1.0;transition:opacity 0.25s;backdrop-filter:blur(8px);')) \
-     .on('mouseleave', lambda e: e.sender.style('position:sticky;top:56px;z-index:50;opacity:0.5;transition:opacity 0.25s;backdrop-filter:blur(8px);')):
-        with ui.row().classes('gap-4 mb-1'):
-            start_movement_button(robot, Arctos, settings_manager)
-            reset_to_zero_button(robot)
-            home_button(Arctos, settings_manager)
-            sleep_button(Arctos, settings_manager)
-            emergency_stop_button(Arctos)
-
-    # Speed scale section
+    # Speed scale function
     def apply_speed(val):
         try:
             val = float(val)
@@ -60,22 +44,56 @@ def create(Arctos, robot, planner, settings_manager):
             return
         utils.set_speed_scale(val)
         settings_manager.set('speed_scale', val)
-        ui.notify(f'Speed scale set to {int(val*100)} %', color='positive')
-
+        ui.notify(f'Speed scale set to {int(val*100)} %', color='positive')
+        
+    # Initialize joint positions for encoder
     joint_positions_encoder = live_joint_states(settings_manager)
+    
+    # Create a container for the entire page
+    with ui.element('div').classes('w-full h-screen fixed inset-0'):
+        # 1. Background iframe with full pointer events
+        ui.html(f'''<iframe src="{robot.meshcat_url}" style="width: 100%; height: 100%; border: none;"></iframe>''')\
+                .classes('absolute inset-0 w-full h-full')
 
-    with ui.row().classes('w-full h-[calc(100vh-60px)] gap-2 items-stretch'):
-        with ui.column().classes('flex-2 min-w-0 gap-2 items-stretch w-[550px]'):
-            speed_scale(settings_manager, apply_speed)
-            joint_positions = joint_control(robot)
-            ee_position_labels, ee_orientation_labels = end_effector_control(robot)
-            gripper_control(Arctos)
-            path_planning(planner, robot, Arctos, settings_manager)
-
-        with ui.column().classes('flex-1 min-w-0 gap-2 items-stretch h-full'):
-            # Setup keyboard controller
-            step_size_slider = None
-            visualization_keyboard(robot, Arctos, step_size_slider, settings_manager)
+        # 2. Top control buttons (sticky header) - positioned below menu bar
+        with ui.element('div').classes('absolute top-[56px] left-0 right-0 z-10'):
+            with ui.card().classes(
+                'w-full flex flex-col items-center bg-white/90 backdrop-blur-md border border-blue-200 rounded-md shadow-xl p-4 mb-1'
+            ).style(
+                'position:sticky;top:56px;z-index:50;opacity:0.5;transition:opacity 0.25s;backdrop-filter:blur(8px);'
+            ).on('mouseenter', lambda e: e.sender.style('position:sticky;top:56px;z-index:50;opacity:1.0;transition:opacity 0.25s;backdrop-filter:blur(8px);')) \
+             .on('mouseleave', lambda e: e.sender.style('position:sticky;top:56px;z-index:50;opacity:0.5;transition:opacity 0.25s;backdrop-filter:blur(8px);')):
+                with ui.row().classes('gap-4 mb-1'):
+                    start_movement_button(robot, Arctos, settings_manager)
+                    reset_to_zero_button(robot)
+                    home_button(Arctos, settings_manager)
+                    sleep_button(Arctos, settings_manager)
+                    emergency_stop_button(Arctos)
+        
+        # 3. Left side control panel (floating)
+        with ui.element('div').classes('absolute left-4 top-40 bottom-4 z-20').style('width: 550px;'):
+            # Create a scrollable container for controls
+            with ui.card().classes('bg-white/10 backdrop-blur-sm border border-blue-200 rounded-md shadow-lg p-4 max-h-[calc(100vh-12rem)]'):
+                with ui.column().classes('w-full gap-4 overflow-y-auto'):
+                    # Speed scale section
+                    speed_scale(settings_manager, apply_speed)
+                    
+                    # Joint control section
+                    joint_positions = joint_control(robot)
+                    
+                    # End effector control section
+                    ee_position_labels, ee_orientation_labels = end_effector_control(robot)
+                    
+                    # Gripper control section
+                    gripper_control(Arctos)
+                    
+                    # Path planning section
+                    path_planning(planner, robot, Arctos, settings_manager)
+                    
+                    # Keyboard section
+                    step_size_slider = None
+                    visualization_keyboard(robot, Arctos, step_size_slider, settings_manager)
+        
     # Timers
     ui.timer(0.25, lambda: utils.update_joint_states(robot, joint_positions))
     ui.timer(0.25, lambda: utils.live_update_ee_postion(robot, ee_position_labels))
