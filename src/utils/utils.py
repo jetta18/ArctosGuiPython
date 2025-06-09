@@ -44,15 +44,14 @@ def run_move_can(robot, arctos, settings_manager) -> None:
 
         # Build the 6-element speed list, clamped to 0-3000
         joint_speeds = settings_manager.get("joint_speeds", {})
-        speed_scale = settings_manager.get("speed_scale", 1.0)
-        speeds = [max(0, min(joint_speeds.get(i, 500)* speed_scale, 3000)) for i in range(6)]
+        speeds = [max(0, min(joint_speeds.get(i, 500), 3000)) for i in range(6)]
         
         # --- Acceleration: per joint, clamped ---
         joint_accelerations = settings_manager.get("joint_accelerations", {})
         accelerations = [max(0, min(joint_accelerations.get(i, 150), 255)) for i in range(6)]
 
         # --- Move the robot ---
-        arctos.move_to_angles(q_rad, speeds=speeds, acceleration=accelerations, force_stop=True)
+        arctos.move_to_angles(q_rad, speeds=speeds, acceleration=accelerations)
         
     Thread(target=task, daemon=True).start()
     ui.notify("Robot moving...", color="green")

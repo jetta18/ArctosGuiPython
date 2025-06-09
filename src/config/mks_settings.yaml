@@ -1,10 +1,10 @@
 servo_0:
-  current: 3600
+  current: 2500
   direction: CW
   enable_homing: Enable
   endstop_enabled: true
   endstop_level: Low
-  holding: SIXTY_PERCENT
+  holding: THIRTY_PERCENT
   home_direction: CCW
   home_speed: 60
   microsteps: 16
