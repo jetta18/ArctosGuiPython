@@ -4,13 +4,12 @@ Module for creating the 3D visualization keyboard UI section.
 This module provides a function to build the UI for controlling the 3D robot visualization using NiceGUI components.
 """
 
-from socket import timeout
 from nicegui import ui
 from nicegui.events import KeyEventArguments
 import numpy as np
 
 
-def visualization_keyboard(robot, Arctos, step_size_slider=None, update_status_label=None, on_switch=None, settings_manager=None):
+def visualization_keyboard(robot, Arctos, step_size_slider=None, on_switch=None, settings_manager=None):
     """
     Create the visualization keyboard UI section for controlling the 3D robot visualization.
 
@@ -24,7 +23,6 @@ def visualization_keyboard(robot, Arctos, step_size_slider=None, update_status_l
         robot: The robot instance used for retrieving and setting end-effector positions and orientations.
         Arctos: The main robot control interface or object responsible for executing movement commands.
         step_size_slider: Optional UI slider component for controlling the step size of position movements.
-        update_status_label: Optional function to update UI status labels based on the robot's state.
         on_switch: Optional callback function triggered when the keyboard control switch is toggled.
         settings_manager: Optional settings manager for accessing user preferences, particularly related to sending commands
                           to the robot hardware.
