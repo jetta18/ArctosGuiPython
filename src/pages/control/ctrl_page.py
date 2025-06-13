@@ -85,7 +85,7 @@ def create(Arctos, robot, planner, settings_manager):
                     ee_position_labels, ee_orientation_labels = end_effector_control(robot)
                     
                     # Gripper control section
-                    gripper_control(Arctos)
+                    gripper_control(Arctos, robot)
                     
                     # Path planning section
                     path_planning(planner, robot, Arctos, settings_manager)

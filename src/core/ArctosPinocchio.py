@@ -108,6 +108,12 @@ class ArctosPinocchioRobot:
         self.q_encoder = np.zeros(self.model.nq)
         self.ee_position = np.zeros(3)
         self.ee_orientation = np.zeros(3)
+        
+        # Gripper state (jaw1 and jaw2 joint indices)
+        self.jaw1_idx = self.model.getJointId('jaw1')
+        self.jaw2_idx = self.model.getJointId('jaw2')
+        self.gripper_open = True  # Track gripper state
+
         self.update_end_effector_position()
         self.update_end_effector_orientation()
         self.display()
@@ -296,6 +302,26 @@ class ArctosPinocchioRobot:
         """
         return self.ee_position.copy()
 
+    def open_gripper(self) -> None:
+        """Opens the gripper by setting the jaw joints to their open positions."""
+        if not self.gripper_open:
+            self.q[self.jaw1_idx - 1] = 0.0  # Open position for jaw1
+            self.q[self.jaw2_idx - 1] = 0.0  # Open position for jaw2
+            self.gripper_open = True
+            self.display()
+    
+    def close_gripper(self) -> None:
+        """Closes the gripper by setting the jaw joints to their closed positions."""
+        if self.gripper_open:
+            self.q[self.jaw1_idx - 1] = 0.015  # Closed position for jaw1
+            self.q[self.jaw2_idx - 1] = 0.015  # Closed position for jaw2
+            self.gripper_open = False
+            self.display()
+    
+    def is_gripper_open(self) -> bool:
+        """Returns whether the gripper is currently open."""
+        return self.gripper_open
+    
     def get_current_joint_angles(self) -> np.ndarray:
         """Retrieves the current joint angles of the robot.
 

@@ -77,7 +77,7 @@ def set_zero_position(robot) -> None:
 # ------------------------------
 
 
-def open_gripper(Arctos) -> None:
+def open_gripper(Arctos, robot) -> None:
     """
     Sends a command to open the robot's gripper.
 
@@ -91,9 +91,10 @@ def open_gripper(Arctos) -> None:
         Exception: If the gripper command fails, an exception may be raised by the controller.
     """
     Arctos.open_gripper()
+    robot.open_gripper()
     ui.notify("✅ Gripper opened.")
 
-def close_gripper(Arctos) -> None:
+def close_gripper(Arctos, robot) -> None:
     """
     Sends a command to close the robot's gripper.
 
@@ -107,6 +108,7 @@ def close_gripper(Arctos) -> None:
         Exception: If the gripper command fails, an exception may be raised by the controller.
     """
     Arctos.close_gripper()
+    robot.close_gripper()
     ui.notify("✅ Gripper closed.")
 
 # ------------------------------
