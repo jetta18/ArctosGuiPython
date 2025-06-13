@@ -1,15 +1,12 @@
 import os
-import time
 import pinocchio as pin
 import numpy as np
-import threading
 import logging
 from pink.tasks import FrameTask
 from pink.limits.configuration_limit import ConfigurationLimit
 from pink.limits.velocity_limit import VelocityLimit
 from pink import solve_ik, Configuration
 from scipy.spatial.transform import Rotation as R
-import qpsolvers
 from robomeshcat import Scene, Robot
 
 
@@ -155,36 +152,10 @@ class ArctosPinocchioRobot:
 
         return True
 
-    def instant_display_state(self, q: np.ndarray = None) -> None:
-        """
-        Updates and displays the robot's state in RoboMeshCat based on the provided or current joint configuration.
-        
-        Args:
-            q (np.ndarray, optional): Joint configuration to display. If None, uses the current state `self.q`.
-        
-        Raises:
-            TypeError: If the provided joint configuration is not a NumPy array.
-            ValueError: If joint limits are exceeded.
-        """
-        if q is None:
-            q = self.q
-
-        if not isinstance(q, np.ndarray):
-            raise TypeError("❌ Joint configuration must be a NumPy array.")
-
-        if not self.check_joint_limits(q):
-            raise ValueError("❌ Cannot display! Joint limits exceeded.")
-
-        self.robot[:] = q
-        self.scene.render()
-
-        self.q = q  # Update internal state
-        self.update_end_effector_position()
-        self.update_end_effector_orientation()
-        logger.debug("✅ Robot state updated and displayed.")
 
 
-    def display(self, q: np.ndarray = None):
+
+    def display(self, q: np.ndarray = None) -> None:
         """Displays the robot in the RoboMeshCat scene with a given joint configuration.
 
         This method updates the robot's joint positions in the RoboMeshCat visualization to match the
@@ -194,30 +165,42 @@ class ArctosPinocchioRobot:
             q (np.ndarray, optional): The joint configuration to display. If None, uses the current state `self.q`. Defaults to None.
 
         Raises:
+            TypeError: If the provided joint configuration is not a NumPy array.
             ValueError: If the provided joint configuration exceeds the joint limits.
         """
         if q is None:
             q = self.q
+            
+        if not isinstance(q, np.ndarray):
+            raise TypeError("❌ Joint configuration must be a NumPy array.")
+            
         if not self.check_joint_limits(q):
             raise ValueError("❌ Cannot display! Joint limits exceeded.")
-        self.q = q
+            
+        self.q = q  # Update internal state
         self.robot[:] = q
         self.scene.render()
         self.update_end_effector_position()
         self.update_end_effector_orientation()
+        logger.debug("✅ Robot state updated and displayed.")
     
     
     
     
-    def animate_display(self, q_target: np.ndarray, duration: float = 2.0, steps: int = 50) -> None:
-        """
-        Animates the robot's motion using RoboMeshCat's built-in animation system.
+    def set_joint_angles_animated(self, q_target: np.ndarray, duration: float = 1.5, steps: int = 15) -> None:
+        """Sets the joint angles to a target configuration with animation.
+
+        This method animates the robot's movement to the target joint configuration over a specified duration
+        using RoboMeshCat's built-in animation system.
 
         Args:
             q_target (np.ndarray): Target joint configuration for the animation.
-            duration (float, optional): Duration of the animation in seconds. Defaults to 2.0.
-            steps (int, optional): Number of steps in the animation. Defaults to 50.
+            duration (float, optional): Duration of the animation in seconds. Defaults to 1.5.
+            steps (int, optional): Number of steps in the animation. Defaults to 15.
         """
+        if not isinstance(q_target, np.ndarray):
+            raise TypeError("❌ Joint configuration must be a NumPy array.")
+            
         q_start = self.q.copy()
         trajectory = [(1 - t / steps) * q_start + (t / steps) * q_target for t in range(steps + 1)]
         
@@ -229,25 +212,10 @@ class ArctosPinocchioRobot:
                 self.q = q
                 self.scene.render()
 
+        # Ensure final state is updated
+        self.q = q_target
         self.update_end_effector_position()
         self.update_end_effector_orientation()
-
-    
-    def set_joint_angles_animated(self, q_target, duration=1.5, steps=15):
-        """Sets the joint angles to a target configuration with animation.
-
-        This method animates the robot's movement to the target joint configuration over a specified duration.
-
-        Args:
-            q_target (np.ndarray): The target joint configuration.
-            duration (float, optional): The duration of the animation in seconds. Defaults to 1.0.
-            steps (int, optional): The number of steps in the animation. Defaults to 50.
-        """
-
-        #start the animation in a new thread
-        self.animate_display(q_target, duration, steps)
-        # Set the angles direct
-        self.q = q_target  # Set joint angles directly, but animate in display
 
 
     def update_end_effector_orientation(self) -> None:
@@ -403,7 +371,7 @@ class ArctosPinocchioRobot:
                     configuration,
                     tasks=[task],
                     dt=dt,
-                    solver="osqp",  # Preferred solver
+                    solver="cvxopt",  # Preferred solver
                     damping=damping,
                     limits=limits,
                     safety_break=True

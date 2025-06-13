@@ -23,7 +23,6 @@ def visualization_keyboard(robot, Arctos, step_size_slider=None, settings_manage
         robot: The robot instance used for retrieving and setting end-effector positions and orientations.
         Arctos: The main robot control interface or object responsible for executing movement commands.
         step_size_slider: Optional UI slider component for controlling the step size of position movements.
-        on_switch: Optional callback function triggered when the keyboard control switch is toggled.
         settings_manager: Optional settings manager for accessing user preferences, particularly related to sending commands
                           to the robot hardware.
 
@@ -81,7 +80,7 @@ def visualization_keyboard(robot, Arctos, step_size_slider=None, settings_manage
                 current_rpy[idx] += sign * orientation_step
         try:
             q_solution = robot.inverse_kinematics_pink(current_pos, current_rpy)
-            robot.instant_display_state(q_solution)
+            robot.display(q_solution)
         except Exception as ex:
             ui.notify(f"IK failed: {ex}", color="red")
 
@@ -223,6 +222,4 @@ def visualization_keyboard(robot, Arctos, step_size_slider=None, settings_manage
                 ui.notify('Keyboard control activated', type='positive', close_button=True, timeout=1500)
             else:
                 ui.notify('Keyboard control deactivated', type='negative', close_button=True, timeout=1500)
-            if on_switch:
-                on_switch(val)
 
