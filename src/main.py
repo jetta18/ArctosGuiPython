@@ -14,6 +14,7 @@ from pages.control import ctrl_page
 from components.menu import create_menu
 from core.ArctosController import ArctosController
 from core.PathPlanner import PathPlanner
+from core.TrajectoryPlanner import TrajectoryPlanner
 from core.CanBusManager import CanBusManager
 from core.ArctosPinocchio import ArctosPinocchioRobot  # Import for robot kinematics
 from utils.settings_manager import SettingsManager  # Import to manage settings
@@ -36,6 +37,8 @@ try:
     logger.info("🦾 Arctos Pinocchio Robot initialized")
     planner = PathPlanner()  # Initialize the path planner
     logger.info("🗺️ Path Planner initialized")
+    trajectory_planner = TrajectoryPlanner(robot, Arctos)  # Initialize the trajectory planner
+    logger.info("trajectory_planner initialized")
 except Exception as e:
     logger.error(f"❌ Error initializing core components: {e}")
     raise
@@ -62,7 +65,7 @@ def control_page():
     This page allows to control the robot.
     """
     create_menu()
-    ctrl_page.create(Arctos, robot, planner, settings_manager)
+    ctrl_page.create(Arctos, robot, planner, settings_manager, trajectory_planner)
 
 @ui.page('/settings')
 def settings_page():

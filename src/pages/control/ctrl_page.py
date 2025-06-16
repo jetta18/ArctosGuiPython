@@ -11,7 +11,7 @@ from .visualization_keyboard import visualization_keyboard
 from .live_joint_states import live_joint_states
 from utils import utils
 
-def create(Arctos, robot, planner, settings_manager):
+def create(Arctos, robot, planner, settings_manager, trajectory_planner):
     """Assembles the complete control page by composing modular sections.
 
     Args:
@@ -19,6 +19,7 @@ def create(Arctos, robot, planner, settings_manager):
         robot: The robot instance for which the control page is being generated.
         planner: The path planning module or object.
         settings_manager: The settings manager for user preferences and state.
+        trajectory_planner: The trajectory planner module or object.
 
     Returns:
         None. The function builds the UI directly using NiceGUI components.
