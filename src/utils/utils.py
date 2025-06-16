@@ -3,13 +3,12 @@ This module provides a collection of utility functions used throughout the Arcto
 These functions handle tasks such as saving, loading, and executing robot poses and programs, 
 controlling the robot's gripper, and updating UI elements.
 """
-import time
 import numpy as np
 from nicegui import ui
-import threading
-import time
 import logging
 from threading import Thread
+import asyncio  # Make sure asyncio is imported
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -138,24 +137,7 @@ def update_joint_states(robot, joint_positions):
         for i in range(6):
             joint_positions[i].set_text(f"Joint {i+1}: {np.degrees(robot.q[i]):.2f}°")  # Umrechnung in Grad
 
-def update_joint_states_encoder(robot, joint_positions_encoder):
-    """
-    Updates the UI labels with the robot's encoder joint positions (in degrees).
 
-    Args:
-        robot: The robot instance containing the encoder joint state (robot.q_encoder).
-        joint_positions_encoder (list): List of UI label elements to update with encoder joint values.
-
-    Returns:
-        None
-
-    Raises:
-        AttributeError: If robot.q_encoder is not available or not iterable.
-        Exception: For any unexpected UI or robot errors.
-    """
-    if robot:  # Ensure `robot` is initialized
-        for i in range(6):
-            joint_positions_encoder[i].set_text(f"{np.degrees(robot.q_encoder[i]):.2f}°")  # Convert to degrees
 
 def live_update_ee_postion(robot, ee_position_labels):
     """
@@ -362,55 +344,73 @@ def reset_to_zero_position(robot):
     else:
         ui.notify("⚠️ Robot instance not found!", type="warning")
 
+# Synchronous helper for processing joint states
+def _process_joint_states(robot, current_joint_states, settings_manager):
+    """
+    Processes the raw joint states and updates the robot model.
+    This is a synchronous helper containing the core calculation logic.
+    Returns True on success, False on failure (e.g., bad data).
+    """
+    if current_joint_states is None:
+        # print("Warning (_process_joint_states): No joint states received.")
+        return False
+    # Ensure we have enough data. Assuming 6 joints for A0-A5.
+    if len(current_joint_states) < 6:
+        # print(f"Warning (_process_joint_states): Insufficient joint states ({len(current_joint_states)}). Expected at least 6.")
+        return False
 
-def initialize_current_joint_states(robot, Arctos, settings_manager):
-    """
-    Read and initialize the robot's current joint states.
-    This function reads the current joint angles from the robot's encoders and updates the 3D model correctly.
-    """
-    current_joint_states = Arctos.get_joint_angles()
     coupled_mode = settings_manager.get("coupled_axis_mode", False)
-    # Extract joint angles for calculation
+    
+    # Direct assignment for the first four joints
+    j0, j1, j2, j3 = current_joint_states[0], current_joint_states[1], current_joint_states[2], current_joint_states[3]
+    
+    # Calculation for coupled or non-coupled axes 4 and 5
     if coupled_mode:
-        a4 = (current_joint_states[4] + current_joint_states[5]) / 2  # Reverse B-axis formula
-        a5 = (current_joint_states[4] - current_joint_states[5]) / 2  # Reverse C-axis formula
+        # These are the "motor" angles for the coupled axes B (J4) and C (J5)
+        motor_j4 = current_joint_states[4] 
+        motor_j5 = current_joint_states[5]
+        # Convert back to "articulation" angles a4 and a5
+        a4 = (motor_j4 + motor_j5) / 2  # Articulation B-axis (robot.q[4])
+        a5 = (motor_j4 - motor_j5) / 2  # Articulation C-axis (robot.q[5])
     else:
         a4 = current_joint_states[4]
         a5 = current_joint_states[5]
-    # Assign the corrected values to the robot state
-    robot.q_encoder[:6] = [
-        current_joint_states[0],  # A0
-        current_joint_states[1],  # A1
-        current_joint_states[2],  # A2
-        current_joint_states[3],  # A3 remains unchanged
-        a4,  # Corrected A4 based on B-axis calculations
-        a5   # Corrected A5 based on C-axis calculations
-    ]
+    
+    # Assign the corrected values to the robot state's encoder values
+    robot.q_encoder[:6] = [j0, j1, j2, j3, a4, a5]
+    return True
 
-def threaded_initialize_current_joint_states(robot, Arctos, settings_manager):
+# Lock to prevent overlapping updates, ensuring stability at high frequencies
+_update_lock = asyncio.Lock()
+
+async def update_robot_joint_states_async(robot, Arctos, settings_manager, joint_positions_encoder=None):
     """
-    Update the robot's joint states in a separate thread.
-
-    Starts a daemon thread to update the robot's joint states using the provided
-    robot and controller interface. This prevents the UI from freezing during
-    potentially time-consuming operations.
-
-    Args:
-        robot: The robot instance to be updated.
-        Arctos: The robot controller interface.
-
-    Returns:
-        None
-
-    Raises:
-        Exception: If updating the joint states fails, prints the error message.
+    Asynchronously fetches robot joint states and updates the UI.
+    Uses a lock to prevent overlapping calls and run_in_executor for blocking hardware calls.
+    If UI elements are provided, it updates them directly for maximum responsiveness.
     """
-    def task():
+    if _update_lock.locked():
+        # Another update is already in progress, skip this cycle to avoid stacking up requests.
+        return
+
+    async with _update_lock:
+        loop = asyncio.get_event_loop()
         try:
-            initialize_current_joint_states(robot, Arctos, settings_manager)
+            # Fetch hardware data
+            current_joint_states = await loop.run_in_executor(None, Arctos.get_joint_angles)
+            
+            # Process data and update internal model
+            success = _process_joint_states(robot, current_joint_states, settings_manager)
+
+            # If successful and UI elements are provided, update them immediately
+            if success and joint_positions_encoder is not None:
+                for i in range(6):
+                    # Update UI label with the new encoder value, converted to degrees
+                    joint_positions_encoder[i].set_text(f"{np.degrees(robot.q_encoder[i]):.2f}°")
+
         except Exception as e:
-            print(f"Error updating joint states: {e}")
-    Thread(target=task, daemon=True).start()
+            print(f"Error in update_robot_joint_states_async: {e}")
+
 
 # Global scaling variable for speed
 speed_scale = 1.0

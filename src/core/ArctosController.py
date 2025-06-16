@@ -276,26 +276,50 @@ class ArctosController:
             logger.warning(f"Error reading encoder for Axis {i}: {e}")
             return 0
 
+    def _read_and_convert_angle(self, i: int, servo) -> float:
+        """
+        Helper function for parallel execution. Reads a single servo's encoder value
+        and converts it to an angle in radians.
+        """
+        encoder_value = self._read_encoder_with_fallback(i, servo)
+        return self.encoder_to_angle(encoder_value, i)
+
     def get_joint_angles(self) -> List[float]:
         """
-        Retrieves the current joint angles of the robot.
+        Retrieves the current joint angles of the robot by reading all servos in parallel.
 
-        This method reads the current joint angles from the encoder values of each servo motor
-        in a serial manner to reduce CAN bus contention and improve reliability.
-
-        If reading fails, the corresponding joint angle is set to 0 and a warning is logged.
+        This method uses a thread pool to read the encoder values from all servos concurrently,
+        significantly speeding up the process compared to a serial approach.
 
         Returns:
             list[float]: A list containing the current joint angles in radians.
+                         The list is ordered by joint index.
         """
-        current_joint_angle = []
-        for i, servo in enumerate(self.servos):
-            encoder_value = self._read_encoder_with_fallback(i, servo)
-            angle_rad = self.encoder_to_angle(encoder_value, i)
-            current_joint_angle.append(angle_rad)
-            logger.debug(f"Axis {i}: Encoder = {encoder_value}, Angle = {angle_rad:.4f} rad")
+        angles_rad = [0.0] * len(self.servos)  # Pre-allocate list for results
 
-        return current_joint_angle
+        # Use a ThreadPoolExecutor to read from all servos in parallel.
+        # max_workers is set to the number of servos to ensure all reads start concurrently.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.servos)) as executor:
+            # Map each future to its corresponding joint index
+            future_to_index = {
+                executor.submit(self._read_and_convert_angle, i, servo): i
+                for i, servo in enumerate(self.servos)
+            }
+
+            for future in concurrent.futures.as_completed(future_to_index):
+                index = future_to_index[future]
+                try:
+                    # Store the result in the correct position in the list
+                    angles_rad[index] = future.result()
+                except Exception as exc:
+                    logger.error(f'Reading joint {index} generated an exception: {exc}')
+                    # The angle will remain 0.0 as pre-allocated
+
+        if logger.isEnabledFor(logging.DEBUG):
+            formatted_angles = ", ".join([f"{angle:.4f}" for angle in angles_rad])
+            logger.debug(f"Get Joint Angles (rad): [{formatted_angles}]")
+
+        return angles_rad
 
 
     def send_can_message_gripper(self, bus: can.Bus, arbitration_id: int, data: List[int]) -> None:  

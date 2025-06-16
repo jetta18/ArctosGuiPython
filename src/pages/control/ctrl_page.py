@@ -100,5 +100,5 @@ def create(Arctos, robot, planner, settings_manager, trajectory_planner):
     ui.timer(0.25, lambda: utils.live_update_ee_postion(robot, ee_position_labels))
     ui.timer(0.25, lambda: utils.live_update_ee_orientation(robot, ee_orientation_labels))
     if settings_manager.get("enable_live_joint_updates", True):
-        ui.timer(0.2, lambda: utils.threaded_initialize_current_joint_states(robot, Arctos, settings_manager))
-        ui.timer(0.2, lambda: utils.update_joint_states_encoder(robot, joint_positions_encoder))
+        # A single timer now handles both fetching hardware data and updating the UI for maximum efficiency.
+        ui.timer(0.02, lambda: utils.update_robot_joint_states_async(robot, Arctos, settings_manager, joint_positions_encoder))

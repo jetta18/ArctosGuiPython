@@ -39,6 +39,6 @@ joint_speeds:
 keyboard_send_to_robot: false
 language: English
 max_fps: 30
-speed_scale: 1.0
+speed_scale: 0.1
 theme: Light
 ui_color_theme: Blue
